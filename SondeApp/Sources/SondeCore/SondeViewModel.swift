@@ -78,14 +78,15 @@ public final class SondeViewModel: ObservableObject {
             if paceTier != newTier { paceTier = newTier }
         }
 
-        let sessionCount = sessions.count
-        if activeSessions.count != sessionCount { activeSessions = sessions }
+        if activeSessions != sessions { activeSessions = sessions }
 
-        // Fire notifications on threshold crossings
-        NotificationManager.shared.checkAndNotify(
-            fiveHourUtil: newFiveHourUtil,
-            sevenDayUtil: newSevenDayUtil
-        )
+        // Fire notifications only when values changed
+        if fiveHourUtil != newFiveHourUtil || sevenDayUtil != newSevenDayUtil {
+            NotificationManager.shared.checkAndNotify(
+                fiveHourUtil: newFiveHourUtil,
+                sevenDayUtil: newSevenDayUtil
+            )
+        }
 
         if isLoading { isLoading = false }
     }

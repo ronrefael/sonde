@@ -3,7 +3,9 @@ import UserNotifications
 
 /// Manages usage threshold notifications.
 /// Fires once per threshold crossing, resets when usage drops back down.
-public final class NotificationManager: NSObject, @unchecked Sendable {
+/// All mutable state accessed only from @MainActor callers.
+@MainActor
+public final class NotificationManager {
     public static let shared = NotificationManager()
 
     private var fiveHourNotified: Set<Threshold> = []
@@ -15,16 +17,10 @@ public final class NotificationManager: NSObject, @unchecked Sendable {
         case danger = 90.0
     }
 
-    private override init() {
-        super.init()
-    }
+    private init() {}
 
     public func requestPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
-            if granted {
-                UNUserNotificationCenter.current().delegate = self
-            }
-        }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
     /// Check usage and fire notifications if thresholds crossed.
@@ -72,14 +68,5 @@ public final class NotificationManager: NSObject, @unchecked Sendable {
         )
 
         UNUserNotificationCenter.current().add(request)
-    }
-}
-
-extension NotificationManager: UNUserNotificationCenterDelegate {
-    public func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
     }
 }
