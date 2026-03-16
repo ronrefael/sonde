@@ -1,19 +1,47 @@
 ---
-name: sonde Phase 1 complete
-description: Phase 1 Rust statusline binary is built and working with all 8 modules, live API integration, TOML config, and 41 passing tests
+name: sonde project status — all phases complete
+description: Full project status after marathon build session — 34 commits, 85+ files, ~13K lines across Rust + Swift
 type: project
 ---
 
-Phase 1 of sonde (Rust statusline binary) was built from scratch on 2026-03-16.
+## Project Status (2026-03-16)
 
-**Why:** Ron wanted a unified AI usage monitoring tool for Claude Code + Codex that sits in the terminal statusline with promo awareness, pacing, and combined spend tracking.
+sonde is feature-complete with Rust statusline (13 modules) + macOS menu bar app (SwiftUI).
 
-**How to apply:** The binary is fully functional. All 8 modules render correctly. Live API calls work (OAuth usage + PromoClock). Next steps would be Phase 2 (Swift macOS menu bar app) or enhancements to Phase 1 (more modules, install script, CI/CD, README polish).
+### Architecture
+- **Rust binary** (`src/`): 13 render modules, reads Claude Code stdin JSON, writes session cache
+- **Swift app** (`SondeApp/`): Menu bar popover dashboard, floating watcher, toast notifications
+- **Bidirectional cache**: Swift polls OAuth API → writes `~/Library/Caches/sonde/usage_limits.json` → Rust reads it. Rust writes `session_data.json` → Swift reads it.
+- **Self-sufficient**: Swift app works without Claude Code running (polls API directly)
 
-Key facts:
-- 41 unit tests all pass
-- Release binary is 2.6 MB (stripped, LTO)
-- Runs in ~200ms (dominated by API calls; cached runs will be faster)
-- Live PromoClock API integration confirmed working
-- Live OAuth usage API integration confirmed working (token from macOS Keychain)
-- ureq v2 API (not v3) is what's in Cargo.toml
+### Features built
+- 13 Rust statusline modules (model, cost, context, usage, promo, pacing, codex, git, sessions, etc.)
+- Compact popover dashboard (no scrolling, 320x400)
+- Per-project drill-down with per-task token usage
+- Historical usage chart (14-day bar chart)
+- Budget limits with alerts
+- Export to JSON
+- Floating agent watcher window
+- Dynamic Island-style toast notifications
+- Promo countdown + scheduling intelligence
+- Session stats (lines changed, cache hits, velocity, cost/line, web searches)
+- Multi-worktree aggregate tracking
+- Menu bar icon customization (5 styles)
+- Auto-update checker (GitHub releases)
+- Launch at Login
+- .app bundle with entitlements + DMG packaging
+
+### Distribution
+- GitHub Actions CI (Rust test/clippy/fmt + Swift build)
+- Release workflow (4 platform binaries + DMG on tag push)
+- Homebrew tap at `ronrefael/homebrew-tap`
+- Install script (`curl | bash`)
+- v0.1.0 tagged (release workflow may need re-run after fmt fix)
+
+### Remaining
+- Publish to crates.io (needs `cargo login`)
+- README screenshots
+- WidgetKit desktop widgets (needs Xcode project)
+- Multi-provider support (OpenAI, Google)
+- Code signing + notarization for DMG
+- App icon (currently SF Symbol)
