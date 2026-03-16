@@ -5,6 +5,13 @@ import SwiftUI
 struct SondeMenuBarApp: App {
     @StateObject private var viewModel = SondeViewModel()
 
+    init() {
+        // Wire toast notifications from SondeCore into the app-layer ToastManager
+        NotificationManager.shared.toastHandler = { message, icon in
+            ToastManager.shared.show(message: message, icon: icon)
+        }
+    }
+
     var body: some Scene {
         MenuBarExtra {
             PopoverView(viewModel: viewModel)
