@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import SwiftUI
 
 /// Main view model that aggregates all data sources.
 @MainActor
@@ -49,6 +50,16 @@ public final class SondeViewModel: ObservableObject {
     // Usage history (sparkline)
     @Published public var usageHistory: [Double] = []
 
+    // Update
+    @Published public var updateAvailable: String?
+
+    // Budget
+    @AppStorage("dailyBudget") public var dailyBudget: Double = 0
+    @Published public var budgetExceeded: Bool = false
+
+    // Usage history (daily chart)
+    @Published public var dailyHistory: [DailySnapshot] = []
+
     // State
     @Published public var isLoading: Bool = true
 
@@ -58,9 +69,12 @@ public final class SondeViewModel: ObservableObject {
     private let sessionReader = SessionReader()
     private let codexCostReader = CodexCostReader()
     private let dailySpendTracker = DailySpendTracker()
+    private let updateChecker = UpdateChecker()
+    private let usageHistoryTracker = UsageHistoryTracker()
     private var pollTimer: Timer?
     private var sessionTimer: Timer?
     private var sessionStartTime: Date?
+    private var hasCheckedForUpdate = false
 
     public init() {
         NotificationManager.shared.requestPermission()
@@ -108,6 +122,59 @@ public final class SondeViewModel: ObservableObject {
                 if self.liveSessionDuration != new { self.liveSessionDuration = new }
             }
         }
+    }
+
+    /// Build a JSON string summarising current usage data for export.
+    public func exportJSONString() -> String {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+
+        var dict: [String: Any] = [:]
+
+        // Current session
+        var sessionDict: [String: Any] = [:]
+        sessionDict["model"] = session.modelName ?? "unknown"
+        sessionDict["cost"] = session.sessionCost ?? 0
+        sessionDict["duration"] = liveSessionDuration
+        sessionDict["context_tokens_used"] = session.contextTokensUsed
+        sessionDict["context_window_size"] = session.contextWindowSize ?? 0
+        sessionDict["context_used_pct"] = session.contextUsedPct ?? 0
+        dict["current_session"] = sessionDict
+
+        // Usage limits
+        var limits: [String: Any] = [:]
+        limits["five_hour_pct"] = fiveHourUtil ?? 0
+        limits["seven_day_pct"] = sevenDayUtil ?? 0
+        limits["five_hour_reset"] = fiveHourReset ?? ""
+        limits["seven_day_reset"] = sevenDayReset ?? ""
+        dict["usage_limits"] = limits
+
+        // Daily spend
+        var daily: [String: Any] = [:]
+        daily["claude"] = dailyClaudeCost
+        daily["codex"] = dailyCodexCost
+        daily["total"] = dailyClaudeCost + dailyCodexCost
+        dict["daily_spend"] = daily
+
+        // Promo
+        var promo: [String: Any] = [:]
+        promo["active"] = promoActive
+        promo["label"] = promoLabel
+        promo["emoji"] = promoEmoji
+        dict["promo"] = promo
+
+        // Sessions
+        dict["active_sessions_count"] = activeSessions.count
+
+        // Timestamp
+        dict["exported_at"] = iso.string(from: Date())
+
+        guard let data = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted, .sortedKeys]),
+              let str = String(data: data, encoding: .utf8)
+        else {
+            return "{}"
+        }
+        return str
     }
 
     public func refresh() async {
@@ -182,9 +249,30 @@ public final class SondeViewModel: ObservableObject {
         if dailyClaudeCost != daily.claude { dailyClaudeCost = daily.claude }
         if dailyCodexCost != daily.codex { dailyCodexCost = daily.codex }
 
-        // Live session timer
+        // Budget check
+        let totalSpend = daily.claude + daily.codex
+        let exceeded = dailyBudget > 0 && totalSpend >= dailyBudget
+        if budgetExceeded != exceeded { budgetExceeded = exceeded }
+        if exceeded {
+            NotificationManager.shared.checkBudget(total: totalSpend, budget: dailyBudget)
+        }
+
+        // Usage history tracking (daily chart)
+        usageHistoryTracker.record(
+            fiveHour: newFiveHourUtil,
+            sevenDay: newSevenDayUtil,
+            cost: totalSpend
+        )
+        let newHistory = usageHistoryTracker.getHistory()
+        if dailyHistory != newHistory { dailyHistory = newHistory }
+
+        // Live session timer — derive start time from session duration
         if newSession.modelName != nil && sessionStartTime == nil {
-            sessionStartTime = Date()
+            if let durationMs = newSession.sessionDurationMs, durationMs > 0 {
+                sessionStartTime = Date().addingTimeInterval(-Double(durationMs) / 1000.0)
+            } else {
+                sessionStartTime = Date()
+            }
             startSessionTimer()
         }
 
@@ -193,6 +281,16 @@ public final class SondeViewModel: ObservableObject {
                 fiveHourUtil: newFiveHourUtil,
                 sevenDayUtil: newSevenDayUtil
             )
+        }
+
+        // Check for updates on first refresh only
+        if !hasCheckedForUpdate {
+            hasCheckedForUpdate = true
+            Task {
+                if let result = await updateChecker.check(), result.available {
+                    self.updateAvailable = result.latestVersion
+                }
+            }
         }
 
         if isLoading { isLoading = false }

@@ -1,11 +1,14 @@
 import ServiceManagement
 import SondeCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The popover dashboard shown when clicking the menu bar icon.
 struct PopoverView: View {
     @ObservedObject var viewModel: SondeViewModel
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
+    @State private var showBudgetSheet: Bool = false
+    @State private var budgetInput: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -63,6 +66,22 @@ struct PopoverView: View {
                 .foregroundStyle(.blue)
             Text("sonde")
                 .font(.headline)
+            if let version = viewModel.updateAvailable {
+                Button {
+                    if let url = URL(string: "https://github.com/ronrefael/sonde/releases/latest") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    Text("v\(version) available")
+                        .font(.caption2)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.blue)
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.borderless)
+            }
             Spacer()
             if !viewModel.promoEmoji.isEmpty {
                 VStack(alignment: .trailing, spacing: 2) {
@@ -228,9 +247,50 @@ struct PopoverView: View {
 
     private var dailySpendSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Today's Spend")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack {
+                Text("Today's Spend")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    budgetInput = viewModel.dailyBudget > 0 ? String(format: "%.0f", viewModel.dailyBudget) : ""
+                    showBudgetSheet = true
+                } label: {
+                    Text("Set budget")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.borderless)
+                .popover(isPresented: $showBudgetSheet, arrowEdge: .trailing) {
+                    VStack(spacing: 8) {
+                        Text("Daily Budget")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                        TextField("Amount ($)", text: $budgetInput)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 120)
+                        HStack(spacing: 8) {
+                            if viewModel.dailyBudget > 0 {
+                                Button("Clear") {
+                                    viewModel.dailyBudget = 0
+                                    showBudgetSheet = false
+                                }
+                                .font(.caption)
+                            }
+                            Button("Save") {
+                                if let val = Double(budgetInput), val > 0 {
+                                    viewModel.dailyBudget = val
+                                }
+                                showBudgetSheet = false
+                            }
+                            .font(.caption)
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+                    }
+                    .padding(12)
+                }
+            }
 
             HStack(spacing: 12) {
                 Label(String(format: "$%.2f", viewModel.dailyClaudeCost), systemImage: "brain")
@@ -244,10 +304,22 @@ struct PopoverView: View {
                 Spacer()
 
                 let total = viewModel.dailyClaudeCost + viewModel.dailyCodexCost
-                Text(String(format: "Total $%.2f", total))
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(total >= 10 ? .red : total >= 5 ? .orange : .primary)
+                if viewModel.budgetExceeded {
+                    HStack(spacing: 3) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                            .font(.caption)
+                        Text(String(format: "Total $%.2f", total))
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.red)
+                    }
+                } else {
+                    Text(String(format: "Total $%.2f", total))
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(total >= 10 ? .red : total >= 5 ? .orange : .primary)
+                }
             }
 
             // Per-project cost breakdown from active worktrees
@@ -481,37 +553,57 @@ struct PopoverView: View {
     // MARK: - Footer
 
     private var footerSection: some View {
-        HStack {
-            Button {
-                Task { await viewModel.refresh() }
-            } label: {
-                Label("Refresh", systemImage: "arrow.clockwise")
-                    .font(.caption)
+        VStack(spacing: 0) {
+            if viewModel.dailyBudget > 0 {
+                HStack {
+                    Spacer()
+                    Text(String(format: "Budget: $%.0f", viewModel.dailyBudget))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.top, 4)
             }
-            .buttonStyle(.borderless)
+            HStack {
+                Button {
+                    Task { await viewModel.refresh() }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
 
-            Spacer()
+                Button {
+                    exportUsageData()
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
 
-            Toggle(isOn: $launchAtLogin) {
-                Text("Login")
-                    .font(.caption2)
+                Spacer()
+
+                Toggle(isOn: $launchAtLogin) {
+                    Text("Login")
+                        .font(.caption2)
+                }
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .onChange(of: launchAtLogin) { newValue in
+                    setLaunchAtLogin(newValue)
+                }
+
+                Spacer()
+
+                Button("Quit") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
             }
-            .toggleStyle(.switch)
-            .controlSize(.mini)
-            .onChange(of: launchAtLogin) { newValue in
-                setLaunchAtLogin(newValue)
-            }
-
-            Spacer()
-
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
-            }
-            .buttonStyle(.borderless)
-            .font(.caption)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
@@ -526,6 +618,23 @@ struct PopoverView: View {
             } catch {
                 launchAtLogin = !enabled
             }
+        }
+    }
+
+    private func exportUsageData() {
+        let json = viewModel.exportJSONString()
+
+        let panel = NSSavePanel()
+        let dateStr = ISO8601DateFormatter.string(from: Date(), timeZone: .current, formatOptions: [.withFullDate, .withDashSeparatorInDate])
+        panel.nameFieldStringValue = "sonde-export-\(dateStr).json"
+        panel.allowedContentTypes = [.json]
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            try json.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            NSAlert(error: error).runModal()
         }
     }
 }

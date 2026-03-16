@@ -10,6 +10,8 @@ public final class NotificationManager {
     private var fiveHourNotified: Set<Threshold> = []
     private var sevenDayNotified: Set<Threshold> = []
     private var hasPermission = false
+    private var budgetNotifiedToday: Bool = false
+    private var budgetNotifiedDate: Date?
 
     enum Threshold: Double, CaseIterable, Hashable {
         case warning = 60.0
@@ -40,6 +42,33 @@ public final class NotificationManager {
         if let sd = sevenDayUtil {
             checkThresholds(utilization: sd, window: "7-day", notified: &sevenDayNotified)
         }
+    }
+
+    /// Check if daily budget is exceeded and fire a notification (once per day).
+    public func checkBudget(total: Double, budget: Double) {
+        guard hasPermission, budget > 0, total >= budget else { return }
+
+        // Reset flag on new calendar day
+        let today = Calendar.current.startOfDay(for: Date())
+        if let lastDate = budgetNotifiedDate, lastDate < today {
+            budgetNotifiedToday = false
+        }
+
+        guard !budgetNotifiedToday else { return }
+        budgetNotifiedToday = true
+        budgetNotifiedDate = today
+
+        let content = UNMutableNotificationContent()
+        content.title = "sonde: Daily budget exceeded"
+        content.body = String(format: "You've spent $%.2f today (budget: $%.2f).", total, budget)
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "sonde.budget.\(today.timeIntervalSince1970)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
     }
 
     private func checkThresholds(utilization: Double, window: String, notified: inout Set<Threshold>) {

@@ -5,11 +5,6 @@ import SwiftUI
 struct SondeMenuBarApp: App {
     @StateObject private var viewModel = SondeViewModel()
 
-    // NOTE: MenuBarExtra does not support .keyboardShortcut() as of macOS 14.
-    // A global keyboard shortcut (e.g. Cmd+Shift+S) to toggle the popover would
-    // require either NSEvent.addGlobalMonitorForEvents or registering a global
-    // hotkey via Carbon/HIDKit, which is beyond MenuBarExtra's built-in API.
-    // Consider adding a global hotkey listener in a future version.
     var body: some Scene {
         MenuBarExtra {
             PopoverView(viewModel: viewModel)
@@ -20,24 +15,44 @@ struct SondeMenuBarApp: App {
     }
 }
 
+/// Menu bar display style.
+enum MenuBarStyle: String, CaseIterable {
+    case emojiPercent = "Emoji + %"
+    case emojiCost = "Emoji + Cost"
+    case percentOnly = "% Only"
+    case costOnly = "Cost Only"
+    case emojiPercentCost = "All"
+}
+
 /// The tiny label shown in the menu bar.
 struct MenuBarLabel: View {
     @ObservedObject var viewModel: SondeViewModel
+    @AppStorage("menuBarStyle") private var style: String = MenuBarStyle.emojiPercentCost.rawValue
 
     var body: some View {
         HStack(spacing: 4) {
             if viewModel.isLoading {
                 Text("sonde")
             } else {
-                Text(viewModel.paceTier.emoji)
-                if let util = viewModel.fiveHourUtil {
-                    Text("\(Int(util))%")
-                        .monospacedDigit()
+                let s = MenuBarStyle(rawValue: style) ?? .emojiPercentCost
+
+                if s == .emojiPercent || s == .emojiCost || s == .emojiPercentCost {
+                    Text(viewModel.paceTier.emoji)
                 }
-                if let cost = viewModel.session.sessionCost {
-                    Text("$\(String(format: "%.2f", cost))")
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+
+                if s == .emojiPercent || s == .percentOnly || s == .emojiPercentCost {
+                    if let util = viewModel.fiveHourUtil {
+                        Text("\(Int(util))%")
+                            .monospacedDigit()
+                    }
+                }
+
+                if s == .emojiCost || s == .costOnly || s == .emojiPercentCost {
+                    if let cost = viewModel.session.sessionCost {
+                        Text("$\(String(format: "%.2f", cost))")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
