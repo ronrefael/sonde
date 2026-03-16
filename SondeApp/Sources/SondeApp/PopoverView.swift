@@ -62,10 +62,19 @@ struct PopoverView: View {
 
     private var headerSection: some View {
         HStack {
-            Image(systemName: "waveform.path.ecg")
-                .foregroundStyle(.blue)
-            Text("sonde")
-                .font(.headline)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Image(systemName: "waveform.path.ecg")
+                        .foregroundStyle(.blue)
+                    Text("sonde")
+                        .font(.headline)
+                }
+                if let updated = viewModel.lastUpdated {
+                    Text("Updated \(relativeTime(updated))")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
             if let version = viewModel.updateAvailable {
                 Button {
                     if let url = URL(string: "https://github.com/ronrefael/sonde/releases/latest") {
@@ -526,6 +535,14 @@ struct PopoverView: View {
     // MARK: - Computed Helpers
 
     /// Minutes until 2x promo starts (nil if already active or > 30m away)
+    private func relativeTime(_ date: Date) -> String {
+        let secs = Int(Date().timeIntervalSince(date))
+        if secs < 5 { return "just now" }
+        if secs < 60 { return "\(secs)s ago" }
+        if secs < 3600 { return "\(secs / 60)m ago" }
+        return "\(secs / 3600)h ago"
+    }
+
     private var promoMinsAway: Int? {
         guard !viewModel.promoCountdown.isEmpty else { return nil }
         // Parse "Xh XXm" or "XXm" from countdown

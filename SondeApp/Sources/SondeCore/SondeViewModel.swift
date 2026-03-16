@@ -62,6 +62,7 @@ public final class SondeViewModel: ObservableObject {
 
     // State
     @Published public var isLoading: Bool = true
+    @Published public var lastUpdated: Date?
 
     private let usageService = UsageService()
     private let promoService = PromoService()
@@ -184,11 +185,14 @@ public final class SondeViewModel: ObservableObject {
         async let sessionTask = sessionReader.getSessionData()
         async let codexTask = codexCostReader.getSessionCost()
 
-        let usage = await usageTask
+        let (usage, usageTimestamp) = await usageTask
         let promo = await promoTask
         let sessions = await sessionsTask
         let newSession = await sessionTask
         let newCodexCost = await codexTask
+
+        // Last updated
+        if let ts = usageTimestamp, lastUpdated != ts { lastUpdated = ts }
 
         // Usage
         let newFiveHourUtil = usage?.fiveHour?.utilization
