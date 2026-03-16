@@ -71,14 +71,47 @@ public actor SessionReader {
             return cached
         }
 
-        let data = readFromClaudeState()
+        // Prefer Rust binary's authoritative session cache (cost, context, model)
+        var data = readFromRustSessionCache() ?? readFromClaudeState()
+
+        // Supplement with transcript data for fields Rust doesn't provide
+        let transcriptData = readFromClaudeState()
+        if data.gitBranch == nil { data.gitBranch = transcriptData.gitBranch }
+        if data.otherProjects.isEmpty { data.otherProjects = transcriptData.otherProjects }
+
         // Keep last known good data if new parse found nothing
-        // (happens mid-generation when transcript tail has incomplete entries)
         if data.modelName != nil {
             cached = data
         }
         lastRead = Date()
         return cached ?? data
+    }
+
+    /// Read authoritative session data from the Rust binary's cache.
+    /// The Rust statusline writes ~/Library/Caches/sonde/session_data.json
+    /// on every render with the exact data from Claude Code's stdin JSON.
+    private func readFromRustSessionCache() -> SessionData? {
+        guard let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        let path = cacheDir.appendingPathComponent("sonde/session_data.json")
+        guard let raw = try? Data(contentsOf: path),
+              let envelope = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+              let data = envelope["data"] as? [String: Any]
+        else {
+            return nil
+        }
+
+        var session = SessionData()
+        session.modelName = data["model_name"] as? String
+        session.sessionCost = data["session_cost"] as? Double
+        session.contextUsedPct = data["context_used_pct"] as? Double
+        session.contextWindowSize = data["context_window_size"] as? Int
+        session.totalInputTokens = data["total_input_tokens"] as? Int
+        session.totalOutputTokens = data["total_output_tokens"] as? Int
+        session.sessionDurationMs = data["session_duration_ms"] as? Int
+
+        return session.modelName != nil ? session : nil
     }
 
     /// Try to read session state from Claude Code's process or recent transcript.
@@ -151,15 +184,32 @@ public actor SessionReader {
     }
 
     /// Decode a Claude project directory name back to a readable project name.
-    /// e.g. "-Users-ron-my-project" -> "my-project"
+    /// Claude encodes absolute paths by replacing `/` with `-`, e.g.
+    /// `/Users/ron/Documents/GitHub/kav-siddur` becomes `-Users-ron-Documents-GitHub-kav-siddur`.
+    /// We cannot perfectly reverse the encoding because dashes in folder names are
+    /// indistinguishable from path separators. Instead, we look for well-known path
+    /// markers (e.g. "GitHub-", "projects-") and take the remainder as the project name,
+    /// preserving any original dashes.
     private static func decodeProjectName(_ encoded: String) -> String {
-        // Convert "-Users-foo-bar-project" back to "/Users/foo/bar-project"
-        // Strategy: the encoding replaces "/" with "-", so we decode by replacing
-        // leading "-" with "/" and subsequent "-" with "/". But since folder names
-        // can contain dashes, we take only the last path component as the display name.
-        let decoded = "/" + encoded.dropFirst().replacingOccurrences(of: "-", with: "/")
-        // Return just the last path component as a readable name
-        return URL(fileURLWithPath: decoded).lastPathComponent
+        // Known markers that typically precede the project folder name.
+        // Order matters: check more specific markers first.
+        let markers = ["GitHub-", "Projects-", "projects-", "repos-", "src-", "code-", "Developer-"]
+        for marker in markers {
+            if let range = encoded.range(of: marker, options: .caseInsensitive) {
+                let remainder = encoded[range.upperBound...]
+                if !remainder.isEmpty {
+                    return String(remainder)
+                }
+            }
+        }
+        // Fallback: return everything after the last recognized path segment.
+        // Split on "-" and take from the last capitalized segment onward,
+        // or just the last component if nothing else works.
+        let parts = encoded.drop(while: { $0 == "-" }).split(separator: "-", omittingEmptySubsequences: true)
+        if parts.count > 1 {
+            return String(parts.last!)
+        }
+        return encoded
     }
 
     /// Parse a transcript file and populate session data (model, cost, tokens, etc.).
