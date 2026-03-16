@@ -51,6 +51,19 @@ struct PopoverView: View {
                 )
             }
 
+            // Active sessions
+            if viewModel.activeSessions.count > 1 {
+                Divider()
+                HStack {
+                    Image(systemName: "terminal")
+                        .foregroundStyle(.secondary)
+                    Text("\(viewModel.activeSessions.count) Claude sessions active")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+
             Divider()
 
             // Footer

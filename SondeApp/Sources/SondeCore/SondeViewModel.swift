@@ -14,12 +14,16 @@ public final class SondeViewModel: ObservableObject {
     @Published public var promoLabel: String = ""
     @Published public var paceTier: PaceTier = .comfortable
     @Published public var isLoading: Bool = true
+    @Published public var activeSessions: [AgentSession] = []
 
     private let usageService = UsageService()
     private let promoService = PromoService()
+    private let agentWatcher = AgentWatcher()
     private var pollTimer: Timer?
 
-    public init() {}
+    public init() {
+        NotificationManager.shared.requestPermission()
+    }
 
     deinit {
         pollTimer?.invalidate()
@@ -44,9 +48,11 @@ public final class SondeViewModel: ObservableObject {
     public func refresh() async {
         async let usageTask = usageService.fetchUsage()
         async let promoTask = promoService.fetchPromo()
+        async let sessionsTask = agentWatcher.getActiveSessions()
 
         let usage = await usageTask
         let promo = await promoTask
+        let sessions = await sessionsTask
 
         // Only update @Published properties when values actually change
         let newFiveHourUtil = usage?.fiveHour?.utilization
@@ -71,6 +77,15 @@ public final class SondeViewModel: ObservableObject {
             let newTier = PaceTier.calculate(utilization: util, promoActive: newPromoActive)
             if paceTier != newTier { paceTier = newTier }
         }
+
+        let sessionCount = sessions.count
+        if activeSessions.count != sessionCount { activeSessions = sessions }
+
+        // Fire notifications on threshold crossings
+        NotificationManager.shared.checkAndNotify(
+            fiveHourUtil: newFiveHourUtil,
+            sevenDayUtil: newSevenDayUtil
+        )
 
         if isLoading { isLoading = false }
     }
