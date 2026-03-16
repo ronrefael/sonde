@@ -59,8 +59,20 @@ jobs:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}.tar.gz
 
+  macos-app:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build DMG
+        run: cd SondeApp && make dmg
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonde-macOS
+          path: SondeApp/build/Sonde.dmg
+
   release:
-    needs: build
+    needs: [build, macos-app]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -70,5 +82,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: '*.tar.gz'
+          files: |
+            *.tar.gz
+            *.dmg
           generate_release_notes: true

@@ -1,4 +1,4 @@
-.PHONY: build bundle install launch clean
+.PHONY: build bundle install launch dmg clean
 
 APP_NAME = SondeApp
 BUILD_DIR = build
@@ -52,6 +52,15 @@ install: bundle
 
 launch: bundle
 	open $(APP_BUNDLE)
+
+dmg: bundle
+	@echo "Creating DMG..."
+	rm -f $(BUILD_DIR)/Sonde.dmg
+	hdiutil create -volname "Sonde" \
+		-srcfolder $(APP_BUNDLE) \
+		-ov -format UDZO \
+		$(BUILD_DIR)/Sonde.dmg
+	@echo "DMG created at $(BUILD_DIR)/Sonde.dmg"
 
 clean:
 	swift package clean
