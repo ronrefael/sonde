@@ -1,9 +1,11 @@
+import ServiceManagement
 import SondeCore
 import SwiftUI
 
 /// The popover dashboard shown when clicking the menu bar icon.
 struct PopoverView: View {
     @ObservedObject var viewModel: SondeViewModel
+    @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -261,9 +263,15 @@ struct PopoverView: View {
 
             Spacer()
 
-            Text("v0.1.0")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            Toggle(isOn: $launchAtLogin) {
+                Text("Login")
+                    .font(.caption2)
+            }
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+            .onChange(of: launchAtLogin) { newValue in
+                setLaunchAtLogin(newValue)
+            }
 
             Spacer()
 
@@ -275,6 +283,22 @@ struct PopoverView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+    }
+
+    private func setLaunchAtLogin(_ enabled: Bool) {
+        if #available(macOS 13.0, *) {
+            let service = SMAppService.mainApp
+            do {
+                if enabled {
+                    try service.register()
+                } else {
+                    try service.unregister()
+                }
+            } catch {
+                // If registration fails, revert the toggle
+                launchAtLogin = !enabled
+            }
+        }
     }
 }
 

@@ -6,11 +6,17 @@
     <true/>
     <key>CFBundleName</key>
     <string>Sonde</string>
+    <key>CFBundleDisplayName</key>
+    <string>Sonde</string>
     <key>CFBundleIdentifier</key>
     <string>dev.sonde.app</string>
     <key>CFBundleVersion</key>
     <string>0.1.0</string>
     <key>CFBundleShortVersionString</key>
     <string>0.1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>NSUserNotificationUsageDescription</key>
+    <string>Sonde sends notifications when your Claude Code usage approaches limits.</string>
 </dict>
 </plist>
