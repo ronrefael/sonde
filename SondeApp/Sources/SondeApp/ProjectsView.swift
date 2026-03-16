@@ -229,6 +229,11 @@ struct ProjectsView: View {
                     .background(.quaternary.opacity(0.3))
                     .cornerRadius(8)
 
+                    // Session Stats
+                    if project.linesAdded != nil || project.messageCount > 0 {
+                        sessionStatsCard(for: project)
+                    }
+
                     // Last activity
                     if let activity = project.lastActivity {
                         HStack {
@@ -375,6 +380,92 @@ struct ProjectsView: View {
             }
             .frame(height: 6)
         }
+    }
+
+    // MARK: - Session Stats
+
+    private func sessionStatsCard(for project: ProjectSession) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Stats")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 6) {
+                // Row 1: Lines Added | Lines Removed | Velocity
+                HStack(spacing: 0) {
+                    statCell(
+                        label: "Added",
+                        value: project.linesAdded.map { "+\($0)" } ?? "--",
+                        color: .green
+                    )
+                    statCell(
+                        label: "Removed",
+                        value: project.linesRemoved.map { "-\($0)" } ?? "--",
+                        color: .red
+                    )
+                    statCell(
+                        label: "Velocity",
+                        value: project.codeVelocity ?? "--",
+                        color: .primary
+                    )
+                }
+
+                // Row 2: Cache Hits | Cost/Line | Messages
+                HStack(spacing: 0) {
+                    statCell(
+                        label: "Cache Hits",
+                        value: project.cacheHitRatio ?? "--",
+                        color: .primary
+                    )
+                    statCell(
+                        label: "Cost/Line",
+                        value: project.costPerLine ?? "--",
+                        color: .primary
+                    )
+                    statCell(
+                        label: "Messages",
+                        value: "\(project.messageCount)",
+                        color: .primary
+                    )
+                }
+
+                // Row 3: Web Searches | Web Fetches | Lines Changed
+                HStack(spacing: 0) {
+                    statCell(
+                        label: "Searches",
+                        value: "\(project.webSearchCount)",
+                        color: .primary
+                    )
+                    statCell(
+                        label: "Fetches",
+                        value: "\(project.webFetchCount)",
+                        color: .primary
+                    )
+                    statCell(
+                        label: "Changed",
+                        value: "\(project.totalLinesChanged)",
+                        color: .primary
+                    )
+                }
+            }
+        }
+        .padding(12)
+        .background(.quaternary.opacity(0.3))
+        .cornerRadius(8)
+    }
+
+    private func statCell(label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 1) {
+            Text(label)
+                .font(.system(size: 9))
+                .foregroundStyle(.tertiary)
+            Text(value)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Helpers

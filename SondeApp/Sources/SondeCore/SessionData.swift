@@ -73,6 +73,15 @@ public struct ProjectSession: Identifiable, Equatable, Sendable {
     public var lastActivity: Date?
     public var tasks: [TaskInfo] = []
 
+    // Stats from transcript parsing
+    public var linesAdded: Int?
+    public var linesRemoved: Int?
+    public var cacheReadTokens: Int = 0
+    public var cacheWriteTokens: Int = 0
+    public var webSearchCount: Int = 0
+    public var webFetchCount: Int = 0
+    public var messageCount: Int = 0
+
     public init(id: String, name: String) {
         self.id = id
         self.name = name
@@ -86,6 +95,28 @@ public struct ProjectSession: Identifiable, Equatable, Sendable {
         guard let cost = sessionCost else { return "--" }
         if cost < 0.01 { return String(format: "$%.3f", cost) }
         return String(format: "$%.2f", cost)
+    }
+
+    public var totalLinesChanged: Int {
+        (linesAdded ?? 0) + (linesRemoved ?? 0)
+    }
+
+    public var codeVelocity: String? {
+        // No duration available per-project, so no velocity
+        nil
+    }
+
+    public var costPerLine: String? {
+        guard totalLinesChanged > 0, let cost = sessionCost, cost > 0 else { return nil }
+        let cpl = cost / Double(totalLinesChanged)
+        return String(format: "$%.2f/line", cpl)
+    }
+
+    public var cacheHitRatio: String? {
+        let total = cacheReadTokens + cacheWriteTokens
+        guard total > 0 else { return nil }
+        let ratio = Double(cacheReadTokens) / Double(total) * 100
+        return "\(Int(ratio))%"
     }
 }
 
@@ -336,6 +367,13 @@ public actor SessionReader {
             project.totalInputTokens = projSession.totalInputTokens
             project.totalOutputTokens = projSession.totalOutputTokens
             project.contextWindowSize = projSession.contextWindowSize
+            project.linesAdded = projSession.linesAdded
+            project.linesRemoved = projSession.linesRemoved
+            project.cacheReadTokens = projSession.cacheReadTokens
+            project.cacheWriteTokens = projSession.cacheWriteTokens
+            project.webSearchCount = projSession.webSearchCount
+            project.webFetchCount = projSession.webFetchCount
+            project.messageCount = projSession.messageCount
 
             // Sum cost across all transcripts for this project
             var totalCost: Double = 0
