@@ -22,6 +22,43 @@ public struct ProjectCost: Equatable, Sendable {
     }
 }
 
+/// Per-task (conversation) detail within a project.
+public struct TaskInfo: Identifiable, Equatable, Sendable {
+    public var id: String  // filename (UUID)
+    public var title: String  // first user message, truncated to 60 chars
+    public var modelName: String?
+    public var inputTokens: Int = 0
+    public var outputTokens: Int = 0
+    public var cacheReadTokens: Int = 0
+    public var cacheWriteTokens: Int = 0
+    public var estimatedCost: Double = 0
+    public var lastActivity: Date?
+    public var messageCount: Int = 0
+
+    public var totalTokens: Int { inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens }
+
+    public var formattedTokens: String {
+        let t = totalTokens
+        if t >= 1_000_000 {
+            return String(format: "%.1fM", Double(t) / 1_000_000)
+        }
+        if t >= 1000 {
+            return String(format: "%.0fk", Double(t) / 1000)
+        }
+        return "\(t)"
+    }
+
+    public var formattedCost: String {
+        if estimatedCost < 0.01 { return String(format: "$%.3f", estimatedCost) }
+        return String(format: "$%.2f", estimatedCost)
+    }
+
+    public init(id: String, title: String) {
+        self.id = id
+        self.title = title
+    }
+}
+
 /// Detailed session data for a single project.
 public struct ProjectSession: Identifiable, Equatable, Sendable {
     public var id: String  // encoded directory name
@@ -34,6 +71,7 @@ public struct ProjectSession: Identifiable, Equatable, Sendable {
     public var contextWindowSize: Int?
     public var gitBranch: String?
     public var lastActivity: Date?
+    public var tasks: [TaskInfo] = []
 
     public init(id: String, name: String) {
         self.id = id
@@ -256,6 +294,9 @@ public actor SessionReader {
             // Git branch
             project.gitBranch = detectGitBranch(from: sorted[0].url)
 
+            // Parse per-task details
+            project.tasks = parseTasksForProject(transcripts: sorted)
+
             allProjects.append(project)
         }
 
@@ -404,6 +445,105 @@ public actor SessionReader {
         }
 
         return costFromTracker ?? totalCost
+    }
+
+    /// Parse task info from all .jsonl transcripts in a project directory.
+    /// Efficient: reads first 1KB for title, last 32KB for token sums.
+    private func parseTasksForProject(transcripts: [(url: URL, date: Date)]) -> [TaskInfo] {
+        var tasks: [TaskInfo] = []
+        let fm = FileManager.default
+
+        for entry in transcripts {
+            let url = entry.url
+            let filename = url.deletingPathExtension().lastPathComponent
+            guard let handle = try? FileHandle(forReadingFrom: url) else { continue }
+            defer { handle.closeFile() }
+
+            let fileSize = handle.seekToEndOfFile()
+            guard fileSize > 0 else { continue }
+
+            // --- Read first 1KB for title ---
+            handle.seek(toFileOffset: 0)
+            let headSize: UInt64 = min(fileSize, 1024)
+            let headData = handle.readData(ofLength: Int(headSize))
+            let headStr = String(data: headData, encoding: .utf8) ?? ""
+
+            var title = "Untitled"
+            // Find first user message
+            for line in headStr.split(separator: "\n") {
+                guard let lineData = line.data(using: .utf8),
+                      let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any]
+                else { continue }
+                let type = obj["type"] as? String
+                if type == "human" || type == "user" {
+                    if let msg = obj["message"] as? [String: Any],
+                       let content = msg["content"] as? String {
+                        title = String(content.prefix(60)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    } else if let content = obj["content"] as? String {
+                        title = String(content.prefix(60)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    } else if let parts = (obj["message"] as? [String: Any])?["content"] as? [[String: Any]],
+                              let first = parts.first, let text = first["text"] as? String {
+                        title = String(text.prefix(60)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                    break
+                }
+            }
+
+            // --- Read last 32KB for token sums ---
+            let tailSize: UInt64 = min(fileSize, 32768)
+            handle.seek(toFileOffset: fileSize - tailSize)
+            let tailData = handle.readDataToEndOfFile()
+            let tailStr = String(data: tailData, encoding: .utf8) ?? ""
+
+            var info = TaskInfo(id: filename, title: title)
+            info.lastActivity = entry.date
+            var messageCount = 0
+
+            for line in tailStr.split(separator: "\n") {
+                guard let lineData = line.data(using: .utf8),
+                      let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any]
+                else { continue }
+
+                messageCount += 1
+
+                if let message = obj["message"] as? [String: Any] {
+                    if info.modelName == nil, let model = message["model"] as? String {
+                        info.modelName = displayName(for: model)
+                    }
+                    if let usage = message["usage"] as? [String: Any] {
+                        let cacheRead = usage["cache_read_input_tokens"] as? Int ?? 0
+                        let cacheWrite = usage["cache_creation_input_tokens"] as? Int ?? 0
+                        let input = usage["input_tokens"] as? Int ?? 0
+                        let output = usage["output_tokens"] as? Int ?? 0
+
+                        info.inputTokens += input
+                        info.outputTokens += output
+                        info.cacheReadTokens += cacheRead
+                        info.cacheWriteTokens += cacheWrite
+
+                        if let model = message["model"] as? String {
+                            let name = displayName(for: model)
+                            info.estimatedCost += Self.calculateCost(
+                                model: name,
+                                input: input + cacheRead + cacheWrite,
+                                output: output
+                            )
+                        }
+                    }
+                }
+            }
+            info.messageCount = messageCount
+
+            // Use file mod date for last activity
+            if let attrs = try? fm.attributesOfItem(atPath: url.path),
+               let modDate = attrs[.modificationDate] as? Date {
+                info.lastActivity = modDate
+            }
+
+            tasks.append(info)
+        }
+
+        return tasks.sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
     }
 
     private func detectGitBranch(from transcriptURL: URL) -> String? {

@@ -6,6 +6,7 @@ struct ProjectsView: View {
     let projects: [ProjectSession]
     @Binding var showProjects: Bool
     @State private var selectedProject: ProjectSession?
+    @State private var showAllTasks: Bool = false
 
     var body: some View {
         if let project = selectedProject {
@@ -240,10 +241,96 @@ struct ProjectsView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+
+                    // Tasks section
+                    if !project.tasks.isEmpty {
+                        tasksSection(project.tasks)
+                    }
                 }
                 .padding(16)
             }
         }
+    }
+
+    // MARK: - Tasks Section
+
+    private func tasksSection(_ tasks: [TaskInfo]) -> some View {
+        let displayTasks = showAllTasks ? tasks : Array(tasks.prefix(20))
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Tasks")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(tasks.count)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            VStack(spacing: 1) {
+                ForEach(displayTasks) { task in
+                    taskRow(task)
+                }
+            }
+            .background(.quaternary.opacity(0.3))
+            .cornerRadius(8)
+
+            if tasks.count > 20 && !showAllTasks {
+                Button {
+                    showAllTasks = true
+                } label: {
+                    Text("Show all \(tasks.count) tasks")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+    }
+
+    private func taskRow(_ task: TaskInfo) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(task.title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Spacer()
+
+                if let activity = task.lastActivity {
+                    Text(relativeTime(activity))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            HStack(spacing: 6) {
+                if let model = task.modelName {
+                    Text(model)
+                        .font(.system(size: 9, weight: .medium))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(.quaternary)
+                        .cornerRadius(3)
+                }
+
+                Text(task.formattedTokens)
+                    .font(.caption2)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+
+                Text(task.formattedCost)
+                    .font(.caption2)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
     }
 
     private func contextBar(for project: ProjectSession) -> some View {
