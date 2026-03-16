@@ -112,7 +112,7 @@ public actor SessionReader {
         defer { handle.closeFile() }
 
         let fileSize = handle.seekToEndOfFile()
-        let readSize: UInt64 = min(fileSize, 8192)
+        let readSize: UInt64 = min(fileSize, 65536)
         handle.seek(toFileOffset: fileSize - readSize)
         let tailData = handle.readDataToEndOfFile()
 
@@ -164,8 +164,8 @@ public actor SessionReader {
                 }
             }
 
-            // Break if we have model (tokens accumulate from multiple lines)
-            if session.modelName != nil && totalInputTokens > 0 {
+            // Stop once we have enough data (but scan at least a few lines for tokens)
+            if session.modelName != nil && totalInputTokens > 1000 {
                 break
             }
         }
