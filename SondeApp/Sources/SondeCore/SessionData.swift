@@ -22,6 +22,35 @@ public struct ProjectCost: Equatable, Sendable {
     }
 }
 
+/// Detailed session data for a single project.
+public struct ProjectSession: Identifiable, Equatable, Sendable {
+    public var id: String  // encoded directory name
+    public var name: String  // decoded project name
+    public var modelName: String?
+    public var sessionCost: Double?
+    public var contextUsedPct: Double?
+    public var totalInputTokens: Int?
+    public var totalOutputTokens: Int?
+    public var contextWindowSize: Int?
+    public var gitBranch: String?
+    public var lastActivity: Date?
+
+    public init(id: String, name: String) {
+        self.id = id
+        self.name = name
+    }
+
+    public var contextTokensUsed: Int {
+        (totalInputTokens ?? 0) + (totalOutputTokens ?? 0)
+    }
+
+    public var formattedCost: String {
+        guard let cost = sessionCost else { return "--" }
+        if cost < 0.01 { return String(format: "$%.3f", cost) }
+        return String(format: "$%.2f", cost)
+    }
+}
+
 /// Live session data scraped from Claude Code's state.
 public struct SessionData: Equatable, Sendable {
     public var modelName: String?
@@ -61,10 +90,15 @@ public struct SessionData: Equatable, Sendable {
 /// Reads session data from the Rust binary's stdin cache or Claude Code state.
 public actor SessionReader {
     private var cached: SessionData?
+    private var cachedProjects: [ProjectSession] = []
     private var lastRead: Date?
     private let readInterval: TimeInterval = 5
 
     public init() {}
+
+    public func getAllProjects() -> [ProjectSession] {
+        return cachedProjects
+    }
 
     public func getSessionData() async -> SessionData {
         if let cached, let lastRead, Date().timeIntervalSince(lastRead) < readInterval {
@@ -179,6 +213,53 @@ public actor SessionReader {
             otherProjects.append(ProjectCost(name: name, cost: cost))
         }
         session.otherProjects = otherProjects.sorted { $0.cost > $1.cost }
+
+        // Build detailed allProjects list (group transcripts by project dir)
+        var transcriptsByProject: [String: [(url: URL, date: Date)]] = [:]
+        for entry in recentTranscripts {
+            let projectDir = entry.url.deletingLastPathComponent().lastPathComponent
+            transcriptsByProject[projectDir, default: []].append(entry)
+        }
+
+        var allProjects: [ProjectSession] = []
+        for (projectDir, transcripts) in transcriptsByProject {
+            let name = Self.decodeProjectName(projectDir)
+            var project = ProjectSession(id: projectDir, name: name)
+
+            // Parse the most recent transcript for this project for detailed data
+            let sorted = transcripts.sorted { $0.date > $1.date }
+            project.lastActivity = sorted.first?.date
+
+            // Parse the most recent transcript to get model/tokens/cost
+            var projSession = SessionData()
+            parseTranscript(sorted[0].url, into: &projSession)
+            project.modelName = projSession.modelName
+            project.totalInputTokens = projSession.totalInputTokens
+            project.totalOutputTokens = projSession.totalOutputTokens
+            project.contextWindowSize = projSession.contextWindowSize
+
+            // Sum cost across all transcripts for this project
+            var totalCost: Double = 0
+            for t in sorted {
+                totalCost += quickParseCost(from: t.url)
+            }
+            if totalCost > 0 { project.sessionCost = totalCost }
+            else if let sc = projSession.sessionCost { project.sessionCost = sc }
+
+            // Context pct
+            if let windowSize = projSession.contextWindowSize, windowSize > 0 {
+                project.contextUsedPct = Double(project.contextTokensUsed) / Double(windowSize) * 100
+            } else if let pct = projSession.contextUsedPct {
+                project.contextUsedPct = pct
+            }
+
+            // Git branch
+            project.gitBranch = detectGitBranch(from: sorted[0].url)
+
+            allProjects.append(project)
+        }
+
+        cachedProjects = allProjects.sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
 
         return session
     }

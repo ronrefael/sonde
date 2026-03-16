@@ -25,6 +25,7 @@ public final class SondeViewModel: ObservableObject {
 
     // Session
     @Published public var session: SessionData = SessionData()
+    @Published public var allProjects: [ProjectSession] = []
 
     // Codex
     @Published public var codexCost: Double?
@@ -247,6 +248,10 @@ public final class SondeViewModel: ObservableObject {
 
         if session != newSession { session = newSession }
         if activeSessions != sessions { activeSessions = sessions }
+
+        // Refresh allProjects from session reader
+        let newProjects = await sessionReader.getAllProjects()
+        if allProjects != newProjects { allProjects = newProjects }
 
         // Daily spend tracking
         let daily = dailySpendTracker.update(claudeSessionCost: newSession.sessionCost, codexSessionCost: newCodexCost)

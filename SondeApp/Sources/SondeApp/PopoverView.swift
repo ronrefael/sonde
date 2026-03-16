@@ -9,51 +9,63 @@ struct PopoverView: View {
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
     @State private var showBudgetSheet: Bool = false
     @State private var budgetInput: String = ""
+    @State private var showProjects: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            headerSection
-            Divider()
+            if showProjects {
+                headerSection
+                Divider()
+                ProjectsView(
+                    projects: viewModel.allProjects,
+                    showProjects: $showProjects
+                )
+                Divider()
+                footerSection
+            } else {
+                headerSection
+                Divider()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    sessionCard
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        sessionCard
 
-                    // Context window bar
-                    if viewModel.session.totalInputTokens != nil {
-                        contextWindowBar
+                        // Context window bar
+                        if viewModel.session.totalInputTokens != nil {
+                            contextWindowBar
+                        }
+
+                        // Per-model cost breakdown
+                        if viewModel.session.costPerModel.count > 1 {
+                            costBreakdown
+                        }
+
+                        // Today's spend
+                        if viewModel.dailyClaudeCost > 0 || viewModel.dailyCodexCost > 0 {
+                            dailySpendSection
+                        }
+
+                        pacingSection
+
+                        usageLimitsSection
+
+                        if viewModel.extraUsageEnabled {
+                            extraUsageCard
+                        }
+
+                        if viewModel.activeSessions.count > 1 {
+                            sessionsSection
+                        }
+
                     }
-
-                    // Per-model cost breakdown
-                    if viewModel.session.costPerModel.count > 1 {
-                        costBreakdown
-                    }
-
-                    // Today's spend
-                    if viewModel.dailyClaudeCost > 0 || viewModel.dailyCodexCost > 0 {
-                        dailySpendSection
-                    }
-
-                    pacingSection
-
-                    usageLimitsSection
-
-                    if viewModel.extraUsageEnabled {
-                        extraUsageCard
-                    }
-
-                    if viewModel.activeSessions.count > 1 {
-                        sessionsSection
-                    }
-
+                    .padding(16)
                 }
-                .padding(16)
-            }
 
-            Divider()
-            footerSection
+                Divider()
+                footerSection
+            }
         }
-        .frame(width: 320, height: 520)
+        .frame(width: 320, height: 560)
         .onAppear { viewModel.startPolling() }
         .onDisappear { viewModel.stopPolling() }
     }
@@ -335,9 +347,26 @@ struct PopoverView: View {
             if !viewModel.session.otherProjects.isEmpty {
                 Divider()
                     .padding(.vertical, 2)
-                Text("Active Projects")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                HStack {
+                    Text("Active Projects")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                    if !viewModel.allProjects.isEmpty {
+                        Button {
+                            showProjects = true
+                        } label: {
+                            HStack(spacing: 2) {
+                                Text("View all")
+                                    .font(.caption2)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 8))
+                            }
+                            .foregroundStyle(.blue)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
                 ForEach(viewModel.session.otherProjects, id: \.name) { project in
                     HStack {
                         Image(systemName: "folder")
@@ -352,6 +381,10 @@ struct PopoverView: View {
                             .font(.caption)
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        showProjects = true
                     }
                 }
             }
