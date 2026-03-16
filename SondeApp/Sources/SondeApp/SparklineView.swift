@@ -26,20 +26,16 @@ struct SparklineView: View {
                     }
                 }
 
-                let lastValue = min(max(data.last ?? 0, 0), 100)
-                let color: Color = lastValue >= 80 ? .red : lastValue >= 50 ? .yellow : .green
-
                 let gradient = Gradient(colors: [.green, .yellow, .red])
-                let linearGradient = GraphicsContext.Shading.linearGradient(
+                let shading = GraphicsContext.Shading.linearGradient(
                     gradient,
                     startPoint: CGPoint(x: 0, y: size.height),
                     endPoint: CGPoint(x: 0, y: 0)
                 )
 
-                _ = color // suppress unused warning; gradient is used instead
-                context.stroke(path, with: linearGradient, lineWidth: 1.5)
+                context.stroke(path, with: shading, lineWidth: 2)
             }
-            .frame(width: 50, height: 16)
+            .frame(width: 60, height: 24)
         }
     }
 }

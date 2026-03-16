@@ -43,7 +43,6 @@ struct PopoverView: View {
                         sessionsSection
                     }
 
-                    modelSuggestion
                 }
                 .padding(16)
             }
@@ -166,6 +165,8 @@ struct PopoverView: View {
         let used = viewModel.session.contextTokensUsed
         let size = viewModel.session.contextWindowSize ?? 200_000
         let pct = size > 0 ? Double(used) / Double(size) * 100 : 0
+        let barPct = min(pct, 100) // Cap visual bar at 100%
+        let color: Color = pct >= 70 ? .red : pct >= 40 ? .orange : .green
 
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -173,11 +174,18 @@ struct PopoverView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("\(Int(pct))%")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .monospacedDigit()
-                    .foregroundStyle(pct >= 70 ? .red : pct >= 40 ? .orange : .green)
+                if pct > 100 {
+                    Text("FULL")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.red)
+                } else {
+                    Text("\(Int(pct))%")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                        .foregroundStyle(color)
+                }
                 Text("\(used / 1000)k/\(size / 1000)k")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -189,8 +197,8 @@ struct PopoverView: View {
                         .fill(Color.gray.opacity(0.2))
                         .frame(height: 6)
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(pct >= 70 ? Color.red : pct >= 40 ? Color.orange : Color.green)
-                        .frame(width: max(0, geo.size.width * CGFloat(min(pct, 100) / 100)), height: 6)
+                        .fill(color)
+                        .frame(width: max(0, geo.size.width * CGFloat(barPct / 100)), height: 6)
                 }
             }
             .frame(height: 6)
@@ -241,6 +249,31 @@ struct PopoverView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(total >= 10 ? .red : total >= 5 ? .orange : .primary)
             }
+
+            // Per-project cost breakdown from active worktrees
+            if !viewModel.session.otherProjects.isEmpty {
+                Divider()
+                    .padding(.vertical, 2)
+                Text("Active Projects")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                ForEach(viewModel.session.otherProjects, id: \.name) { project in
+                    HStack {
+                        Image(systemName: "folder")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        Text(project.name)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer()
+                        Text(String(format: "$%.2f", project.cost))
+                            .font(.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
         }
         .padding(10)
         .background(.quaternary.opacity(0.3))
@@ -265,11 +298,25 @@ struct PopoverView: View {
                         .italic()
                         .foregroundStyle(.orange)
                 }
+                // Promo scheduling tip
+                if !viewModel.promoActive, let mins = promoMinsAway, mins <= 30 {
+                    Text("2x starts in \(mins)m — queue heavy work")
+                        .font(.caption)
+                        .italic()
+                        .foregroundStyle(.green)
+                }
+                // Model suggestion inline
+                if let suggestion = modelSuggestionText {
+                    Text(suggestion)
+                        .font(.caption)
+                        .italic()
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer()
             if viewModel.usageHistory.count > 2 {
                 SparklineView(data: viewModel.usageHistory)
-                    .frame(width: 50, height: 20)
+                    .frame(width: 60, height: 24)
             }
         }
         .padding(12)
@@ -385,34 +432,49 @@ struct PopoverView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
+            Button {
+                viewModel.showWatcher.toggle()
+                if viewModel.showWatcher {
+                    FloatingWatcherPanel.shared.show(viewModel: viewModel)
+                } else {
+                    FloatingWatcherPanel.shared.close()
+                }
+            } label: {
+                Text("Watcher")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+            }
+            .buttonStyle(.borderless)
         }
         .padding(10)
         .background(.quaternary.opacity(0.3))
         .cornerRadius(6)
     }
 
-    // MARK: - Model Suggestion
+    // MARK: - Computed Helpers
 
-    @ViewBuilder
-    private var modelSuggestion: some View {
-        if let fh = viewModel.fiveHourUtil, fh >= 60,
-           viewModel.session.modelName == "Opus"
-        {
-            HStack(spacing: 6) {
-                Image(systemName: "lightbulb")
-                    .foregroundStyle(.yellow)
-                    .font(.caption)
-                Text(fh >= 80
-                    ? "Switch to Haiku for routine tasks"
-                    : "Consider Sonnet for lower-cost work")
-                    .font(.caption)
-                    .italic()
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .padding(10)
-            .background(.yellow.opacity(0.08))
-            .cornerRadius(6)
+    /// Minutes until 2x promo starts (nil if already active or > 30m away)
+    private var promoMinsAway: Int? {
+        guard !viewModel.promoCountdown.isEmpty else { return nil }
+        // Parse "Xh XXm" or "XXm" from countdown
+        let parts = viewModel.promoCountdown.components(separatedBy: CharacterSet.decimalDigits.inverted).filter { !$0.isEmpty }
+        guard let last = parts.last, let mins = Int(last) else { return nil }
+        if viewModel.promoCountdown.contains("h") { return nil } // hours away
+        return mins
+    }
+
+    /// Model suggestion based on current tier and model
+    private var modelSuggestionText: String? {
+        guard let model = viewModel.session.modelName else { return nil }
+        switch (viewModel.paceTier, model) {
+        case (.comfortable, "Opus"): return nil // no suggestion needed
+        case (.onTrack, "Opus"): return nil
+        case (.elevated, "Opus"): return "Consider Sonnet for routine work"
+        case (.hot, "Opus"), (.critical, "Opus"), (.runaway, "Opus"):
+            return "Switch to Haiku to conserve usage"
+        case (.hot, "Sonnet"), (.critical, "Sonnet"), (.runaway, "Sonnet"):
+            return "Switch to Haiku to conserve usage"
+        default: return nil
         }
     }
 

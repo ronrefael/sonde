@@ -4,12 +4,15 @@ import Foundation
 /// Uses `security` CLI (same approach as Rust binary) to avoid entitlement issues.
 /// Token is held only in memory, never persisted.
 public enum CredentialProvider {
+    private static let lock = NSLock()
     private static var cachedToken: String?
     private static var cacheTime: Date?
     private static let cacheTTL: TimeInterval = 300
 
     public static func getOAuthToken() -> String? {
-        // Return cached token if fresh
+        lock.lock()
+        defer { lock.unlock() }
+
         if let token = cachedToken,
            let time = cacheTime,
            Date().timeIntervalSince(time) < cacheTTL
@@ -29,7 +32,7 @@ public enum CredentialProvider {
             try process.run()
             process.waitUntilExit()
         } catch {
-            return cachedToken // stale fallback
+            return cachedToken
         }
 
         guard process.terminationStatus == 0 else {

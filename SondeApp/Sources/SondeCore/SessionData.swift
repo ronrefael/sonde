@@ -11,6 +11,17 @@ public struct ModelCostEntry: Equatable, Sendable {
     }
 }
 
+/// Cost tracked per project (worktree).
+public struct ProjectCost: Equatable, Sendable {
+    public var name: String
+    public var cost: Double
+
+    public init(name: String, cost: Double) {
+        self.name = name
+        self.cost = cost
+    }
+}
+
 /// Live session data scraped from Claude Code's state.
 public struct SessionData: Equatable, Sendable {
     public var modelName: String?
@@ -22,6 +33,7 @@ public struct SessionData: Equatable, Sendable {
     public var sessionDurationMs: Int?
     public var costPerModel: [ModelCostEntry] = []
     public var gitBranch: String?
+    public var otherProjects: [ProjectCost] = []
 
     public init() {}
 
@@ -85,9 +97,9 @@ public actor SessionReader {
             return session
         }
 
-        // Find the most recently modified .jsonl (UUID-named, not in subagents/)
-        var bestTranscript: URL?
-        var bestDate: Date = .distantPast
+        // Find ALL .jsonl transcripts modified in the last 5 minutes
+        let now = Date()
+        var recentTranscripts: [(url: URL, date: Date)] = []
 
         while let url = enumerator.nextObject() as? URL {
             guard url.pathExtension == "jsonl",
@@ -95,23 +107,65 @@ public actor SessionReader {
             else { continue }
             if let values = try? url.resourceValues(forKeys: [.contentModificationDateKey]),
                let modDate = values.contentModificationDate,
-               modDate > bestDate
+               now.timeIntervalSince(modDate) < 300
             {
-                bestDate = modDate
-                bestTranscript = url
+                recentTranscripts.append((url: url, date: modDate))
             }
         }
 
-        guard let transcript = bestTranscript,
-              // Only read if modified in last 5 minutes (active session)
-              Date().timeIntervalSince(bestDate) < 300
-        else {
+        guard !recentTranscripts.isEmpty else {
             return session
         }
 
-        // Read last few KB of transcript for recent state
+        // Sort by date descending — first entry is the primary (most recent)
+        recentTranscripts.sort { $0.date > $1.date }
+
+        let primaryTranscript = recentTranscripts[0].url
+
+        // Parse primary transcript into session data
+        parseTranscript(primaryTranscript, into: &session)
+
+        // Extract project directory from transcript path and detect git branch.
+        session.gitBranch = detectGitBranch(from: primaryTranscript)
+
+        // Collect cost data from other active transcripts (group by project)
+        var costByProject: [String: Double] = [:]
+        let primaryProjectDir = primaryTranscript.deletingLastPathComponent().lastPathComponent
+
+        for entry in recentTranscripts {
+            let projectDir = entry.url.deletingLastPathComponent().lastPathComponent
+            let cost = quickParseCost(from: entry.url)
+            costByProject[projectDir, default: 0] += cost
+        }
+
+        // Build otherProjects from non-primary projects
+        var otherProjects: [ProjectCost] = []
+        for (projectDir, cost) in costByProject {
+            if projectDir == primaryProjectDir { continue }
+            let name = Self.decodeProjectName(projectDir)
+            otherProjects.append(ProjectCost(name: name, cost: cost))
+        }
+        session.otherProjects = otherProjects.sorted { $0.cost > $1.cost }
+
+        return session
+    }
+
+    /// Decode a Claude project directory name back to a readable project name.
+    /// e.g. "-Users-ron-my-project" -> "my-project"
+    private static func decodeProjectName(_ encoded: String) -> String {
+        // Convert "-Users-foo-bar-project" back to "/Users/foo/bar-project"
+        // Strategy: the encoding replaces "/" with "-", so we decode by replacing
+        // leading "-" with "/" and subsequent "-" with "/". But since folder names
+        // can contain dashes, we take only the last path component as the display name.
+        let decoded = "/" + encoded.dropFirst().replacingOccurrences(of: "-", with: "/")
+        // Return just the last path component as a readable name
+        return URL(fileURLWithPath: decoded).lastPathComponent
+    }
+
+    /// Parse a transcript file and populate session data (model, cost, tokens, etc.).
+    private func parseTranscript(_ transcript: URL, into session: inout SessionData) {
         guard let handle = try? FileHandle(forReadingFrom: transcript) else {
-            return session
+            return
         }
         defer { handle.closeFile() }
 
@@ -121,7 +175,7 @@ public actor SessionReader {
         let tailData = handle.readDataToEndOfFile()
 
         guard let tail = String(data: tailData, encoding: .utf8) else {
-            return session
+            return
         }
 
         // Parse JSON lines from the tail, looking for assistant turns with model/usage
@@ -168,10 +222,7 @@ public actor SessionReader {
                 }
             }
 
-            // Stop once we have enough data (but scan at least a few lines for tokens)
-            if session.modelName != nil && totalInputTokens > 1000 {
-                break
-            }
+            // Don't break early — scan all lines in tail to accumulate full cost
         }
 
         if totalInputTokens > 0 { session.totalInputTokens = totalInputTokens }
@@ -181,13 +232,47 @@ public actor SessionReader {
         session.costPerModel = costByModel.map { ModelCostEntry(model: $0.key, cost: $0.value) }
         let totalCost = costByModel.values.reduce(0, +)
         if totalCost > 0 && session.sessionCost == nil { session.sessionCost = totalCost }
+    }
 
-        // Extract project directory from transcript path and detect git branch.
-        // Transcript path: ~/.claude/projects/<encoded-project-path>/<uuid>.jsonl
-        // The project folder name is the URL-encoded absolute path of the project.
-        session.gitBranch = detectGitBranch(from: transcript)
+    /// Quick parse of a transcript to extract just the total cost.
+    private func quickParseCost(from transcript: URL) -> Double {
+        guard let handle = try? FileHandle(forReadingFrom: transcript) else { return 0 }
+        defer { handle.closeFile() }
 
-        return session
+        let fileSize = handle.seekToEndOfFile()
+        let readSize: UInt64 = min(fileSize, 65536)
+        handle.seek(toFileOffset: fileSize - readSize)
+        let tailData = handle.readDataToEndOfFile()
+
+        guard let tail = String(data: tailData, encoding: .utf8) else { return 0 }
+
+        var totalCost: Double = 0
+        var costFromTracker: Double?
+
+        for line in tail.split(separator: "\n").reversed() {
+            guard let lineData = line.data(using: .utf8),
+                  let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any]
+            else { continue }
+
+            if let message = obj["message"] as? [String: Any],
+               let usage = message["usage"] as? [String: Any],
+               let model = message["model"] as? String {
+                let input = (usage["input_tokens"] as? Int ?? 0)
+                    + (usage["cache_read_input_tokens"] as? Int ?? 0)
+                    + (usage["cache_creation_input_tokens"] as? Int ?? 0)
+                let output = usage["output_tokens"] as? Int ?? 0
+                let name = displayName(for: model)
+                totalCost += Self.calculateCost(model: name, input: input, output: output)
+            }
+
+            if costFromTracker == nil,
+               let costTracker = obj["costTracker"] as? [String: Any],
+               let cost = costTracker["totalCost"] as? Double {
+                costFromTracker = cost
+            }
+        }
+
+        return costFromTracker ?? totalCost
     }
 
     private func detectGitBranch(from transcriptURL: URL) -> String? {

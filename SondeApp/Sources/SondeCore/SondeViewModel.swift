@@ -43,6 +43,9 @@ public final class SondeViewModel: ObservableObject {
     // Agents
     @Published public var activeSessions: [AgentSession] = []
 
+    // Watcher window
+    @Published public var showWatcher: Bool = false
+
     // Usage history (sparkline)
     @Published public var usageHistory: [Double] = []
 
@@ -130,9 +133,12 @@ public final class SondeViewModel: ObservableObject {
         let newPromoEmoji = promo?.emoji ?? ""
         let newPromoLabel = promo?.label ?? ""
 
-        if fiveHourUtil != newFiveHourUtil { fiveHourUtil = newFiveHourUtil }
+        let fhChanged = fiveHourUtil != newFiveHourUtil
+        let sdChanged = sevenDayUtil != newSevenDayUtil
+
+        if fhChanged { fiveHourUtil = newFiveHourUtil }
         if fiveHourReset != newFiveHourReset { fiveHourReset = newFiveHourReset }
-        if sevenDayUtil != newSevenDayUtil { sevenDayUtil = newSevenDayUtil }
+        if sdChanged { sevenDayUtil = newSevenDayUtil }
         if sevenDayReset != newSevenDayReset { sevenDayReset = newSevenDayReset }
         if extraUsageUtil != newExtraUsageUtil { extraUsageUtil = newExtraUsageUtil }
         if promoActive != newPromoActive { promoActive = newPromoActive }
@@ -182,7 +188,7 @@ public final class SondeViewModel: ObservableObject {
             startSessionTimer()
         }
 
-        if fiveHourUtil != newFiveHourUtil || sevenDayUtil != newSevenDayUtil {
+        if fhChanged || sdChanged {
             NotificationManager.shared.checkAndNotify(
                 fiveHourUtil: newFiveHourUtil,
                 sevenDayUtil: newSevenDayUtil

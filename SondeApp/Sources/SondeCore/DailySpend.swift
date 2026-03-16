@@ -74,10 +74,14 @@ public final class DailySpendTracker: Sendable {
         return record
     }
 
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = .current
+        return f
+    }()
+
     private static func todayString() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = .current
-        return formatter.string(from: Date())
+        dateFormatter.string(from: Date())
     }
 }
