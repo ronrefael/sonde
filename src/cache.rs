@@ -95,9 +95,9 @@ pub fn read_cache<T: for<'de> Deserialize<'de>>(path: &Path, allow_stale: bool) 
 
     let now = now_epoch();
 
-    // Always invalidate on window reset
+    // Window reset: prefer stale data over nothing
     if let Some(resets_at) = envelope.five_hour_resets_at {
-        if now >= resets_at {
+        if now >= resets_at && !allow_stale {
             tracing::debug!("Cache invalidated by window reset");
             return None;
         }

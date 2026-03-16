@@ -103,6 +103,8 @@ public actor UsageService {
                     cachedData = usage
                     lastSuccessfulFetch = Date()
                     consecutiveFailures = 0
+                    // Write to shared cache so the Rust statusline always has fresh data
+                    writeToSharedCache(data)
                     return (usage, lastSuccessfulFetch)
                 } else {
                     consecutiveFailures += 1
@@ -121,6 +123,26 @@ public actor UsageService {
 
         // Last resort: return whatever we have
         return (cachedData, lastSuccessfulFetch)
+    }
+
+    /// Write API response to shared cache so the Rust statusline picks it up.
+    private func writeToSharedCache(_ rawData: Data) {
+        guard let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        let dir = cacheDir.appendingPathComponent("sonde")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let path = dir.appendingPathComponent("usage_limits.json")
+
+        // Write in the same envelope format the Rust binary uses
+        let now = UInt64(Date().timeIntervalSince1970)
+        let envelope: [String: Any] = [
+            "data": (try? JSONSerialization.jsonObject(with: rawData)) ?? [:],
+            "created_at": now,
+            "expires_at": now + 120, // 2 min TTL — Swift refreshes every 60s
+            "five_hour_resets_at": NSNull(),
+        ]
+        if let json = try? JSONSerialization.data(withJSONObject: envelope) {
+            try? json.write(to: path, options: .atomic)
+        }
     }
 
     /// Read from Rust binary's cache (bonus, not required).
