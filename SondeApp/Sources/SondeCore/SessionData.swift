@@ -68,12 +68,14 @@ public actor SessionReader {
             return session
         }
 
-        // Find the most recently modified transcript.jsonl
+        // Find the most recently modified .jsonl (UUID-named, not in subagents/)
         var bestTranscript: URL?
         var bestDate: Date = .distantPast
 
         while let url = enumerator.nextObject() as? URL {
-            guard url.lastPathComponent == "transcript.jsonl" else { continue }
+            guard url.pathExtension == "jsonl",
+                  !url.path.contains("/subagents/")
+            else { continue }
             if let values = try? url.resourceValues(forKeys: [.contentModificationDateKey]),
                let modDate = values.contentModificationDate,
                modDate > bestDate
@@ -105,13 +107,34 @@ public actor SessionReader {
             return session
         }
 
-        // Parse JSON lines from the tail, looking for assistant turns with usage
+        // Parse JSON lines from the tail, looking for assistant turns with model/usage
+        var totalInputTokens = 0
+        var totalOutputTokens = 0
+
         for line in tail.split(separator: "\n").reversed() {
             guard let lineData = line.data(using: .utf8),
                   let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any]
             else { continue }
 
-            // Look for costTracker data
+            // Claude Code transcript format: { type: "assistant", message: { model, usage } }
+            if let message = obj["message"] as? [String: Any] {
+                // Model from message.model
+                if session.modelName == nil, let model = message["model"] as? String {
+                    session.modelName = displayName(for: model)
+                }
+
+                // Token usage from message.usage
+                if let usage = message["usage"] as? [String: Any] {
+                    let input = (usage["input_tokens"] as? Int ?? 0)
+                        + (usage["cache_read_input_tokens"] as? Int ?? 0)
+                        + (usage["cache_creation_input_tokens"] as? Int ?? 0)
+                    let output = usage["output_tokens"] as? Int ?? 0
+                    totalInputTokens += input
+                    totalOutputTokens += output
+                }
+            }
+
+            // costTracker if present (some transcript formats)
             if let costTracker = obj["costTracker"] as? [String: Any] {
                 if session.sessionCost == nil, let cost = costTracker["totalCost"] as? Double {
                     session.sessionCost = cost
@@ -121,17 +144,14 @@ public actor SessionReader {
                 }
             }
 
-            // Look for model info
-            if session.modelName == nil, let model = obj["model"] as? String {
-                // Extract display name from model ID
-                session.modelName = displayName(for: model)
-            }
-
-            // Break if we have everything
-            if session.sessionCost != nil && session.modelName != nil {
+            // Break if we have model (tokens accumulate from multiple lines)
+            if session.modelName != nil && totalInputTokens > 0 {
                 break
             }
         }
+
+        if totalInputTokens > 0 { session.totalInputTokens = totalInputTokens }
+        if totalOutputTokens > 0 { session.totalOutputTokens = totalOutputTokens }
 
         return session
     }
