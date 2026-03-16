@@ -1,7 +1,7 @@
 import Foundation
 
 /// 6-tier pacing assessment matching the Rust binary.
-public enum PaceTier: String, Sendable {
+public enum PaceTier: String, Sendable, Equatable {
     case comfortable = "Comfortable"
     case onTrack = "On Track"
     case elevated = "Elevated"

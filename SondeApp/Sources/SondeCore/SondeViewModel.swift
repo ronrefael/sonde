@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 /// Main view model that aggregates all data sources.
 @MainActor
@@ -21,7 +21,12 @@ public final class SondeViewModel: ObservableObject {
 
     public init() {}
 
+    deinit {
+        pollTimer?.invalidate()
+    }
+
     public func startPolling(interval: TimeInterval = 60) {
+        stopPolling()
         Task { await refresh() }
         pollTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             guard let self else { return }
@@ -43,23 +48,30 @@ public final class SondeViewModel: ObservableObject {
         let usage = await usageTask
         let promo = await promoTask
 
-        // Usage
-        fiveHourUtil = usage?.fiveHour?.utilization
-        fiveHourReset = usage?.fiveHour?.resetsAt
-        sevenDayUtil = usage?.sevenDay?.utilization
-        sevenDayReset = usage?.sevenDay?.resetsAt
-        extraUsageUtil = usage?.extraUsage?.utilization
+        // Only update @Published properties when values actually change
+        let newFiveHourUtil = usage?.fiveHour?.utilization
+        let newFiveHourReset = usage?.fiveHour?.resetsAt
+        let newSevenDayUtil = usage?.sevenDay?.utilization
+        let newSevenDayReset = usage?.sevenDay?.resetsAt
+        let newExtraUsageUtil = usage?.extraUsage?.utilization
+        let newPromoActive = promo?.isOffpeak ?? false
+        let newPromoEmoji = promo?.emoji ?? ""
+        let newPromoLabel = promo?.label ?? ""
 
-        // Promo
-        promoActive = promo?.isOffpeak ?? false
-        promoEmoji = promo?.emoji ?? ""
-        promoLabel = promo?.label ?? ""
+        if fiveHourUtil != newFiveHourUtil { fiveHourUtil = newFiveHourUtil }
+        if fiveHourReset != newFiveHourReset { fiveHourReset = newFiveHourReset }
+        if sevenDayUtil != newSevenDayUtil { sevenDayUtil = newSevenDayUtil }
+        if sevenDayReset != newSevenDayReset { sevenDayReset = newSevenDayReset }
+        if extraUsageUtil != newExtraUsageUtil { extraUsageUtil = newExtraUsageUtil }
+        if promoActive != newPromoActive { promoActive = newPromoActive }
+        if promoEmoji != newPromoEmoji { promoEmoji = newPromoEmoji }
+        if promoLabel != newPromoLabel { promoLabel = newPromoLabel }
 
-        // Pacing
-        if let util = fiveHourUtil {
-            paceTier = PaceTier.calculate(utilization: util, promoActive: promoActive)
+        if let util = newFiveHourUtil {
+            let newTier = PaceTier.calculate(utilization: util, promoActive: newPromoActive)
+            if paceTier != newTier { paceTier = newTier }
         }
 
-        isLoading = false
+        if isLoading { isLoading = false }
     }
 }

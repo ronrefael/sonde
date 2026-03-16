@@ -73,6 +73,9 @@ struct PopoverView: View {
         .onAppear {
             viewModel.startPolling()
         }
+        .onDisappear {
+            viewModel.stopPolling()
+        }
     }
 }
 
