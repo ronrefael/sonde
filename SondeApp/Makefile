@@ -42,6 +42,8 @@ bundle: build
 	@# Ensure CFBundlePackageType
 	/usr/libexec/PlistBuddy -c "Set :CFBundlePackageType APPL" $(CONTENTS_DIR)/Info.plist 2>/dev/null || \
 		/usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" $(CONTENTS_DIR)/Info.plist
+	@# Sign with entitlements (disables sandbox so app can read ~/.claude/)
+	codesign --force --sign - --entitlements Sources/SondeApp/SondeApp.entitlements $(MACOS_DIR)/$(APP_NAME)
 	@echo "App bundle created at $(APP_BUNDLE)"
 
 install: bundle
