@@ -45,3 +45,9 @@ jobs:
         with:
           components: rustfmt
       - run: cargo fmt --check
+
+  swift:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd SondeApp && swift build

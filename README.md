@@ -20,26 +20,41 @@ sonde sits in your terminal statusline and continuously reports model, cost, con
 
 ## Install
 
-### From source (recommended)
+### Homebrew (macOS/Linux)
 
 ```bash
-cargo install --git https://github.com/sonde-dev/sonde --locked
+brew install ronrefael/tap/sonde
+```
+
+### From source
+
+```bash
+cargo install --git https://github.com/ronrefael/sonde --locked
 ```
 
 ### Quick install script
 
 ```bash
-curl -sSf https://raw.githubusercontent.com/sonde-dev/sonde/main/install.sh | bash
+curl -sSf https://raw.githubusercontent.com/ronrefael/sonde/main/install.sh | bash
 ```
 
 ### Build locally
 
 ```bash
-git clone https://github.com/sonde-dev/sonde
+git clone https://github.com/ronrefael/sonde
 cd sonde
 cargo build --release
 # Binary at target/release/sonde
 ```
+
+### macOS Menu Bar App
+
+```bash
+cd SondeApp && swift build
+swift run  # Launches menu bar app
+```
+
+The menu bar app shows a popover dashboard with usage bars, promo status, pacing tier, active session count, and fires macOS notifications at 60%/80%/90% usage thresholds.
 
 ## Configure Claude Code
 
