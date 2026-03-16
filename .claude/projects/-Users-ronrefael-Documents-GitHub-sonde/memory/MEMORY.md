@@ -1,0 +1,1 @@
+- [project_sonde_phase1.md](project_sonde_phase1.md) — Phase 1 Rust statusline binary built and working with all 8 modules

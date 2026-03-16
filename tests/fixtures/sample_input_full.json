@@ -1,0 +1,32 @@
+{
+  "cwd": "/home/user/projects/myapp",
+  "session_id": "abc123-def456",
+  "transcript_path": "/home/user/.claude/projects/myapp/transcript.jsonl",
+  "version": "2.1.75",
+  "exceeds_200k_tokens": false,
+  "model": { "id": "claude-opus-4-6", "display_name": "Opus" },
+  "workspace": { "current_dir": "/home/user/projects/myapp", "project_dir": "/home/user/projects/myapp" },
+  "output_style": { "name": "default" },
+  "cost": {
+    "total_cost_usd": 1.23,
+    "total_duration_ms": 45000,
+    "total_api_duration_ms": 2300,
+    "total_lines_added": 156,
+    "total_lines_removed": 23
+  },
+  "context_window": {
+    "total_input_tokens": 15234,
+    "total_output_tokens": 4521,
+    "context_window_size": 200000,
+    "used_percentage": 42.0,
+    "remaining_percentage": 58.0,
+    "current_usage": {
+      "input_tokens": 8500,
+      "output_tokens": 1200,
+      "cache_creation_input_tokens": 5000,
+      "cache_read_input_tokens": 2000
+    }
+  },
+  "vim": { "mode": "NORMAL" },
+  "agent": { "name": "security-reviewer" }
+}

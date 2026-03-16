@@ -1,0 +1,51 @@
+[sonde]
+lines = [
+  "$sonde.model $sonde.cost $sonde.context_bar $sonde.usage_limits",
+  "$sonde.promo_badge $sonde.pacing"
+]
+
+[sonde.model]
+symbol = " "
+style  = "bold cyan"
+
+[sonde.context_bar]
+width              = 10
+style              = "fg:#7dcfff"
+warn_threshold     = 40.0
+warn_style         = "fg:#e0af68"
+critical_threshold = 70.0
+critical_style     = "bold fg:#f7768e"
+
+[sonde.cost]
+symbol             = "$ "
+style              = "fg:#a9b1d6"
+warn_threshold     = 2.0
+warn_style         = "fg:#e0af68"
+critical_threshold = 5.0
+critical_style     = "bold fg:#f7768e"
+
+[sonde.usage_limits]
+five_hour_format   = " 5h {pct}% ({reset})"
+seven_day_format   = " 7d {pct}% ({reset})"
+separator          = " "
+warn_threshold     = 60.0
+warn_style         = "fg:#e0af68"
+critical_threshold = 80.0
+critical_style     = "bold fg:#f7768e"
+ttl                = 60
+
+[sonde.promo_badge]
+enabled       = true
+api_url       = "https://promoclock.co/api/status"
+poll_interval = 300
+badge_format  = "{emoji}{label}"
+style         = "bold green"
+
+[sonde.pacing]
+enabled     = true
+style       = "6-tier"
+promo_aware = true
+
+[sonde.codex]
+enabled      = true
+sessions_dir = "~/.codex/sessions"
