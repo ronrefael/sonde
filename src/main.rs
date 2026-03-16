@@ -53,7 +53,10 @@ fn write_session_cache(ctx: &context::Context) {
     }
 
     if let Some(ref session_id) = ctx.session_id {
-        obj.insert("session_id".into(), serde_json::Value::String(session_id.clone()));
+        obj.insert(
+            "session_id".into(),
+            serde_json::Value::String(session_id.clone()),
+        );
     }
 
     if let Some(ref cwd) = ctx.cwd {
