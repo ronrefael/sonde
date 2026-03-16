@@ -123,6 +123,7 @@ public actor SessionReader {
         // Parse JSON lines from the tail, looking for assistant turns with model/usage
         var totalInputTokens = 0
         var totalOutputTokens = 0
+        var costByModel: [String: Double] = [:]
 
         for line in tail.split(separator: "\n").reversed() {
             guard let lineData = line.data(using: .utf8),
@@ -136,7 +137,7 @@ public actor SessionReader {
                     session.modelName = displayName(for: model)
                 }
 
-                // Token usage from message.usage
+                // Token usage + per-model cost from message.usage
                 if let usage = message["usage"] as? [String: Any] {
                     let input = (usage["input_tokens"] as? Int ?? 0)
                         + (usage["cache_read_input_tokens"] as? Int ?? 0)
@@ -144,6 +145,12 @@ public actor SessionReader {
                     let output = usage["output_tokens"] as? Int ?? 0
                     totalInputTokens += input
                     totalOutputTokens += output
+
+                    if let model = message["model"] as? String {
+                        let name = displayName(for: model)
+                        let cost = Self.calculateCost(model: name, input: input, output: output)
+                        costByModel[name, default: 0] += cost
+                    }
                 }
             }
 
@@ -165,6 +172,11 @@ public actor SessionReader {
 
         if totalInputTokens > 0 { session.totalInputTokens = totalInputTokens }
         if totalOutputTokens > 0 { session.totalOutputTokens = totalOutputTokens }
+
+        // Per-model cost breakdown
+        session.costPerModel = costByModel.map { ModelCostEntry(model: $0.key, cost: $0.value) }
+        let totalCost = costByModel.values.reduce(0, +)
+        if totalCost > 0 && session.sessionCost == nil { session.sessionCost = totalCost }
 
         // Extract project directory from transcript path and detect git branch.
         // Transcript path: ~/.claude/projects/<encoded-project-path>/<uuid>.jsonl
@@ -199,6 +211,16 @@ public actor SessionReader {
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let branch = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
         return branch?.isEmpty == true ? nil : branch
+    }
+
+    private static func calculateCost(model: String, input: Int, output: Int) -> Double {
+        let (inPrice, outPrice): (Double, Double) = switch model {
+        case "Opus": (15.0, 75.0)
+        case "Sonnet": (3.0, 15.0)
+        case "Haiku": (0.25, 1.25)
+        default: (3.0, 15.0)
+        }
+        return (Double(input) / 1_000_000) * inPrice + (Double(output) / 1_000_000) * outPrice
     }
 
     private func displayName(for modelId: String) -> String {
