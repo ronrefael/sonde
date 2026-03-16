@@ -20,12 +20,20 @@ public final class SondeViewModel: ObservableObject {
 
     // Pacing
     @Published public var paceTier: PaceTier = .comfortable
+    @Published public var pacePredict: String?
 
     // Session
     @Published public var session: SessionData = SessionData()
 
     // Codex
     @Published public var codexCost: Double?
+
+    // Daily spend
+    @Published public var dailyClaudeCost: Double = 0
+    @Published public var dailyCodexCost: Double = 0
+
+    // Live session timer
+    @Published public var liveSessionDuration: String = "--"
 
     // Extra usage details
     @Published public var extraUsageEnabled: Bool = false
@@ -35,6 +43,9 @@ public final class SondeViewModel: ObservableObject {
     // Agents
     @Published public var activeSessions: [AgentSession] = []
 
+    // Usage history (sparkline)
+    @Published public var usageHistory: [Double] = []
+
     // State
     @Published public var isLoading: Bool = true
 
@@ -43,7 +54,10 @@ public final class SondeViewModel: ObservableObject {
     private let agentWatcher = AgentWatcher()
     private let sessionReader = SessionReader()
     private let codexCostReader = CodexCostReader()
+    private let dailySpendTracker = DailySpendTracker()
     private var pollTimer: Timer?
+    private var sessionTimer: Timer?
+    private var sessionStartTime: Date?
 
     public init() {
         NotificationManager.shared.requestPermission()
@@ -51,6 +65,7 @@ public final class SondeViewModel: ObservableObject {
 
     deinit {
         pollTimer?.invalidate()
+        sessionTimer?.invalidate()
     }
 
     public func startPolling(interval: TimeInterval = 30) {
@@ -67,6 +82,29 @@ public final class SondeViewModel: ObservableObject {
     public func stopPolling() {
         pollTimer?.invalidate()
         pollTimer = nil
+        sessionTimer?.invalidate()
+        sessionTimer = nil
+    }
+
+    private func startSessionTimer() {
+        sessionTimer?.invalidate()
+        sessionTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                guard let start = self.sessionStartTime else { return }
+                let elapsed = Int(Date().timeIntervalSince(start))
+                let h = elapsed / 3600
+                let m = (elapsed % 3600) / 60
+                let s = elapsed % 60
+                let new: String
+                if h > 0 {
+                    new = String(format: "%dh %02dm %02ds", h, m, s)
+                } else {
+                    new = String(format: "%dm %02ds", m, s)
+                }
+                if self.liveSessionDuration != new { self.liveSessionDuration = new }
+            }
+        }
     }
 
     public func refresh() async {
@@ -120,10 +158,29 @@ public final class SondeViewModel: ObservableObject {
         if let util = newFiveHourUtil {
             let newTier = PaceTier.calculate(utilization: util, promoActive: newPromoActive)
             if paceTier != newTier { paceTier = newTier }
+
+            // Pace prediction
+            let newPredict = PaceTier.predictTimeToLimit(utilization: util, resetsAt: newFiveHourReset)
+            if pacePredict != newPredict { pacePredict = newPredict }
+
+            // Usage history (sparkline)
+            usageHistory.append(util)
+            if usageHistory.count > 30 { usageHistory.removeFirst(usageHistory.count - 30) }
         }
 
         if session != newSession { session = newSession }
         if activeSessions != sessions { activeSessions = sessions }
+
+        // Daily spend tracking
+        let daily = dailySpendTracker.update(claudeSessionCost: newSession.sessionCost, codexSessionCost: newCodexCost)
+        if dailyClaudeCost != daily.claude { dailyClaudeCost = daily.claude }
+        if dailyCodexCost != daily.codex { dailyCodexCost = daily.codex }
+
+        // Live session timer
+        if newSession.modelName != nil && sessionStartTime == nil {
+            sessionStartTime = Date()
+            startSessionTimer()
+        }
 
         if fiveHourUtil != newFiveHourUtil || sevenDayUtil != newSevenDayUtil {
             NotificationManager.shared.checkAndNotify(

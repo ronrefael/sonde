@@ -2,13 +2,13 @@ import Foundation
 
 /// Shared time formatting utilities.
 public enum TimeFormatting {
-    private static let isoFormatter: ISO8601DateFormatter = {
+    static let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
     }()
 
-    private static let isoFormatterBasic = ISO8601DateFormatter()
+    static let isoFormatterBasic = ISO8601DateFormatter()
 
     /// Format an RFC3339 reset timestamp as a countdown string.
     public static func formatResetCountdown(from rfc3339: String) -> String {

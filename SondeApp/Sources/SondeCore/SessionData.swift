@@ -1,5 +1,16 @@
 import Foundation
 
+/// Cost breakdown for a single model used during a session.
+public struct ModelCostEntry: Equatable, Sendable {
+    public var model: String
+    public var cost: Double
+
+    public init(model: String, cost: Double) {
+        self.model = model
+        self.cost = cost
+    }
+}
+
 /// Live session data scraped from Claude Code's state.
 public struct SessionData: Equatable, Sendable {
     public var modelName: String?
@@ -9,6 +20,8 @@ public struct SessionData: Equatable, Sendable {
     public var totalInputTokens: Int?
     public var totalOutputTokens: Int?
     public var sessionDurationMs: Int?
+    public var costPerModel: [ModelCostEntry] = []
+    public var gitBranch: String?
 
     public init() {}
 
@@ -153,7 +166,39 @@ public actor SessionReader {
         if totalInputTokens > 0 { session.totalInputTokens = totalInputTokens }
         if totalOutputTokens > 0 { session.totalOutputTokens = totalOutputTokens }
 
+        // Extract project directory from transcript path and detect git branch.
+        // Transcript path: ~/.claude/projects/<encoded-project-path>/<uuid>.jsonl
+        // The project folder name is the URL-encoded absolute path of the project.
+        session.gitBranch = detectGitBranch(from: transcript)
+
         return session
+    }
+
+    private func detectGitBranch(from transcriptURL: URL) -> String? {
+        // Transcript: ~/.claude/projects/-Users-foo-project/uuid.jsonl
+        // The parent dir name is the URL-encoded project path (dashes for slashes)
+        let projectDir = transcriptURL.deletingLastPathComponent().lastPathComponent
+        // Convert "-Users-foo-project" back to "/Users/foo/project"
+        let decoded = "/" + projectDir.dropFirst().replacingOccurrences(of: "-", with: "/")
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.arguments = ["rev-parse", "--abbrev-ref", "HEAD"]
+        process.currentDirectoryURL = URL(fileURLWithPath: decoded)
+
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch { return nil }
+
+        guard process.terminationStatus == 0 else { return nil }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let branch = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return branch?.isEmpty == true ? nil : branch
     }
 
     private func displayName(for modelId: String) -> String {

@@ -9,32 +9,40 @@ struct PopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header bar
             headerSection
             Divider()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Current session card
                     sessionCard
 
-                    // Pacing + promo
+                    // Context window bar
+                    if viewModel.session.totalInputTokens != nil {
+                        contextWindowBar
+                    }
+
+                    // Per-model cost breakdown
+                    if viewModel.session.costPerModel.count > 1 {
+                        costBreakdown
+                    }
+
+                    // Today's spend
+                    if viewModel.dailyClaudeCost > 0 || viewModel.dailyCodexCost > 0 {
+                        dailySpendSection
+                    }
+
                     pacingSection
 
-                    // Usage limits
                     usageLimitsSection
 
-                    // Extra usage card
                     if viewModel.extraUsageEnabled {
                         extraUsageCard
                     }
 
-                    // Active sessions
                     if viewModel.activeSessions.count > 1 {
                         sessionsSection
                     }
 
-                    // Model suggestion
                     modelSuggestion
                 }
                 .padding(16)
@@ -43,7 +51,7 @@ struct PopoverView: View {
             Divider()
             footerSection
         }
-        .frame(width: 320, height: 480)
+        .frame(width: 320, height: 520)
         .onAppear { viewModel.startPolling() }
         .onDisappear { viewModel.stopPolling() }
     }
@@ -80,7 +88,17 @@ struct PopoverView: View {
 
     private var sessionCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(spacing: 4) {
+                if let branch = viewModel.session.gitBranch {
+                    Image(systemName: "arrow.triangle.branch")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(branch)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text("·")
+                        .foregroundStyle(.tertiary)
+                }
                 Text("Current Session")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -88,7 +106,6 @@ struct PopoverView: View {
             }
 
             HStack(spacing: 16) {
-                // Model
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Model")
                         .font(.caption2)
@@ -100,7 +117,6 @@ struct PopoverView: View {
 
                 Spacer()
 
-                // Cost
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Cost")
                         .font(.caption2)
@@ -118,16 +134,14 @@ struct PopoverView: View {
                         Text(String(format: "Combined $%.2f", claude + codex))
                             .font(.caption2)
                             .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
                     }
                 }
 
-                // Duration
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Time")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                    Text(viewModel.session.formattedDuration)
+                    Text(viewModel.liveSessionDuration)
                         .font(.title3)
                         .fontWeight(.semibold)
                         .monospacedDigit()
@@ -146,6 +160,93 @@ struct PopoverView: View {
         return .primary
     }
 
+    // MARK: - Context Window Bar
+
+    private var contextWindowBar: some View {
+        let used = viewModel.session.contextTokensUsed
+        let size = viewModel.session.contextWindowSize ?? 200_000
+        let pct = size > 0 ? Double(used) / Double(size) * 100 : 0
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Context")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(Int(pct))%")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .foregroundStyle(pct >= 70 ? .red : pct >= 40 ? .orange : .green)
+                Text("\(used / 1000)k/\(size / 1000)k")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 6)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(pct >= 70 ? Color.red : pct >= 40 ? Color.orange : Color.green)
+                        .frame(width: max(0, geo.size.width * CGFloat(min(pct, 100) / 100)), height: 6)
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+
+    // MARK: - Cost Breakdown
+
+    private var costBreakdown: some View {
+        DisclosureGroup("Cost breakdown") {
+            ForEach(viewModel.session.costPerModel, id: \.model) { entry in
+                HStack {
+                    Text(entry.model)
+                        .font(.caption)
+                    Spacer()
+                    Text(String(format: "$%.2f", entry.cost))
+                        .font(.caption)
+                        .monospacedDigit()
+                }
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    // MARK: - Daily Spend
+
+    private var dailySpendSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Today's Spend")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Label(String(format: "$%.2f", viewModel.dailyClaudeCost), systemImage: "brain")
+                    .font(.caption)
+
+                if viewModel.dailyCodexCost > 0 {
+                    Label(String(format: "$%.2f", viewModel.dailyCodexCost), systemImage: "terminal")
+                        .font(.caption)
+                }
+
+                Spacer()
+
+                let total = viewModel.dailyClaudeCost + viewModel.dailyCodexCost
+                Text(String(format: "Total $%.2f", total))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(total >= 10 ? .red : total >= 5 ? .orange : .primary)
+            }
+        }
+        .padding(10)
+        .background(.quaternary.opacity(0.3))
+        .cornerRadius(6)
+    }
+
     // MARK: - Pacing
 
     private var pacingSection: some View {
@@ -158,8 +259,18 @@ struct PopoverView: View {
                 Text(pacingDescription)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let predict = viewModel.pacePredict {
+                    Text(predict)
+                        .font(.caption)
+                        .italic()
+                        .foregroundStyle(.orange)
+                }
             }
             Spacer()
+            if viewModel.usageHistory.count > 2 {
+                SparklineView(data: viewModel.usageHistory)
+                    .frame(width: 50, height: 20)
+            }
         }
         .padding(12)
         .background(pacingBackground)
@@ -197,27 +308,11 @@ struct PopoverView: View {
                 .foregroundStyle(.secondary)
 
             if let fh = viewModel.fiveHourUtil {
-                UsageRow(
-                    label: "5-hour window",
-                    utilization: fh,
-                    resetTime: viewModel.fiveHourReset
-                )
+                UsageRow(label: "5-hour window", utilization: fh, resetTime: viewModel.fiveHourReset)
             }
 
             if let sd = viewModel.sevenDayUtil {
-                UsageRow(
-                    label: "7-day window",
-                    utilization: sd,
-                    resetTime: viewModel.sevenDayReset
-                )
-            }
-
-            if let extra = viewModel.extraUsageUtil {
-                UsageRow(
-                    label: "Extra usage",
-                    utilization: extra,
-                    resetTime: nil
-                )
+                UsageRow(label: "7-day window", utilization: sd, resetTime: viewModel.sevenDayReset)
             }
 
             if viewModel.fiveHourUtil == nil && viewModel.sevenDayUtil == nil {
@@ -240,16 +335,14 @@ struct PopoverView: View {
 
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Monthly Limit")
+                    Text("Limit")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                     if let limit = viewModel.extraUsageMonthlyLimit {
                         Text(String(format: "$%.0f", limit))
                             .font(.headline)
-                            .fontWeight(.semibold)
                     } else {
-                        Text("--")
-                            .font(.headline)
+                        Text("--").font(.headline)
                     }
                 }
 
@@ -260,26 +353,19 @@ struct PopoverView: View {
                     if let used = viewModel.extraUsageUsedCredits {
                         Text(String(format: "$%.2f", used))
                             .font(.headline)
-                            .fontWeight(.semibold)
                     } else {
-                        Text("--")
-                            .font(.headline)
+                        Text("--").font(.headline)
                     }
                 }
 
                 Spacer()
 
                 if let util = viewModel.extraUsageUtil {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Utilization")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                        Text("\(Int(util))%")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .monospacedDigit()
-                            .foregroundStyle(util >= 80 ? .red : util >= 60 ? .orange : .green)
-                    }
+                    Text("\(Int(util))%")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                        .foregroundStyle(util >= 80 ? .red : util >= 60 ? .orange : .green)
                 }
             }
         }
@@ -376,7 +462,6 @@ struct PopoverView: View {
                     try service.unregister()
                 }
             } catch {
-                // If registration fails, revert the toggle
                 launchAtLogin = !enabled
             }
         }
@@ -433,11 +518,10 @@ struct UsageRow: View {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color.gray.opacity(0.2))
                         .frame(height: 6)
-
                     RoundedRectangle(cornerRadius: 3)
                         .fill(barColor)
                         .frame(
-                            width: max(0, geo.size.width * CGFloat(min(utilization, 100) / 100.0)),
+                            width: max(0, geo.size.width * CGFloat(min(utilization, 100) / 100)),
                             height: 6
                         )
                 }

@@ -31,6 +31,40 @@ public enum PaceTier: String, Sendable, Equatable {
         }
     }
 
+    /// Predict when the user will hit 100% utilization.
+    /// Returns nil if pace is comfortable (projected < 100% by reset).
+    public static func predictTimeToLimit(utilization: Double, resetsAt: String?) -> String? {
+        guard utilization > 10, let resetsAt else { return nil }
+
+        let remaining: TimeInterval
+        if let date = TimeFormatting.isoFormatter.date(from: resetsAt)
+            ?? TimeFormatting.isoFormatterBasic.date(from: resetsAt)
+        {
+            remaining = date.timeIntervalSince(Date())
+        } else {
+            return nil
+        }
+
+        guard remaining > 0 else { return nil }
+
+        let windowDuration: TimeInterval = 5 * 3600 // 5-hour window
+        let elapsed = windowDuration - remaining
+        guard elapsed > 60 else { return nil } // need at least 1 min of data
+
+        let rate = utilization / (elapsed / windowDuration) // projected % at window end
+        guard rate > 100 else { return nil } // won't hit limit
+
+        // Time to reach 100% at current rate
+        let pctPerSec = utilization / elapsed
+        let secsToLimit = (100 - utilization) / pctPerSec
+        let minsToLimit = Int(secsToLimit) / 60
+
+        if minsToLimit >= 60 {
+            return "Limit in ~\(minsToLimit / 60)h \(minsToLimit % 60)m"
+        }
+        return "Limit in ~\(minsToLimit)m"
+    }
+
     public static func calculate(utilization: Double, promoActive: Bool) -> PaceTier {
         if utilization > 90.0 {
             return .runaway

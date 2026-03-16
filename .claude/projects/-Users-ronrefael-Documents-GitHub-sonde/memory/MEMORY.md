@@ -1,2 +1,3 @@
 - [project_sonde_phase1.md](project_sonde_phase1.md) — Phase 1 Rust statusline binary built and working with all 13 modules
 - [feedback_swift_keychain_cache.md](feedback_swift_keychain_cache.md) — Use `security` CLI not Security.framework for SPM builds; allow stale cache reads cross-process
+- [feedback_all_breaks.md](feedback_all_breaks.md) — All 8 bugs hit during sonde build: ureq API, nu-ansi-term, Serialize derives, Keychain entitlements, cache TTL, rate limiting, UNUserNotificationCenter bundle crash, duplicate instances
