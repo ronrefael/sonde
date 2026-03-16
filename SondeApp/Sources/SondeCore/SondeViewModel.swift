@@ -15,12 +15,22 @@ public final class SondeViewModel: ObservableObject {
     @Published public var promoActive: Bool = false
     @Published public var promoEmoji: String = ""
     @Published public var promoLabel: String = ""
+    @Published public var promoCountdown: String = ""
+    @Published public var promoCountdownLabel: String = ""
 
     // Pacing
     @Published public var paceTier: PaceTier = .comfortable
 
     // Session
     @Published public var session: SessionData = SessionData()
+
+    // Codex
+    @Published public var codexCost: Double?
+
+    // Extra usage details
+    @Published public var extraUsageEnabled: Bool = false
+    @Published public var extraUsageMonthlyLimit: Double?
+    @Published public var extraUsageUsedCredits: Double?
 
     // Agents
     @Published public var activeSessions: [AgentSession] = []
@@ -32,6 +42,7 @@ public final class SondeViewModel: ObservableObject {
     private let promoService = PromoService()
     private let agentWatcher = AgentWatcher()
     private let sessionReader = SessionReader()
+    private let codexCostReader = CodexCostReader()
     private var pollTimer: Timer?
 
     public init() {
@@ -63,11 +74,13 @@ public final class SondeViewModel: ObservableObject {
         async let promoTask = promoService.fetchPromo()
         async let sessionsTask = agentWatcher.getActiveSessions()
         async let sessionTask = sessionReader.getSessionData()
+        async let codexTask = codexCostReader.getSessionCost()
 
         let usage = await usageTask
         let promo = await promoTask
         let sessions = await sessionsTask
         let newSession = await sessionTask
+        let newCodexCost = await codexTask
 
         // Usage
         let newFiveHourUtil = usage?.fiveHour?.utilization
@@ -87,6 +100,22 @@ public final class SondeViewModel: ObservableObject {
         if promoActive != newPromoActive { promoActive = newPromoActive }
         if promoEmoji != newPromoEmoji { promoEmoji = newPromoEmoji }
         if promoLabel != newPromoLabel { promoLabel = newPromoLabel }
+
+        // Promo countdown
+        let transition = PromoSchedule.nextTransition()
+        if promoCountdownLabel != transition.label { promoCountdownLabel = transition.label }
+        if promoCountdown != transition.timeRemaining { promoCountdown = transition.timeRemaining }
+
+        // Codex cost
+        if codexCost != newCodexCost { codexCost = newCodexCost }
+
+        // Extra usage details
+        let newExtraEnabled = usage?.extraUsage?.isEnabled ?? false
+        let newExtraMonthly = usage?.extraUsage?.monthlyLimit
+        let newExtraUsed = usage?.extraUsage?.usedCredits
+        if extraUsageEnabled != newExtraEnabled { extraUsageEnabled = newExtraEnabled }
+        if extraUsageMonthlyLimit != newExtraMonthly { extraUsageMonthlyLimit = newExtraMonthly }
+        if extraUsageUsedCredits != newExtraUsed { extraUsageUsedCredits = newExtraUsed }
 
         if let util = newFiveHourUtil {
             let newTier = PaceTier.calculate(utilization: util, promoActive: newPromoActive)

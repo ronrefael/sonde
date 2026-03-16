@@ -24,6 +24,11 @@ struct PopoverView: View {
                     // Usage limits
                     usageLimitsSection
 
+                    // Extra usage card
+                    if viewModel.extraUsageEnabled {
+                        extraUsageCard
+                    }
+
                     // Active sessions
                     if viewModel.activeSessions.count > 1 {
                         sessionsSection
@@ -53,11 +58,18 @@ struct PopoverView: View {
                 .font(.headline)
             Spacer()
             if !viewModel.promoEmoji.isEmpty {
-                PromoBadge(
-                    emoji: viewModel.promoEmoji,
-                    label: viewModel.promoLabel,
-                    isActive: viewModel.promoActive
-                )
+                VStack(alignment: .trailing, spacing: 2) {
+                    PromoBadge(
+                        emoji: viewModel.promoEmoji,
+                        label: viewModel.promoLabel,
+                        isActive: viewModel.promoActive
+                    )
+                    if !viewModel.promoCountdown.isEmpty {
+                        Text("\(viewModel.promoCountdownLabel) \(viewModel.promoCountdown)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -97,6 +109,17 @@ struct PopoverView: View {
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundStyle(costColor)
+                    if let codex = viewModel.codexCost {
+                        Text(String(format: "Codex $%.2f", codex))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let claude = viewModel.session.sessionCost, let codex = viewModel.codexCost {
+                        Text(String(format: "Combined $%.2f", claude + codex))
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 // Duration
@@ -205,6 +228,64 @@ struct PopoverView: View {
                     .padding(.vertical, 8)
             }
         }
+    }
+
+    // MARK: - Extra Usage
+
+    private var extraUsageCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Extra Usage")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Monthly Limit")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    if let limit = viewModel.extraUsageMonthlyLimit {
+                        Text(String(format: "$%.0f", limit))
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                    } else {
+                        Text("--")
+                            .font(.headline)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Used")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    if let used = viewModel.extraUsageUsedCredits {
+                        Text(String(format: "$%.2f", used))
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                    } else {
+                        Text("--")
+                            .font(.headline)
+                    }
+                }
+
+                Spacer()
+
+                if let util = viewModel.extraUsageUtil {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Utilization")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        Text("\(Int(util))%")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .monospacedDigit()
+                            .foregroundStyle(util >= 80 ? .red : util >= 60 ? .orange : .green)
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(.quaternary.opacity(0.5))
+        .cornerRadius(8)
     }
 
     // MARK: - Sessions
