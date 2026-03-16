@@ -60,9 +60,13 @@ public actor SessionReader {
         }
 
         let data = readFromClaudeState()
-        cached = data
+        // Keep last known good data if new parse found nothing
+        // (happens mid-generation when transcript tail has incomplete entries)
+        if data.modelName != nil {
+            cached = data
+        }
         lastRead = Date()
-        return data
+        return cached ?? data
     }
 
     /// Try to read session state from Claude Code's process or recent transcript.
