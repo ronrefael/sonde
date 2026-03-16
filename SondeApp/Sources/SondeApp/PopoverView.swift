@@ -30,6 +30,11 @@ struct PopoverView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         sessionCard
 
+                        // Session Stats
+                        if viewModel.session.linesAdded != nil || viewModel.session.messageCount > 0 {
+                            sessionStatsCard
+                        }
+
                         // Context window bar
                         if viewModel.session.totalInputTokens != nil {
                             contextWindowBar
@@ -142,6 +147,20 @@ struct PopoverView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
+                if let agent = viewModel.session.agentName {
+                    Text(agent)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.purple.opacity(0.15))
+                        .cornerRadius(3)
+                }
+                if let ver = viewModel.session.claudeVersion {
+                    Text("v\(ver)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
 
             HStack(spacing: 16) {
@@ -197,6 +216,109 @@ struct PopoverView: View {
         if cost >= 5.0 { return .red }
         if cost >= 2.0 { return .orange }
         return .primary
+    }
+
+    // MARK: - Session Stats
+
+    private var sessionStatsCard: some View {
+        DisclosureGroup("Session Stats") {
+            VStack(spacing: 6) {
+                // Row 1: Lines Added | Lines Removed | Velocity
+                HStack(spacing: 0) {
+                    statCell(
+                        label: "Added",
+                        value: viewModel.session.linesAdded.map { "+\($0)" } ?? "--",
+                        color: .green
+                    )
+                    statCell(
+                        label: "Removed",
+                        value: viewModel.session.linesRemoved.map { "-\($0)" } ?? "--",
+                        color: .red
+                    )
+                    statCell(
+                        label: "Velocity",
+                        value: viewModel.session.codeVelocity ?? "--",
+                        color: .primary
+                    )
+                }
+
+                // Row 2: Cache Hits | API Wait | Cost/Line
+                HStack(spacing: 0) {
+                    statCell(
+                        label: "Cache Hits",
+                        value: viewModel.session.cacheHitRatio ?? "--",
+                        color: .primary
+                    )
+                    statCell(
+                        label: "API Wait",
+                        value: viewModel.session.apiWaitRatio ?? "--",
+                        color: .primary
+                    )
+                    statCell(
+                        label: "Cost/Line",
+                        value: viewModel.session.costPerLine ?? "--",
+                        color: .primary
+                    )
+                }
+
+                // Row 3: Web Searches | Web Fetches | Messages
+                HStack(spacing: 0) {
+                    statCell(
+                        label: "Searches",
+                        value: "\(viewModel.session.webSearchCount)",
+                        color: .primary
+                    )
+                    statCell(
+                        label: "Fetches",
+                        value: "\(viewModel.session.webFetchCount)",
+                        color: .primary
+                    )
+                    statCell(
+                        label: "Messages",
+                        value: "\(viewModel.session.messageCount)",
+                        color: .primary
+                    )
+                }
+
+                // Row 4: Agent | Version | Mode
+                if viewModel.session.agentName != nil || viewModel.session.claudeVersion != nil || viewModel.session.vimMode != nil {
+                    HStack(spacing: 0) {
+                        statCell(
+                            label: "Agent",
+                            value: viewModel.session.agentName ?? "--",
+                            color: .purple
+                        )
+                        statCell(
+                            label: "Claude",
+                            value: viewModel.session.claudeVersion.map { "v\($0)" } ?? "--",
+                            color: .primary
+                        )
+                        statCell(
+                            label: "Mode",
+                            value: viewModel.session.vimMode ?? "speed",
+                            color: .primary
+                        )
+                    }
+                }
+            }
+            .padding(.top, 4)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    private func statCell(label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 1) {
+            Text(label)
+                .font(.system(size: 9))
+                .foregroundStyle(.tertiary)
+            Text(value)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Context Window Bar

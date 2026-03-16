@@ -35,6 +35,15 @@ fn write_session_cache(ctx: &context::Context) {
         if let Some(ms) = cost.total_duration_ms {
             obj.insert("session_duration_ms".into(), serde_json::json!(ms));
         }
+        if let Some(lines) = cost.total_lines_added {
+            obj.insert("total_lines_added".into(), serde_json::json!(lines));
+        }
+        if let Some(lines) = cost.total_lines_removed {
+            obj.insert("total_lines_removed".into(), serde_json::json!(lines));
+        }
+        if let Some(ms) = cost.total_api_duration_ms {
+            obj.insert("total_api_duration_ms".into(), serde_json::json!(ms));
+        }
     }
 
     if let Some(ref cw) = ctx.context_window {
@@ -49,6 +58,22 @@ fn write_session_cache(ctx: &context::Context) {
         }
         if let Some(output) = cw.total_output_tokens {
             obj.insert("total_output_tokens".into(), serde_json::json!(output));
+        }
+    }
+
+    if let Some(ref version) = ctx.version {
+        obj.insert("version".into(), serde_json::Value::String(version.clone()));
+    }
+
+    if let Some(ref agent) = ctx.agent {
+        if let Some(ref name) = agent.name {
+            obj.insert("agent_name".into(), serde_json::Value::String(name.clone()));
+        }
+    }
+
+    if let Some(ref vim) = ctx.vim {
+        if let Some(ref mode) = vim.mode {
+            obj.insert("vim_mode".into(), serde_json::Value::String(mode.clone()));
         }
     }
 

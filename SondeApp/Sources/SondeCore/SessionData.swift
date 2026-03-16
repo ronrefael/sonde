@@ -102,6 +102,21 @@ public struct SessionData: Equatable, Sendable {
     public var gitBranch: String?
     public var otherProjects: [ProjectCost] = []
 
+    // Stats from Rust session cache
+    public var linesAdded: Int?
+    public var linesRemoved: Int?
+    public var apiDurationMs: Int?
+    public var claudeVersion: String?
+    public var agentName: String?
+    public var vimMode: String?
+
+    // Stats from transcript parsing
+    public var cacheReadTokens: Int = 0
+    public var cacheWriteTokens: Int = 0
+    public var webSearchCount: Int = 0
+    public var webFetchCount: Int = 0
+    public var messageCount: Int = 0
+
     public init() {}
 
     public var contextTokensUsed: Int {
@@ -122,6 +137,41 @@ public struct SessionData: Equatable, Sendable {
         if hours > 0 { return "\(hours)h\(String(format: "%02d", mins))m" }
         if mins > 0 { return "\(mins)m\(String(format: "%02d", secs % 60))s" }
         return "\(secs)s"
+    }
+
+    public var totalLinesChanged: Int {
+        (linesAdded ?? 0) + (linesRemoved ?? 0)
+    }
+
+    /// Lines changed per hour, e.g. "142 lines/hr"
+    public var codeVelocity: String? {
+        guard totalLinesChanged > 0, let ms = sessionDurationMs, ms > 0 else { return nil }
+        let hours = Double(ms) / 3_600_000.0
+        guard hours > 0 else { return nil }
+        let rate = Int(Double(totalLinesChanged) / hours)
+        return "\(rate) lines/hr"
+    }
+
+    /// Cost per line changed, e.g. "$0.03/line"
+    public var costPerLine: String? {
+        guard totalLinesChanged > 0, let cost = sessionCost, cost > 0 else { return nil }
+        let cpl = cost / Double(totalLinesChanged)
+        return String(format: "$%.2f/line", cpl)
+    }
+
+    /// Cache hit ratio, e.g. "87%"
+    public var cacheHitRatio: String? {
+        let total = cacheReadTokens + cacheWriteTokens
+        guard total > 0 else { return nil }
+        let ratio = Double(cacheReadTokens) / Double(total) * 100
+        return "\(Int(ratio))%"
+    }
+
+    /// API wait ratio (time spent waiting for API vs total session), e.g. "12%"
+    public var apiWaitRatio: String? {
+        guard let apiMs = apiDurationMs, let totalMs = sessionDurationMs, totalMs > 0 else { return nil }
+        let ratio = Double(apiMs) / Double(totalMs) * 100
+        return "\(Int(ratio))%"
     }
 }
 
@@ -150,6 +200,11 @@ public actor SessionReader {
         let transcriptData = readFromClaudeState()
         if data.gitBranch == nil { data.gitBranch = transcriptData.gitBranch }
         if data.otherProjects.isEmpty { data.otherProjects = transcriptData.otherProjects }
+        if data.cacheReadTokens == 0 { data.cacheReadTokens = transcriptData.cacheReadTokens }
+        if data.cacheWriteTokens == 0 { data.cacheWriteTokens = transcriptData.cacheWriteTokens }
+        if data.webSearchCount == 0 { data.webSearchCount = transcriptData.webSearchCount }
+        if data.webFetchCount == 0 { data.webFetchCount = transcriptData.webFetchCount }
+        if data.messageCount == 0 { data.messageCount = transcriptData.messageCount }
 
         // Keep last known good data if new parse found nothing
         if data.modelName != nil {
@@ -182,6 +237,12 @@ public actor SessionReader {
         session.totalInputTokens = data["total_input_tokens"] as? Int
         session.totalOutputTokens = data["total_output_tokens"] as? Int
         session.sessionDurationMs = data["session_duration_ms"] as? Int
+        session.linesAdded = data["total_lines_added"] as? Int
+        session.linesRemoved = data["total_lines_removed"] as? Int
+        session.apiDurationMs = data["total_api_duration_ms"] as? Int
+        session.claudeVersion = data["version"] as? String
+        session.agentName = data["agent_name"] as? String
+        session.vimMode = data["vim_mode"] as? String
 
         return session.modelName != nil ? session : nil
     }
@@ -353,6 +414,11 @@ public actor SessionReader {
         // Parse JSON lines from the tail, looking for assistant turns with model/usage
         var totalInputTokens = 0
         var totalOutputTokens = 0
+        var totalCacheRead = 0
+        var totalCacheWrite = 0
+        var webSearches = 0
+        var webFetches = 0
+        var assistantMessages = 0
         var costByModel: [String: Double] = [:]
 
         for line in tail.split(separator: "\n").reversed() {
@@ -362,6 +428,13 @@ public actor SessionReader {
 
             // Claude Code transcript format: { type: "assistant", message: { model, usage } }
             if let message = obj["message"] as? [String: Any] {
+                // Count assistant messages
+                if let role = message["role"] as? String, role == "assistant" {
+                    assistantMessages += 1
+                } else if obj["type"] as? String == "assistant" {
+                    assistantMessages += 1
+                }
+
                 // Model from message.model
                 if session.modelName == nil, let model = message["model"] as? String {
                     session.modelName = displayName(for: model)
@@ -369,12 +442,22 @@ public actor SessionReader {
 
                 // Token usage + per-model cost from message.usage
                 if let usage = message["usage"] as? [String: Any] {
+                    let cacheRead = usage["cache_read_input_tokens"] as? Int ?? 0
+                    let cacheWrite = usage["cache_creation_input_tokens"] as? Int ?? 0
                     let input = (usage["input_tokens"] as? Int ?? 0)
-                        + (usage["cache_read_input_tokens"] as? Int ?? 0)
-                        + (usage["cache_creation_input_tokens"] as? Int ?? 0)
+                        + cacheRead
+                        + cacheWrite
                     let output = usage["output_tokens"] as? Int ?? 0
                     totalInputTokens += input
                     totalOutputTokens += output
+                    totalCacheRead += cacheRead
+                    totalCacheWrite += cacheWrite
+
+                    // Web search/fetch from server_tool_use
+                    if let serverTool = usage["server_tool_use"] as? [String: Any] {
+                        webSearches += serverTool["web_search_requests"] as? Int ?? 0
+                        webFetches += serverTool["web_fetch_requests"] as? Int ?? 0
+                    }
 
                     if let model = message["model"] as? String {
                         let name = displayName(for: model)
@@ -399,6 +482,11 @@ public actor SessionReader {
 
         if totalInputTokens > 0 { session.totalInputTokens = totalInputTokens }
         if totalOutputTokens > 0 { session.totalOutputTokens = totalOutputTokens }
+        session.cacheReadTokens = totalCacheRead
+        session.cacheWriteTokens = totalCacheWrite
+        session.webSearchCount = webSearches
+        session.webFetchCount = webFetches
+        session.messageCount = assistantMessages
 
         // Per-model cost breakdown
         session.costPerModel = costByModel.map { ModelCostEntry(model: $0.key, cost: $0.value) }
