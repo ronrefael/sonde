@@ -117,16 +117,9 @@ public actor UsageService {
             return nil
         }
 
-        // Check window reset — data is invalid after reset
-        let now = UInt64(Date().timeIntervalSince1970)
-        if let resets = envelope.fiveHourResetsAt, now >= resets {
-            return nil
-        }
-
-        // Allow stale reads — the Rust statusline refreshes this cache
-        // frequently, and the menu bar app should show the last known
-        // data rather than nothing when the cache TTL has passed.
-
+        // Always return data — stale is better than empty.
+        // The Rust statusline refreshes this cache frequently.
+        // Window resets will naturally show updated values on next refresh.
         return envelope.data
     }
 }
