@@ -1,28 +1,54 @@
 import Foundation
-import Security
 
 /// Retrieves Claude Code OAuth token from macOS Keychain.
+/// Uses `security` CLI (same approach as Rust binary) to avoid entitlement issues.
 /// Token is held only in memory, never persisted.
 public enum CredentialProvider {
+    private static var cachedToken: String?
+    private static var cacheTime: Date?
+    private static let cacheTTL: TimeInterval = 300
+
     public static func getOAuthToken() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "Claude Code-credentials",
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let jsonStr = String(data: data, encoding: .utf8)
-        else {
-            return nil
+        // Return cached token if fresh
+        if let token = cachedToken,
+           let time = cacheTime,
+           Date().timeIntervalSince(time) < cacheTTL
+        {
+            return token
         }
 
-        return extractAccessToken(from: jsonStr)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+        process.arguments = ["find-generic-password", "-s", "Claude Code-credentials", "-w"]
+
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return cachedToken // stale fallback
+        }
+
+        guard process.terminationStatus == 0 else {
+            return cachedToken
+        }
+
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let raw = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty
+        else {
+            return cachedToken
+        }
+
+        let token = extractAccessToken(from: raw)
+        if let token {
+            cachedToken = token
+            cacheTime = Date()
+        }
+        return token
     }
 
     private static func extractAccessToken(from json: String) -> String? {

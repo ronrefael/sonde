@@ -37,7 +37,22 @@ public struct ExtraUsage: Codable, Sendable {
     }
 }
 
-/// Fetches usage data from the Claude Code OAuth API.
+/// Rust binary cache envelope format.
+private struct CacheEnvelope: Codable {
+    let data: UsageData
+    let createdAt: UInt64
+    let expiresAt: UInt64
+    let fiveHourResetsAt: UInt64?
+
+    enum CodingKeys: String, CodingKey {
+        case data
+        case createdAt = "created_at"
+        case expiresAt = "expires_at"
+        case fiveHourResetsAt = "five_hour_resets_at"
+    }
+}
+
+/// Fetches usage data — first from Rust binary's shared cache, then API.
 public actor UsageService {
     private static let apiURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     private var cachedData: UsageData?
@@ -47,7 +62,7 @@ public actor UsageService {
     public init() {}
 
     public func fetchUsage() async -> UsageData? {
-        // Return cached if fresh
+        // Return in-memory cached if fresh
         if let cached = cachedData,
            let lastFetch,
            Date().timeIntervalSince(lastFetch) < cacheTTL
@@ -55,8 +70,16 @@ public actor UsageService {
             return cached
         }
 
+        // Try reading from Rust binary's shared cache first
+        if let fromCache = readRustCache() {
+            cachedData = fromCache
+            lastFetch = Date()
+            return fromCache
+        }
+
+        // Fall back to direct API call
         guard let token = CredentialProvider.getOAuthToken() else {
-            return cachedData // stale fallback
+            return cachedData
         }
 
         var request = URLRequest(url: Self.apiURL)
@@ -65,14 +88,45 @@ public actor UsageService {
         request.timeoutInterval = 5
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let decoder = JSONDecoder()
-            let usage = try decoder.decode(UsageData.self, from: data)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            // Check for rate limiting
+            if let http = response as? HTTPURLResponse, http.statusCode == 429 {
+                return cachedData
+            }
+            let usage = try JSONDecoder().decode(UsageData.self, from: data)
             cachedData = usage
             lastFetch = Date()
             return usage
         } catch {
-            return cachedData // stale fallback
+            return cachedData
         }
+    }
+
+    /// Read from the Rust binary's cache file at ~/Library/Caches/sonde/usage_limits.json
+    private func readRustCache() -> UsageData? {
+        guard let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        let cachePath = cacheDir.appendingPathComponent("sonde/usage_limits.json")
+
+        guard let data = try? Data(contentsOf: cachePath) else {
+            return nil
+        }
+
+        guard let envelope = try? JSONDecoder().decode(CacheEnvelope.self, from: data) else {
+            return nil
+        }
+
+        // Check window reset — data is invalid after reset
+        let now = UInt64(Date().timeIntervalSince1970)
+        if let resets = envelope.fiveHourResetsAt, now >= resets {
+            return nil
+        }
+
+        // Allow stale reads — the Rust statusline refreshes this cache
+        // frequently, and the menu bar app should show the last known
+        // data rather than nothing when the cache TTL has passed.
+
+        return envelope.data
     }
 }
