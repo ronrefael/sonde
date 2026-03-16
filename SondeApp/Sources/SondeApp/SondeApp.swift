@@ -1,5 +1,5 @@
-import SwiftUI
 import SondeCore
+import SwiftUI
 
 @main
 struct SondeMenuBarApp: App {
@@ -28,6 +28,11 @@ struct MenuBarLabel: View {
                 if let util = viewModel.fiveHourUtil {
                     Text("\(Int(util))%")
                         .monospacedDigit()
+                }
+                if let cost = viewModel.session.sessionCost {
+                    Text("$\(String(format: "%.2f", cost))")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
                 }
             }
         }

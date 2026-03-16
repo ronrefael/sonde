@@ -1,35 +1,179 @@
-import SwiftUI
 import SondeCore
+import SwiftUI
 
 /// The popover dashboard shown when clicking the menu bar icon.
 struct PopoverView: View {
     @ObservedObject var viewModel: SondeViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack {
-                Text("sonde")
-                    .font(.headline)
-                Spacer()
-                if !viewModel.promoEmoji.isEmpty {
-                    PromoBadge(
-                        emoji: viewModel.promoEmoji,
-                        label: viewModel.promoLabel,
-                        isActive: viewModel.promoActive
-                    )
+        VStack(alignment: .leading, spacing: 0) {
+            // Header bar
+            headerSection
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Current session card
+                    sessionCard
+
+                    // Pacing + promo
+                    pacingSection
+
+                    // Usage limits
+                    usageLimitsSection
+
+                    // Active sessions
+                    if viewModel.activeSessions.count > 1 {
+                        sessionsSection
+                    }
+
+                    // Model suggestion
+                    modelSuggestion
                 }
+                .padding(16)
             }
 
             Divider()
+            footerSection
+        }
+        .frame(width: 320, height: 480)
+        .onAppear { viewModel.startPolling() }
+        .onDisappear { viewModel.stopPolling() }
+    }
 
-            // Pacing
-            PacingRow(tier: viewModel.paceTier)
+    // MARK: - Header
 
-            // Usage limits
+    private var headerSection: some View {
+        HStack {
+            Image(systemName: "waveform.path.ecg")
+                .foregroundStyle(.blue)
+            Text("sonde")
+                .font(.headline)
+            Spacer()
+            if !viewModel.promoEmoji.isEmpty {
+                PromoBadge(
+                    emoji: viewModel.promoEmoji,
+                    label: viewModel.promoLabel,
+                    isActive: viewModel.promoActive
+                )
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+    }
+
+    // MARK: - Session Card
+
+    private var sessionCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Current Session")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+
+            HStack(spacing: 16) {
+                // Model
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Model")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Text(viewModel.session.modelName ?? "—")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                }
+
+                Spacer()
+
+                // Cost
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Cost")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Text(viewModel.session.formattedCost)
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(costColor)
+                }
+
+                // Duration
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Time")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Text(viewModel.session.formattedDuration)
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .monospacedDigit()
+                }
+            }
+        }
+        .padding(12)
+        .background(.quaternary.opacity(0.5))
+        .cornerRadius(8)
+    }
+
+    private var costColor: Color {
+        guard let cost = viewModel.session.sessionCost else { return .primary }
+        if cost >= 5.0 { return .red }
+        if cost >= 2.0 { return .orange }
+        return .primary
+    }
+
+    // MARK: - Pacing
+
+    private var pacingSection: some View {
+        HStack(spacing: 8) {
+            Text(viewModel.paceTier.emoji)
+                .font(.title2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(viewModel.paceTier.rawValue)
+                    .font(.headline)
+                Text(pacingDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(pacingBackground)
+        .cornerRadius(8)
+    }
+
+    private var pacingDescription: String {
+        switch viewModel.paceTier {
+        case .comfortable: return "Usage is well within limits"
+        case .onTrack: return "Steady pace, no concerns"
+        case .elevated: return "Usage picking up — monitor closely"
+        case .hot: return "Approaching limits — consider lighter models"
+        case .critical: return "Near rate limit — switch models or pause"
+        case .runaway: return "Rate limiting imminent!"
+        }
+    }
+
+    private var pacingBackground: Color {
+        switch viewModel.paceTier {
+        case .comfortable: return .green.opacity(0.1)
+        case .onTrack: return .blue.opacity(0.1)
+        case .elevated: return .yellow.opacity(0.1)
+        case .hot: return .orange.opacity(0.1)
+        case .critical: return .red.opacity(0.1)
+        case .runaway: return .red.opacity(0.2)
+        }
+    }
+
+    // MARK: - Usage Limits
+
+    private var usageLimitsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Usage Limits")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             if let fh = viewModel.fiveHourUtil {
                 UsageRow(
-                    label: "5-hour",
+                    label: "5-hour window",
                     utilization: fh,
                     resetTime: viewModel.fiveHourReset
                 )
@@ -37,7 +181,7 @@ struct PopoverView: View {
 
             if let sd = viewModel.sevenDayUtil {
                 UsageRow(
-                    label: "7-day",
+                    label: "7-day window",
                     utilization: sd,
                     resetTime: viewModel.sevenDayReset
                 )
@@ -45,50 +189,92 @@ struct PopoverView: View {
 
             if let extra = viewModel.extraUsageUtil {
                 UsageRow(
-                    label: "Extra",
+                    label: "Extra usage",
                     utilization: extra,
                     resetTime: nil
                 )
             }
 
-            // Active sessions
-            if viewModel.activeSessions.count > 1 {
-                Divider()
-                HStack {
-                    Image(systemName: "terminal")
-                        .foregroundStyle(.secondary)
-                    Text("\(viewModel.activeSessions.count) Claude sessions active")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
+            if viewModel.fiveHourUtil == nil && viewModel.sevenDayUtil == nil {
+                Text("No usage data available")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 8)
             }
+        }
+    }
 
-            Divider()
+    // MARK: - Sessions
 
-            // Footer
-            HStack {
-                Button("Refresh") {
-                    Task { await viewModel.refresh() }
-                }
-                .buttonStyle(.borderless)
+    private var sessionsSection: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "terminal")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text("\(viewModel.activeSessions.count) Claude sessions active")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(10)
+        .background(.quaternary.opacity(0.3))
+        .cornerRadius(6)
+    }
 
+    // MARK: - Model Suggestion
+
+    @ViewBuilder
+    private var modelSuggestion: some View {
+        if let fh = viewModel.fiveHourUtil, fh >= 60,
+           viewModel.session.modelName == "Opus"
+        {
+            HStack(spacing: 6) {
+                Image(systemName: "lightbulb")
+                    .foregroundStyle(.yellow)
+                    .font(.caption)
+                Text(fh >= 80
+                    ? "Switch to Haiku for routine tasks"
+                    : "Consider Sonnet for lower-cost work")
+                    .font(.caption)
+                    .italic()
+                    .foregroundStyle(.secondary)
                 Spacer()
-
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
-                }
-                .buttonStyle(.borderless)
             }
+            .padding(10)
+            .background(.yellow.opacity(0.08))
+            .cornerRadius(6)
         }
-        .padding(16)
-        .frame(width: 280)
-        .onAppear {
-            viewModel.startPolling()
+    }
+
+    // MARK: - Footer
+
+    private var footerSection: some View {
+        HStack {
+            Button {
+                Task { await viewModel.refresh() }
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+                    .font(.caption)
+            }
+            .buttonStyle(.borderless)
+
+            Spacer()
+
+            Text("v0.1.0")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+
+            Spacer()
+
+            Button("Quit") {
+                NSApplication.shared.terminate(nil)
+            }
+            .buttonStyle(.borderless)
+            .font(.caption)
         }
-        .onDisappear {
-            viewModel.stopPolling()
-        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
     }
 }
 
@@ -100,30 +286,17 @@ struct PromoBadge: View {
     let isActive: Bool
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             Text(emoji)
+                .font(.caption2)
             Text(label)
-                .font(.caption)
+                .font(.caption2)
                 .fontWeight(.semibold)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
         .background(isActive ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
         .cornerRadius(4)
-    }
-}
-
-struct PacingRow: View {
-    let tier: PaceTier
-
-    var body: some View {
-        HStack {
-            Text(tier.emoji)
-            Text(tier.rawValue)
-                .font(.title3)
-                .fontWeight(.medium)
-            Spacer()
-        }
     }
 }
 
@@ -137,8 +310,12 @@ struct UsageRow: View {
             HStack {
                 Text(label)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
                 Spacer()
+                Text("\(Int(utilization))%")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .foregroundStyle(barColor)
                 if let reset = resetTime {
                     Text("resets \(TimeFormatting.formatResetCountdown(from: reset))")
                         .font(.caption2)
@@ -150,22 +327,17 @@ struct UsageRow: View {
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color.gray.opacity(0.2))
-                        .frame(height: 8)
+                        .frame(height: 6)
 
                     RoundedRectangle(cornerRadius: 3)
                         .fill(barColor)
-                        .frame(width: max(0, geo.size.width * CGFloat(utilization / 100.0)), height: 8)
+                        .frame(
+                            width: max(0, geo.size.width * CGFloat(min(utilization, 100) / 100.0)),
+                            height: 6
+                        )
                 }
             }
-            .frame(height: 8)
-
-            HStack {
-                Text("\(Int(utilization))%")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(barColor)
-                Spacer()
-            }
+            .frame(height: 6)
         }
     }
 
