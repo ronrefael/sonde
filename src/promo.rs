@@ -16,7 +16,18 @@ static PROMO_MEMO: OnceLock<Option<PromoStatus>> = OnceLock::new();
 pub struct PromoStatus {
     pub emoji: Option<String>,
     pub label: Option<String>,
+    /// Off-peak flag — accepts both camelCase API and snake_case cache.
+    #[serde(alias = "isOffPeak", alias = "is_offpeak")]
     pub is_offpeak: Option<bool>,
+    /// ISO 8601 timestamp of next peak/off-peak transition.
+    #[serde(alias = "nextChange")]
+    pub next_change: Option<String>,
+    /// Minutes until next transition.
+    #[serde(alias = "minutesUntilChange")]
+    pub minutes_until_change: Option<u64>,
+    /// Limits multiplier (e.g. 2 for 2X).
+    #[serde(alias = "limitsMultiplier")]
+    pub limits_multiplier: Option<u32>,
 }
 
 /// Fetch promo status with timeout. Falls back to cache on failure.

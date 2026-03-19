@@ -3,6 +3,27 @@ use crate::config::SondeConfig;
 use crate::context::Context;
 use crate::promo;
 
+/// Replace emoji circles with nerd font icons.
+fn nerd_icon(emoji: &str) -> &str {
+    match emoji {
+        "🟢" => "\u{f0e7}", //  bolt
+        "🔴" => "\u{f00d}", //  times
+        "🟡" => "\u{f017}", //  clock
+        _ => emoji,
+    }
+}
+
+/// Format countdown from minutes.
+fn format_countdown(minutes: u64) -> String {
+    let hours = minutes / 60;
+    let mins = minutes % 60;
+    if hours > 0 {
+        format!("{hours}h{mins:02}m")
+    } else {
+        format!("{mins}m")
+    }
+}
+
 pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let pcfg = cfg.promo_badge.as_ref();
 
@@ -24,20 +45,36 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
         }
     };
 
+    let is_offpeak = status.is_offpeak.unwrap_or(false);
     let emoji = status.emoji.as_deref().unwrap_or("");
+    let icon = nerd_icon(emoji);
     let label = status.label.as_deref().unwrap_or("");
 
-    let fmt = pcfg
-        .and_then(|c| c.badge_format.as_deref())
-        .unwrap_or("{emoji}{label}");
+    // Build text with countdown
+    let countdown = status
+        .minutes_until_change
+        .map(format_countdown)
+        .unwrap_or_default();
 
-    let text = fmt.replace("{emoji}", emoji).replace("{label}", label);
+    let text = if is_offpeak {
+        if countdown.is_empty() {
+            format!("{icon} {label}")
+        } else {
+            format!("{icon} {label} \u{f017} {countdown} left")
+        }
+    } else {
+        // On-peak: show time until next off-peak
+        if countdown.is_empty() {
+            return None; // No useful info to show during peak without countdown
+        } else {
+            format!("{icon} Off-peak in {countdown}")
+        }
+    };
 
     if text.trim().is_empty() {
         return None;
     }
 
-    let is_offpeak = status.is_offpeak.unwrap_or(false);
     let style_str = if is_offpeak {
         pcfg.and_then(|c| c.style.as_deref())
     } else {

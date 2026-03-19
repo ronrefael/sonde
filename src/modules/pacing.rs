@@ -1,3 +1,5 @@
+use nu_ansi_term::Color;
+
 use crate::ansi;
 use crate::config::SondeConfig;
 use crate::context::Context;
@@ -16,14 +18,14 @@ pub enum PaceTier {
 }
 
 impl PaceTier {
-    pub fn emoji(&self) -> &'static str {
+    pub fn icon(&self) -> &'static str {
         match self {
-            PaceTier::Comfortable => "🟢",
-            PaceTier::OnTrack => "🔵",
-            PaceTier::Elevated => "🟡",
-            PaceTier::Hot => "🟠",
-            PaceTier::Critical => "🔴",
-            PaceTier::Runaway => "⛔",
+            PaceTier::Comfortable => "\u{f058}", //  check-circle
+            PaceTier::OnTrack => "\u{f00c}",     //  check
+            PaceTier::Elevated => "\u{f071}",    //  warning
+            PaceTier::Hot => "\u{f06d}",         //  fire
+            PaceTier::Critical => "\u{f06a}",    //  exclamation-circle
+            PaceTier::Runaway => "\u{f05e}",     //  ban
         }
     }
 
@@ -48,14 +50,21 @@ impl PaceTier {
             PaceTier::Runaway => "bold red",
         }
     }
+
+    /// Powerline background color for this tier.
+    pub fn powerline_bg(&self) -> Color {
+        match self {
+            PaceTier::Comfortable => Color::Rgb(166, 227, 161), // green
+            PaceTier::OnTrack => Color::Rgb(137, 180, 250),     // blue
+            PaceTier::Elevated => Color::Rgb(249, 226, 175),    // yellow
+            PaceTier::Hot => Color::Rgb(250, 179, 135),         // peach
+            PaceTier::Critical => Color::Rgb(243, 139, 168),    // red
+            PaceTier::Runaway => Color::Rgb(243, 139, 168),     // red
+        }
+    }
 }
 
 /// Calculate pace ratio from utilization.
-/// pace_ratio = actual_usage / max(expected_usage, 1)
-/// where expected_usage = elapsed_fraction * 100
-///
-/// Since we don't have window start time from the API, we use
-/// utilization directly as the pacing signal, adjusted for promo.
 pub fn calculate_tier(utilization: f64, promo_active: bool) -> PaceTier {
     // Runaway is absolute, not relative
     if utilization > 90.0 {
@@ -82,27 +91,17 @@ pub fn calculate_tier(utilization: f64, promo_active: bool) -> PaceTier {
     }
 }
 
-pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
-    let pcfg = cfg.pacing.as_ref();
-
-    if let Some(c) = pcfg {
-        if c.enabled == Some(false) {
-            return None;
-        }
-    }
-
+/// Get the current pacing tier and remaining %. Returns (tier, remaining_pct).
+pub fn current_pacing(cfg: &SondeConfig) -> Option<(PaceTier, f64)> {
     let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);
-    let data = match usage_api::fetch_usage(ttl) {
-        Some(d) => d,
-        None => {
-            tracing::debug!("pacing: no usage data available");
-            return None;
-        }
-    };
-
+    let data = usage_api::fetch_usage(ttl)?;
     let utilization = data.five_hour.as_ref().and_then(|w| w.utilization)?;
 
-    let promo_aware = pcfg.map(|c| c.promo_aware.unwrap_or(true)).unwrap_or(true);
+    let promo_aware = cfg
+        .pacing
+        .as_ref()
+        .map(|c| c.promo_aware.unwrap_or(true))
+        .unwrap_or(true);
     let promo_active = if promo_aware {
         let api_url = cfg.promo_badge.as_ref().and_then(|c| c.api_url.as_deref());
         let promo_ttl = cfg.promo_badge.as_ref().and_then(|c| c.poll_interval);
@@ -114,7 +113,23 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     };
 
     let tier = calculate_tier(utilization, promo_active);
-    let text = format!("{} {}", tier.emoji(), tier.label());
+    let remaining = (100.0 - utilization).max(0.0);
+    Some((tier, remaining))
+}
+
+pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
+    let pcfg = cfg.pacing.as_ref();
+
+    if let Some(c) = pcfg {
+        if c.enabled == Some(false) {
+            return None;
+        }
+    }
+
+    let (tier, remaining) = current_pacing(cfg)?;
+
+    // Show remaining % with tier icon — color-coded by tier
+    let text = format!("{} {:.0}%", tier.icon(), remaining);
 
     Some(ansi::styled(&text, Some(tier.style())))
 }
@@ -150,15 +165,12 @@ mod tests {
 
     #[test]
     fn promo_halves_effective() {
-        // 70% with promo -> effective 35% -> OnTrack
         assert_eq!(calculate_tier(70.0, true), PaceTier::OnTrack);
-        // 70% without promo -> Elevated
         assert_eq!(calculate_tier(70.0, false), PaceTier::Elevated);
     }
 
     #[test]
     fn runaway_ignores_promo() {
-        // 95% is Runaway regardless of promo
         assert_eq!(calculate_tier(95.0, true), PaceTier::Runaway);
     }
 }
