@@ -1,4 +1,5 @@
 use nu_ansi_term::{Color, Style};
+use unicode_width::UnicodeWidthStr;
 
 /// Parse a style string like "bold cyan", "fg:#7dcfff", "bold fg:#f7768e" into a Style.
 pub fn parse_style(style_str: &str) -> Style {
@@ -91,6 +92,108 @@ pub fn threshold_style<'a>(
     default_style
 }
 
+/// Strip ANSI escape sequences from a string.
+pub fn strip_ansi(s: &str) -> String {
+    let mut result = String::new();
+    let mut chars = s.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '\x1b' {
+            // Skip CSI sequences: ESC [ ... <letter>
+            if chars.peek() == Some(&'[') {
+                chars.next();
+                while let Some(&c) = chars.peek() {
+                    chars.next();
+                    if c.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            }
+        } else {
+            result.push(ch);
+        }
+    }
+    result
+}
+
+/// A rendered powerline segment with its colors.
+pub struct PowerlineSegment {
+    pub text: String,
+    pub fg: Color,
+    pub bg: Color,
+}
+
+/// Calculate the visible display width of a plain-text string (no ANSI).
+pub fn display_width(text: &str) -> usize {
+    UnicodeWidthStr::width(text)
+}
+
+/// Calculate total display columns a powerline bar will occupy.
+/// Each segment = 1 pad + text_width + 1 pad, plus 1 col per arrow separator.
+pub fn powerline_width(segments: &[PowerlineSegment]) -> usize {
+    if segments.is_empty() {
+        return 0;
+    }
+    let content: usize = segments.iter().map(|s| display_width(&s.text) + 2).sum();
+    // One arrow after each segment (including final cap)
+    content + segments.len()
+}
+
+/// Render a sequence of powerline segments joined by  separators.
+pub fn render_powerline(segments: &[PowerlineSegment]) -> String {
+    if segments.is_empty() {
+        return String::new();
+    }
+
+    let mut out = String::new();
+
+    for (i, seg) in segments.iter().enumerate() {
+        // Segment body: fg on bg with padding
+        let body = Style::new()
+            .fg(seg.fg)
+            .on(seg.bg)
+            .paint(format!(" {} ", seg.text));
+        out.push_str(&body.to_string());
+
+        // Separator arrow: fg=current bg, bg=next bg (or default)
+        if i + 1 < segments.len() {
+            let arrow = Style::new()
+                .fg(seg.bg)
+                .on(segments[i + 1].bg)
+                .paint("\u{e0b0}");
+            out.push_str(&arrow.to_string());
+        } else {
+            // Final cap — arrow into terminal default bg
+            let arrow = Style::new().fg(seg.bg).paint("\u{e0b0}");
+            out.push_str(&arrow.to_string());
+        }
+    }
+
+    out
+}
+
+/// Default powerline colors (fg, bg) for each module.
+/// Catppuccin Mocha inspired — cohesive pastels with high contrast dark text.
+pub fn default_powerline_colors(module_name: &str) -> (Color, Color) {
+    let dark = Color::Rgb(30, 30, 46); // Catppuccin Base
+    let light = Color::Rgb(205, 214, 244); // Catppuccin Text
+    match module_name {
+        "sonde.model" => (dark, Color::Rgb(203, 166, 247)), // mauve
+        "sonde.cost" => (dark, Color::Rgb(137, 180, 250)),  // blue
+        "sonde.context_bar" => (dark, Color::Rgb(116, 199, 236)), // sapphire
+        "sonde.context_window" => (dark, Color::Rgb(116, 199, 236)), // sapphire
+        "sonde.usage_limits" => (dark, Color::Rgb(166, 227, 161)), // green
+        "sonde.promo_badge" => (dark, Color::Rgb(250, 179, 135)), // peach
+        "sonde.pacing" => (dark, Color::Rgb(249, 226, 175)), // yellow
+        "sonde.session_clock" => (light, Color::Rgb(69, 71, 90)), // surface1
+        "sonde.git_branch" => (dark, Color::Rgb(148, 226, 213)), // teal
+        "sonde.codex_cost" => (dark, Color::Rgb(243, 139, 168)), // red
+        "sonde.combined_spend" => (dark, Color::Rgb(250, 179, 135)), // peach
+        "sonde.active_sessions" => (light, Color::Rgb(69, 71, 90)), // surface1
+        "sonde.model_suggestion" => (dark, Color::Rgb(249, 226, 175)), // yellow
+        _ => (light, Color::Rgb(69, 71, 90)),               // surface1
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -146,5 +249,36 @@ mod tests {
             Some("green"),
         );
         assert_eq!(s, Some("green"));
+    }
+
+    #[test]
+    fn strip_ansi_removes_codes() {
+        let styled = "\x1b[1;36m Opus\x1b[0m";
+        assert_eq!(strip_ansi(styled), " Opus");
+    }
+
+    #[test]
+    fn strip_ansi_plain_passthrough() {
+        assert_eq!(strip_ansi("hello world"), "hello world");
+    }
+
+    #[test]
+    fn powerline_renders_segments() {
+        let segs = vec![
+            PowerlineSegment {
+                text: "A".to_string(),
+                fg: Color::Black,
+                bg: Color::Red,
+            },
+            PowerlineSegment {
+                text: "B".to_string(),
+                fg: Color::Black,
+                bg: Color::Blue,
+            },
+        ];
+        let result = render_powerline(&segs);
+        assert!(result.contains('A'));
+        assert!(result.contains('B'));
+        assert!(result.contains('\u{e0b0}'));
     }
 }

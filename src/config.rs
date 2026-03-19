@@ -12,6 +12,7 @@ pub struct ConfigFile {
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct SondeConfig {
+    pub theme: Option<String>,
     pub lines: Option<Vec<String>>,
 
     #[serde(rename = "model")]
@@ -40,6 +41,10 @@ pub struct SondeConfig {
     pub model_suggestion: Option<ModuleConfig>,
     #[serde(rename = "combined_spend")]
     pub combined_spend: Option<ModuleConfig>,
+    #[serde(rename = "cursor")]
+    pub cursor: Option<CursorConfig>,
+    #[serde(rename = "mascot")]
+    pub mascot: Option<MascotConfig>,
 
     /// Catch-all for unknown module configs.
     #[serde(flatten)]
@@ -90,6 +95,7 @@ pub struct PromoBadgeConfig {
     pub enabled: Option<bool>,
     pub api_url: Option<String>,
     pub poll_interval: Option<u64>,
+    #[allow(dead_code)]
     pub badge_format: Option<String>,
     pub style: Option<String>,
 }
@@ -108,11 +114,33 @@ pub struct CodexConfig {
     pub sessions_dir: Option<String>,
 }
 
-/// Default lines if none configured.
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct CursorConfig {
+    pub enabled: Option<bool>,
+    pub sessions_dir: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct MascotConfig {
+    pub enabled: Option<bool>,
+    pub frame_ms: Option<u64>,
+}
+
+/// Default lines if none configured (plain theme).
 pub fn default_lines() -> Vec<String> {
     vec![
-        "$sonde.model $sonde.cost $sonde.context_bar $sonde.usage_limits".to_string(),
-        "$sonde.promo_badge $sonde.pacing".to_string(),
+        "$sonde.model $sonde.session_clock $sonde.context_bar $sonde.usage_limits $sonde.pacing"
+            .to_string(),
+        "$sonde.promo_badge".to_string(),
+    ]
+}
+
+/// Default lines for powerline theme.
+/// Line 1: core metrics. Line 2: promo badge (only visible when promo is active).
+pub fn default_powerline_lines() -> Vec<String> {
+    vec![
+        "$sonde.model $sonde.session_clock $sonde.context_bar $sonde.usage_limits $sonde.pacing $sonde.agent $sonde.worktree".to_string(),
+        "$sonde.promo_badge".to_string(),
     ]
 }
 
@@ -136,7 +164,7 @@ pub fn discover_config_path() -> Option<PathBuf> {
         return Some(local);
     }
 
-    // 3. XDG config
+    // 3. Platform config dir (~/Library/Application Support on macOS, ~/.config on Linux)
     if let Some(config_dir) = dirs::config_dir() {
         let xdg = config_dir.join("sonde").join("sonde.toml");
         if xdg.exists() {
@@ -144,7 +172,15 @@ pub fn discover_config_path() -> Option<PathBuf> {
         }
     }
 
-    // 4. Home fallback
+    // 4. ~/.config/sonde/ (explicit XDG fallback — works on macOS too)
+    if let Some(home) = dirs::home_dir() {
+        let dotconfig = home.join(".config").join("sonde").join("sonde.toml");
+        if dotconfig.exists() {
+            return Some(dotconfig);
+        }
+    }
+
+    // 5. Home fallback
     if let Some(home) = dirs::home_dir() {
         let home_cfg = home.join(".sonde.toml");
         if home_cfg.exists() {
