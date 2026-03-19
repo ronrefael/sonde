@@ -5,3 +5,10 @@
 *.log
 .build/
 SondeApp/.build/
+
+# Xcode
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+SondeApp/*.xcodeproj/
+SondeApp/build/

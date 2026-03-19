@@ -1,6 +1,6 @@
 [package]
 name          = "sonde"
-version       = "0.1.0"
+version       = "1.0.0"
 edition       = "2021"
 description   = "Precision instrumentation that continuously measures AI usage and reports conditions in real-time"
 license       = "MIT"
@@ -19,6 +19,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 nu-ansi-term   = "0.50"
 dirs           = "5"
 chrono         = { version = "0.4", features = ["serde"] }
+terminal_size  = "0.4"
+unicode-width  = "0.2"
+ratatui        = "0.29"
+crossterm      = "0.28"
 
 [dev-dependencies]
 rstest     = "0.23"
