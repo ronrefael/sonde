@@ -1,8 +1,8 @@
+// Forward-compatible context: all Option<T>, no deny_unknown_fields.
+
 use serde::Deserialize;
 use std::io::{self, Read};
 
-/// All fields are Option<T> for forward-compatibility.
-/// Unknown fields are silently ignored (no deny_unknown_fields).
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Default)]
 pub struct Context {
@@ -92,7 +92,6 @@ pub struct Worktree {
     pub original_branch: Option<String>,
 }
 
-/// Read stdin and parse as Context JSON. Returns Default on any error.
 pub fn parse_stdin() -> Context {
     let mut input = String::new();
     match io::stdin().read_to_string(&mut input) {
@@ -118,7 +117,6 @@ pub fn parse_stdin() -> Context {
     }
 }
 
-/// Parse a Context from a string (for testing and external use).
 #[allow(dead_code)]
 pub fn parse_str(input: &str) -> Context {
     match serde_json::from_str(input) {

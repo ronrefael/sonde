@@ -1,5 +1,5 @@
 use std::io::BufRead;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 const MAX_CONTEXT_TOKENS: u64 = 200_000;
@@ -106,11 +106,7 @@ pub fn scan_sessions() -> Vec<ScannedSession> {
     sessions
 }
 
-fn parse_session(
-    path: &PathBuf,
-    project_dir: &str,
-    mod_time: SystemTime,
-) -> Option<ScannedSession> {
+fn parse_session(path: &Path, project_dir: &str, mod_time: SystemTime) -> Option<ScannedSession> {
     let file = match std::fs::File::open(path) {
         Ok(f) => f,
         Err(_) => return None,

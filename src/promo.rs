@@ -30,7 +30,6 @@ pub struct PromoStatus {
     pub limits_multiplier: Option<u32>,
 }
 
-/// Fetch promo status with timeout. Falls back to cache on failure.
 /// Memoized per process — safe to call from multiple modules in one render.
 pub fn fetch_promo(api_url: Option<&str>, ttl: Option<u64>) -> Option<PromoStatus> {
     PROMO_MEMO
@@ -47,7 +46,6 @@ fn fetch_promo_inner(api_url: Option<&str>, ttl: Option<u64>) -> Option<PromoSta
         None => return fetch_direct(url),
     };
 
-    // Try fresh cache first
     if let Some(data) = cache::read_cache::<PromoStatus>(&cache_path, false) {
         tracing::debug!("Promo status from cache");
         return Some(data);

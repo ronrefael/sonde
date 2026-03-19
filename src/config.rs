@@ -2,51 +2,33 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-/// Top-level TOML config file structure.
 #[derive(Debug, Deserialize, Default)]
 pub struct ConfigFile {
     pub sonde: Option<SondeConfig>,
 }
 
-/// The [sonde] section.
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct SondeConfig {
     pub theme: Option<String>,
     pub lines: Option<Vec<String>>,
 
-    #[serde(rename = "model")]
     pub model: Option<ModuleConfig>,
-    #[serde(rename = "cost")]
     pub cost: Option<ModuleConfig>,
-    #[serde(rename = "context_bar")]
     pub context_bar: Option<ContextBarConfig>,
-    #[serde(rename = "context_window")]
     pub context_window: Option<ModuleConfig>,
-    #[serde(rename = "usage_limits")]
     pub usage_limits: Option<UsageLimitsConfig>,
-    #[serde(rename = "promo_badge")]
     pub promo_badge: Option<PromoBadgeConfig>,
-    #[serde(rename = "pacing")]
     pub pacing: Option<PacingConfig>,
-    #[serde(rename = "codex")]
     pub codex: Option<CodexConfig>,
-    #[serde(rename = "session_clock")]
     pub session_clock: Option<ModuleConfig>,
-    #[serde(rename = "git_branch")]
     pub git_branch: Option<ModuleConfig>,
-    #[serde(rename = "active_sessions")]
     pub active_sessions: Option<ModuleConfig>,
-    #[serde(rename = "model_suggestion")]
     pub model_suggestion: Option<ModuleConfig>,
-    #[serde(rename = "combined_spend")]
     pub combined_spend: Option<ModuleConfig>,
-    #[serde(rename = "cursor")]
     pub cursor: Option<CursorConfig>,
-    #[serde(rename = "mascot")]
     pub mascot: Option<MascotConfig>,
 
-    /// Catch-all for unknown module configs.
     #[serde(flatten)]
     pub extra: Option<HashMap<String, toml::Value>>,
 }
@@ -126,7 +108,6 @@ pub struct MascotConfig {
     pub frame_ms: Option<u64>,
 }
 
-/// Default lines if none configured (plain theme).
 pub fn default_lines() -> Vec<String> {
     vec![
         "$sonde.model $sonde.session_clock $sonde.context_bar $sonde.usage_limits $sonde.pacing"
@@ -135,8 +116,6 @@ pub fn default_lines() -> Vec<String> {
     ]
 }
 
-/// Default lines for powerline theme.
-/// Line 1: core metrics. Line 2: promo badge (only visible when promo is active).
 pub fn default_powerline_lines() -> Vec<String> {
     vec![
         "$sonde.model $sonde.session_clock $sonde.context_bar $sonde.usage_limits $sonde.pacing $sonde.agent $sonde.worktree".to_string(),
@@ -144,13 +123,19 @@ pub fn default_powerline_lines() -> Vec<String> {
     ]
 }
 
-/// Discovery order for config files:
-/// 1. $SONDE_CONFIG env var
-/// 2. ./sonde.toml (project-local)
-/// 3. ~/.config/sonde/sonde.toml (XDG)
-/// 4. ~/.sonde.toml (home fallback)
+/// Expand a leading `~` to the user's home directory.
+pub fn expand_tilde(path: &str) -> PathBuf {
+    if path.starts_with('~') {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(&path[2..]);
+        }
+    }
+    PathBuf::from(path)
+}
+
+/// Discovery order: $SONDE_CONFIG, ./sonde.toml, platform config dir,
+/// ~/.config/sonde/sonde.toml, ~/.sonde.toml.
 pub fn discover_config_path() -> Option<PathBuf> {
-    // 1. Environment variable
     if let Ok(path) = std::env::var("SONDE_CONFIG") {
         let p = PathBuf::from(path);
         if p.exists() {
@@ -158,13 +143,11 @@ pub fn discover_config_path() -> Option<PathBuf> {
         }
     }
 
-    // 2. Project-local
     let local = PathBuf::from("sonde.toml");
     if local.exists() {
         return Some(local);
     }
 
-    // 3. Platform config dir (~/Library/Application Support on macOS, ~/.config on Linux)
     if let Some(config_dir) = dirs::config_dir() {
         let xdg = config_dir.join("sonde").join("sonde.toml");
         if xdg.exists() {
@@ -172,7 +155,8 @@ pub fn discover_config_path() -> Option<PathBuf> {
         }
     }
 
-    // 4. ~/.config/sonde/ (explicit XDG fallback — works on macOS too)
+    // On macOS, dirs::config_dir() returns ~/Library/Application Support,
+    // so we also check ~/.config/ for users who prefer XDG layout.
     if let Some(home) = dirs::home_dir() {
         let dotconfig = home.join(".config").join("sonde").join("sonde.toml");
         if dotconfig.exists() {
@@ -180,7 +164,6 @@ pub fn discover_config_path() -> Option<PathBuf> {
         }
     }
 
-    // 5. Home fallback
     if let Some(home) = dirs::home_dir() {
         let home_cfg = home.join(".sonde.toml");
         if home_cfg.exists() {
@@ -191,7 +174,6 @@ pub fn discover_config_path() -> Option<PathBuf> {
     None
 }
 
-/// Load config from a path. Returns default on any error.
 pub fn load_config(path: &Path) -> SondeConfig {
     match std::fs::read_to_string(path) {
         Ok(content) => match toml::from_str::<ConfigFile>(&content) {
@@ -208,7 +190,6 @@ pub fn load_config(path: &Path) -> SondeConfig {
     }
 }
 
-/// Discover and load config. Returns default if no config file found.
 pub fn load() -> SondeConfig {
     match discover_config_path() {
         Some(path) => {

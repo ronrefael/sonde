@@ -2,10 +2,9 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
 use crate::ansi;
-use crate::config::SondeConfig;
+use crate::config::{self, SondeConfig};
 use crate::context::Context;
 
-/// Codex JSONL event types.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
 enum CodexEvent {
@@ -37,9 +36,7 @@ struct EventPayload {
     total_tokens: Option<u64>,
 }
 
-/// Simple pricing table for Codex models (per 1M tokens).
 fn price_per_million(model: &str) -> (f64, f64) {
-    // (input_price, output_price) per 1M tokens
     match model {
         m if m.contains("gpt-4o") => (2.50, 10.00),
         m if m.contains("gpt-4") => (10.00, 30.00),
@@ -53,20 +50,10 @@ fn price_per_million(model: &str) -> (f64, f64) {
 fn sessions_dir(cfg: &SondeConfig) -> PathBuf {
     if let Some(ccfg) = cfg.codex.as_ref() {
         if let Some(dir) = ccfg.sessions_dir.as_deref() {
-            let expanded = if dir.starts_with('~') {
-                if let Some(home) = dirs::home_dir() {
-                    home.join(&dir[2..])
-                } else {
-                    PathBuf::from(dir)
-                }
-            } else {
-                PathBuf::from(dir)
-            };
-            return expanded;
+            return config::expand_tilde(dir);
         }
     }
 
-    // Default
     if let Some(home) = dirs::home_dir() {
         home.join(".codex").join("sessions")
     } else {
@@ -74,7 +61,8 @@ fn sessions_dir(cfg: &SondeConfig) -> PathBuf {
     }
 }
 
-/// Calculate total cost from a Codex JSONL session file.
+/// Uses delta-based token accounting: each token_count event reports cumulative
+/// totals, so we subtract previous values to get per-event usage.
 fn calculate_session_cost(path: &Path) -> Option<f64> {
     let content = std::fs::read_to_string(path).ok()?;
     let mut model = String::from("gpt-5");
@@ -125,7 +113,6 @@ fn calculate_session_cost(path: &Path) -> Option<f64> {
     }
 }
 
-/// Find the most recently modified session file.
 fn latest_session(dir: &Path) -> Option<PathBuf> {
     let entries = std::fs::read_dir(dir).ok()?;
     let mut best: Option<(PathBuf, std::time::SystemTime)> = None;
@@ -133,7 +120,6 @@ fn latest_session(dir: &Path) -> Option<PathBuf> {
     for entry in entries.flatten() {
         let path = entry.path();
         if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
-            // Check subdirectories
             if path.is_dir() {
                 if let Some(sub) = latest_session(&path) {
                     let mod_time = sub.metadata().ok()?.modified().ok()?;
@@ -156,7 +142,6 @@ fn latest_session(dir: &Path) -> Option<PathBuf> {
     best.map(|(p, _)| p)
 }
 
-/// Public helper for combined_spend module.
 pub fn get_latest_session_cost(cfg: &SondeConfig) -> Option<f64> {
     let dir = sessions_dir(cfg);
     if !dir.exists() {
@@ -204,7 +189,6 @@ mod tests {
         let cost = calculate_session_cost(&path);
         assert!(cost.is_some());
         let c = cost.unwrap();
-        // Should be > 0 from the fixture data
         assert!(c > 0.0);
     }
 }

@@ -2,7 +2,6 @@ use crate::ansi;
 use crate::config::SondeConfig;
 use crate::context::Context;
 
-/// Displays elapsed session time based on cost.total_duration_ms.
 pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let duration_ms = ctx.cost.as_ref()?.total_duration_ms?;
 

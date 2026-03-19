@@ -15,7 +15,6 @@ use ratatui::Terminal;
 use crate::config;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    // Install panic hook to restore terminal on crash
     let original_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_info| {
         let _ = disable_raw_mode();
@@ -23,7 +22,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         original_hook(panic_info);
     }));
 
-    // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
@@ -33,7 +31,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cfg = config::load();
     let mut app = app::App::new(cfg);
 
-    // Initial data fetch
     app.poll();
     app.tick();
 
@@ -77,7 +74,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Cleanup
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;

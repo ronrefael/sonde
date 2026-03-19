@@ -20,7 +20,6 @@ fn write_session_cache(ctx: &context::Context) {
         None => return,
     };
 
-    // Build a JSON object with the data the Swift app needs
     let mut obj = serde_json::Map::new();
 
     if let Some(ref model) = ctx.model {
@@ -117,16 +116,9 @@ fn write_session_cache(ctx: &context::Context) {
 }
 
 fn run_statusline() {
-    // Parse stdin JSON
     let ctx = context::parse_stdin();
-
-    // Write session data cache for the Swift menu bar app
     write_session_cache(&ctx);
-
-    // Load config
     let cfg = config::load();
-
-    // Render and print to stdout
     let output = renderer::render(&ctx, &cfg);
     if !output.is_empty() {
         println!("{output}");
@@ -134,7 +126,6 @@ fn run_statusline() {
 }
 
 fn main() {
-    // Initialize tracing to stderr (never stdout)
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()

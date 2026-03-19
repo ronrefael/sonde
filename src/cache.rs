@@ -18,17 +18,14 @@ fn now_epoch() -> u64 {
         .as_secs()
 }
 
-/// Get the cache directory path.
 pub fn cache_dir() -> Option<PathBuf> {
     dirs::cache_dir().map(|d| d.join("sonde"))
 }
 
-/// Get a cache file path by name.
 pub fn cache_path(name: &str) -> Option<PathBuf> {
     cache_dir().map(|d| d.join(format!("{name}.json")))
 }
 
-/// Write data to cache with a TTL in seconds.
 pub fn write_cache<T: Serialize>(
     path: &Path,
     data: &T,
@@ -51,7 +48,6 @@ pub fn write_cache<T: Serialize>(
         five_hour_resets_at,
     };
 
-    // Ensure parent directory exists
     if let Some(parent) = path.parent() {
         if let Err(e) = std::fs::create_dir_all(parent) {
             tracing::warn!("Failed to create cache dir {}: {e}", parent.display());
@@ -103,7 +99,6 @@ pub fn read_cache<T: for<'de> Deserialize<'de>>(path: &Path, allow_stale: bool) 
         }
     }
 
-    // Check TTL unless stale is allowed
     if !allow_stale && now >= envelope.expires_at {
         tracing::debug!("Cache expired");
         return None;

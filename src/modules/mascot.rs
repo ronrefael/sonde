@@ -6,7 +6,6 @@ use crate::context::Context;
 use crate::promo;
 use crate::usage_api;
 
-/// Mascot state, determined by priority (first match wins).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum State {
     Idle,
@@ -48,7 +47,6 @@ impl State {
     }
 }
 
-/// Detect mascot state from context and external APIs (priority order).
 pub(crate) fn detect_state(ctx: &Context, cfg: &SondeConfig) -> State {
     let has_model = ctx.model.is_some();
     let has_cost = ctx.cost.is_some();
@@ -116,8 +114,6 @@ pub(crate) fn detect_state(ctx: &Context, cfg: &SondeConfig) -> State {
     State::Early
 }
 
-/// Compact single-character animated icon — fits in a powerline segment.
-/// Cycles through state-specific symbols at the configured frame rate.
 pub fn render_icon(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     if cfg.mascot.as_ref().and_then(|m| m.enabled) == Some(false) {
         return None;

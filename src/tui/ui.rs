@@ -9,7 +9,6 @@ use ratatui::{
 use super::app::App;
 use crate::modules::pacing::PaceTier;
 
-// Color palette
 const GREEN: Color = Color::Rgb(74, 222, 128);
 const LIME: Color = Color::Rgb(163, 230, 53);
 const YELLOW: Color = Color::Rgb(250, 204, 21);
@@ -23,7 +22,6 @@ const BG: Color = Color::Rgb(20, 20, 30);
 pub fn draw(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
-    // Background
     let bg_block = Block::default().style(Style::default().bg(BG));
     frame.render_widget(bg_block, area);
 
@@ -87,7 +85,6 @@ fn draw_mascot_session(frame: &mut Frame, app: &App, area: Rect) {
         .constraints([Constraint::Length(4), Constraint::Min(20)])
         .split(area);
 
-    // Mascot icon
     let icons = app.mascot_state.icon_frames();
     let idx = app.frame % icons.len();
     let icon = icons[idx];
@@ -100,7 +97,6 @@ fn draw_mascot_session(frame: &mut Frame, app: &App, area: Rect) {
     .block(Block::default().borders(Borders::NONE));
     frame.render_widget(mascot, cols[0]);
 
-    // Session info
     let model = app.model_name.as_deref().unwrap_or("No session");
     let cost_str = app
         .session_cost
@@ -182,7 +178,6 @@ fn draw_pacing(frame: &mut Frame, app: &App, area: Rect) {
 fn draw_sessions(frame: &mut Frame, app: &App, area: Rect) {
     let mut lines: Vec<Line> = Vec::new();
 
-    // Show scanned JSONL sessions first (direct transcript parsing)
     for s in &app.scanned_sessions {
         let pct_color = usage_color(s.percentage as f64);
         let bar = context_bar(s.percentage);
@@ -219,7 +214,6 @@ fn draw_sessions(frame: &mut Frame, app: &App, area: Rect) {
         ]));
     }
 
-    // Show cache-based sessions that aren't duplicated by scanned sessions
     for s in &app.sessions {
         let model = s.model_name.as_deref().unwrap_or("?");
         let cost = s
@@ -252,7 +246,6 @@ fn draw_sessions(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(sessions, area);
 }
 
-/// Build a compact progress bar for context usage.
 fn context_bar(pct: u8) -> String {
     let filled = (pct as usize) / 5; // 20 chars wide
     let empty = 20usize.saturating_sub(filled);
@@ -269,7 +262,7 @@ fn draw_footer(frame: &mut Frame, area: Rect) {
     frame.render_widget(footer, area);
 }
 
-/// Convert mascot hex color string like "fg:#6b7280" to ratatui Color::Rgb.
+/// Converts mascot style strings ("fg:#6b7280") to ratatui colors.
 fn hex_to_color(s: &str) -> Color {
     let hex = s.trim_start_matches("fg:#");
     if hex.len() != 6 {
@@ -281,7 +274,6 @@ fn hex_to_color(s: &str) -> Color {
     Color::Rgb(r, g, b)
 }
 
-/// Color for usage percentage.
 fn usage_color(pct: f64) -> Color {
     if pct < 40.0 {
         GREEN
@@ -294,7 +286,6 @@ fn usage_color(pct: f64) -> Color {
     }
 }
 
-/// Map PaceTier to a TUI color.
 fn tier_color(tier: &PaceTier) -> Color {
     match tier {
         PaceTier::Comfortable => GREEN,
@@ -306,7 +297,6 @@ fn tier_color(tier: &PaceTier) -> Color {
     }
 }
 
-/// Shorten a path for display.
 fn shorten_path(path: &str) -> String {
     if let Some(home) = dirs::home_dir() {
         let home_str = home.to_string_lossy();
@@ -317,9 +307,7 @@ fn shorten_path(path: &str) -> String {
     path.to_string()
 }
 
-/// Extract a short time from an ISO 8601 timestamp.
 fn short_time(iso: &str) -> String {
-    // Try to extract HH:MM from something like "2025-01-15T14:30:00Z"
     if let Some(t_pos) = iso.find('T') {
         let time_part = &iso[t_pos + 1..];
         if time_part.len() >= 5 {

@@ -2,7 +2,6 @@ use crate::ansi;
 use crate::config::SondeConfig;
 use crate::context::Context;
 
-/// Displays the current git branch name.
 pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let cwd = ctx.cwd.as_deref()?;
 

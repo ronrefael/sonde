@@ -8,7 +8,6 @@ use crate::promo;
 use crate::session_scanner::{self, ScannedSession};
 use crate::usage_api;
 
-/// Session info read from cache files.
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct SessionInfo {
@@ -66,19 +65,17 @@ impl App {
         }
     }
 
-    /// Called every 250ms — advance animation frame and refresh session cache.
     pub fn tick(&mut self) {
         self.frame = self.frame.wrapping_add(1);
         self.read_session_cache();
 
-        // Scan JSONL sessions every 5 seconds (20 ticks * 250ms = 5s)
+        // 20 ticks × 250ms = 5s — balance freshness vs disk I/O
         if self.frame.is_multiple_of(20) {
             self.scanned_sessions = session_scanner::scan_sessions();
             self.check_alerts();
         }
     }
 
-    /// Called on startup and every 30s — fetch usage + promo data.
     pub fn poll(&mut self) {
         let ttl = self.cfg.usage_limits.as_ref().and_then(|c| c.ttl);
         if let Some(data) = usage_api::fetch_usage(ttl) {
@@ -107,12 +104,11 @@ impl App {
             self.pace_tier = Some(tier);
         }
 
-        // Detect mascot state using a default context (no stdin in TUI mode)
+        // TUI has no stdin context — detect state from API data alone
         let ctx = crate::context::Context::default();
         self.mascot_state = mascot::detect_state(&ctx, &self.cfg);
     }
 
-    /// Check sessions for context threshold crossings and fire alerts.
     fn check_alerts(&mut self) {
         for session in &self.scanned_sessions {
             let alerted = self.alert_tracker.entry(session.id.clone()).or_default();
@@ -126,7 +122,6 @@ impl App {
         }
     }
 
-    /// Read session_data*.json files from cache directory.
     fn read_session_cache(&mut self) {
         let cache_dir = match cache::cache_dir() {
             Some(d) => d,
@@ -151,7 +146,6 @@ impl App {
                 Err(_) => continue,
             };
 
-            // Parse cache envelope, then extract session fields
             let envelope: serde_json::Value = match serde_json::from_str(&content) {
                 Ok(v) => v,
                 Err(_) => continue,
@@ -169,7 +163,6 @@ impl App {
                 session_id: data["session_id"].as_str().map(String::from),
             };
 
-            // Update primary display from first session found
             if sessions.is_empty() {
                 self.model_name = info.model_name.clone();
                 self.session_cost = info.session_cost;
@@ -184,8 +177,8 @@ impl App {
     }
 }
 
+/// Uses macOS-specific APIs (afplay, osascript, say). No-ops silently on other platforms.
 fn trigger_alert(project_name: &str, threshold: u8) {
-    // Play sound
     let sound = if threshold >= 90 {
         "/System/Library/Sounds/Sosumi.aiff"
     } else {
@@ -193,7 +186,6 @@ fn trigger_alert(project_name: &str, threshold: u8) {
     };
     let _ = std::process::Command::new("afplay").arg(sound).spawn();
 
-    // Show macOS notification
     let message = if threshold >= 90 {
         format!("{} — Context almost full!", project_name)
     } else {
@@ -207,7 +199,6 @@ fn trigger_alert(project_name: &str, threshold: u8) {
         .args(["-e", &script])
         .spawn();
 
-    // Voice warning at 90%
     if threshold >= 90 {
         let _ = std::process::Command::new("say")
             .arg("Claude context almost full")

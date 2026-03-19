@@ -1,10 +1,6 @@
 use std::path::PathBuf;
 
-/// Retrieve the Claude Code OAuth access token.
-/// macOS: Keychain via `security` command
-/// Linux: ~/.claude/.credentials.json or secret-tool
-///
-/// SECURITY: Token is returned as String, must NOT be written to disk/cache/stdout/stderr.
+/// SECURITY: Token must NOT be written to disk, cache, stdout, or stderr.
 pub fn get_oauth_token() -> Option<String> {
     #[cfg(target_os = "macos")]
     {
@@ -45,12 +41,10 @@ fn get_token_macos() -> Option<String> {
 
 #[cfg(not(target_os = "macos"))]
 fn get_token_linux() -> Option<String> {
-    // Try file-based credentials first
     if let Some(token) = get_token_from_file() {
         return Some(token);
     }
 
-    // Fallback to secret-tool
     let output = match std::process::Command::new("secret-tool")
         .args(["lookup", "service", "Claude Code-credentials"])
         .output()
@@ -95,7 +89,6 @@ fn credentials_file_path() -> Option<PathBuf> {
     }
 }
 
-/// Extract accessToken from the JSON credential blob.
 /// Shape: { "claudeAiOauth": { "accessToken": "..." } }
 fn extract_access_token(json_str: &str) -> Option<String> {
     let value: serde_json::Value = match serde_json::from_str(json_str) {

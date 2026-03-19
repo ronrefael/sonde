@@ -6,7 +6,6 @@ use crate::context::Context;
 use crate::promo;
 use crate::usage_api;
 
-/// 6-tier pacing assessment.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PaceTier {
     Comfortable,
@@ -64,14 +63,12 @@ impl PaceTier {
     }
 }
 
-/// Calculate pace ratio from utilization.
 pub fn calculate_tier(utilization: f64, promo_active: bool) -> PaceTier {
     // Runaway is absolute, not relative
     if utilization > 90.0 {
         return PaceTier::Runaway;
     }
 
-    // When promo is active, effective capacity doubles
     let effective = if promo_active {
         utilization / 2.0
     } else {
@@ -91,7 +88,6 @@ pub fn calculate_tier(utilization: f64, promo_active: bool) -> PaceTier {
     }
 }
 
-/// Get the current pacing tier and remaining %. Returns (tier, remaining_pct).
 pub fn current_pacing(cfg: &SondeConfig) -> Option<(PaceTier, f64)> {
     let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);
     let data = usage_api::fetch_usage(ttl)?;
@@ -128,7 +124,6 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
 
     let (tier, remaining) = current_pacing(cfg)?;
 
-    // Show remaining % with tier icon — color-coded by tier
     let text = format!("{} {:.0}%", tier.icon(), remaining);
 
     Some(ansi::styled(&text, Some(tier.style())))

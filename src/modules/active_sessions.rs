@@ -2,7 +2,6 @@ use crate::ansi;
 use crate::config::SondeConfig;
 use crate::context::Context;
 
-/// Counts running Claude Code processes.
 pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let output = std::process::Command::new("pgrep")
         .args(["-f", "claude"])

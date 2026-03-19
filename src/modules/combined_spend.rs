@@ -4,14 +4,11 @@ use crate::context::Context;
 use crate::modules::codex_cost;
 use crate::modules::cursor;
 
-/// Shows combined Claude Code + Codex + Cursor daily spend.
 pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let claude_cost = ctx.cost.as_ref()?.total_cost_usd?;
 
-    // Try to get Codex cost (reuse codex_cost module's logic)
     let codex = codex_cost::get_latest_session_cost(cfg).unwrap_or(0.0);
 
-    // Try to get Cursor cost
     let cursor = cursor::get_latest_session_cost(cfg).unwrap_or(0.0);
 
     let total = claude_cost + codex + cursor;

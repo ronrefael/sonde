@@ -19,7 +19,6 @@ pub mod worktree;
 use crate::config::SondeConfig;
 use crate::context::Context;
 
-/// Dispatch a module name to its render function.
 pub fn render_module(name: &str, ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     match name {
         "sonde.model" => model::render(ctx, cfg),

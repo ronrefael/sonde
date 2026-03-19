@@ -35,7 +35,6 @@ pub struct ExtraUsage {
     pub utilization: Option<f64>,
 }
 
-/// Fetch usage data with timeout. Falls back to cache on failure.
 /// Memoized per process — safe to call from multiple modules in one render.
 pub fn fetch_usage(ttl: Option<u64>) -> Option<UsageData> {
     USAGE_MEMO.get_or_init(|| fetch_usage_inner(ttl)).clone()
@@ -51,13 +50,11 @@ fn fetch_usage_inner(ttl: Option<u64>) -> Option<UsageData> {
         }
     };
 
-    // Try fresh cache first
     if let Some(data) = cache::read_cache::<UsageData>(&cache_path, false) {
         tracing::debug!("Usage data from cache (fresh)");
         return Some(data);
     }
 
-    // Fetch with timeout
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
         let result = fetch_from_api();
@@ -66,7 +63,6 @@ fn fetch_usage_inner(ttl: Option<u64>) -> Option<UsageData> {
 
     match rx.recv_timeout(Duration::from_secs(5)) {
         Ok(Ok(data)) => {
-            // Parse resets_at for cache invalidation
             let resets_at_epoch = data
                 .five_hour
                 .as_ref()
@@ -79,7 +75,6 @@ fn fetch_usage_inner(ttl: Option<u64>) -> Option<UsageData> {
         }
         Ok(Err(e)) => {
             tracing::warn!("Usage API error: {e}");
-            // Fall back to stale cache
             cache::read_cache::<UsageData>(&cache_path, true)
         }
         Err(_) => {

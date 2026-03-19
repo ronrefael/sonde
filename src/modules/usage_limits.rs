@@ -7,7 +7,6 @@ use crate::context::Context;
 pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let ucfg = cfg.usage_limits.as_ref();
 
-    // Check if disabled
     if let Some(c) = ucfg {
         if c.enabled == Some(false) {
             return None;
@@ -85,7 +84,6 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     Some(styled_parts.join(separator))
 }
 
-/// Format a reset timestamp as a human-readable countdown.
 fn format_reset_time(rfc3339: &str) -> String {
     let reset_dt = match chrono::DateTime::parse_from_rfc3339(rfc3339) {
         Ok(dt) => dt,

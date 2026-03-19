@@ -3,30 +3,14 @@ use crate::config::{self, SondeConfig};
 use crate::context::Context;
 use crate::modules;
 
-/// Parse a format line and render all $sonde.xxx tokens.
-///
 /// Format: "$sonde.model $sonde.cost some_literal_text $sonde.context_bar"
-/// Each $sonde.xxx token is dispatched to the module registry.
-/// Tokens that return None are silently omitted.
 pub fn render_line(line: &str, ctx: &Context, cfg: &SondeConfig) -> String {
     let mut result = String::new();
     let mut chars = line.chars().peekable();
 
     while let Some(&ch) = chars.peek() {
         if ch == '$' {
-            chars.next(); // consume $
-                          // Read the module name
-            let mut name = String::new();
-            while let Some(&c) = chars.peek() {
-                if c.is_alphanumeric() || c == '.' || c == '_' {
-                    name.push(c);
-                    chars.next();
-                } else {
-                    break;
-                }
-            }
-
-            if !name.is_empty() {
+            if let Some(name) = consume_token_name(&mut chars) {
                 if let Some(rendered) = modules::render_module(&name, ctx, cfg) {
                     if !result.is_empty() && !result.ends_with(' ') {
                         result.push(' ');
@@ -34,40 +18,47 @@ pub fn render_line(line: &str, ctx: &Context, cfg: &SondeConfig) -> String {
                     result.push_str(&rendered);
                 }
             }
-        } else {
-            if ch == ' ' {
-                chars.next();
-                if !result.is_empty() {
-                    result.push(' ');
-                }
-            } else {
-                result.push(ch);
-                chars.next();
+        } else if ch == ' ' {
+            chars.next();
+            if !result.is_empty() {
+                result.push(' ');
             }
+        } else {
+            result.push(ch);
+            chars.next();
         }
     }
 
     result.trim().to_string()
 }
 
-/// Extract $sonde.xxx module names from a format line.
+/// Consume a `$sonde.xxx` token name from a peekable char iterator.
+/// Advances past the `$` and all following alphanumeric/dot/underscore chars.
+fn consume_token_name(chars: &mut std::iter::Peekable<std::str::Chars>) -> Option<String> {
+    chars.next(); // consume '$'
+    let mut name = String::new();
+    while let Some(&c) = chars.peek() {
+        if c.is_alphanumeric() || c == '.' || c == '_' {
+            name.push(c);
+            chars.next();
+        } else {
+            break;
+        }
+    }
+    if name.is_empty() {
+        None
+    } else {
+        Some(name)
+    }
+}
+
 fn extract_module_names(line: &str) -> Vec<String> {
     let mut names = Vec::new();
     let mut chars = line.chars().peekable();
 
     while let Some(&ch) = chars.peek() {
         if ch == '$' {
-            chars.next();
-            let mut name = String::new();
-            while let Some(&c) = chars.peek() {
-                if c.is_alphanumeric() || c == '.' || c == '_' {
-                    name.push(c);
-                    chars.next();
-                } else {
-                    break;
-                }
-            }
-            if !name.is_empty() {
+            if let Some(name) = consume_token_name(&mut chars) {
                 names.push(name);
             }
         } else {
@@ -78,7 +69,6 @@ fn extract_module_names(line: &str) -> Vec<String> {
     names
 }
 
-/// Priority for each module: lower number = higher priority = kept longer.
 fn module_priority(name: &str) -> u8 {
     match name {
         "sonde.model" => 1,
@@ -101,10 +91,7 @@ fn module_priority(name: &str) -> u8 {
     }
 }
 
-/// Abbreviate segment text to save space.
-/// Removes parenthesized content, shortens model names, trims labels.
 fn abbreviate(text: &str) -> String {
-    // Remove content in parentheses: "5h 18% (3h13m)" → "5h 18%"
     let mut result = String::new();
     let mut depth = 0;
     for ch in text.chars() {
@@ -119,13 +106,11 @@ fn abbreviate(text: &str) -> String {
             _ => {}
         }
     }
-    // Collapse multiple spaces left by removed parens
     let mut result = result.trim().to_string();
     while result.contains("  ") {
         result = result.replace("  ", " ");
     }
 
-    // Shorten known long labels
     result
         .replace("Comfortable", "OK")
         .replace("On Track", "OK")
@@ -135,7 +120,6 @@ fn abbreviate(text: &str) -> String {
         .replace("Off-peak limits active", "2X")
 }
 
-/// A candidate segment before final rendering.
 struct Candidate {
     name: String,
     text: String,
@@ -188,7 +172,6 @@ fn get_terminal_width() -> usize {
     80
 }
 
-/// Usable width for powerline, with a small margin for terminal edge effects.
 fn usable_width() -> usize {
     let w = get_terminal_width();
     w.saturating_sub(2)
@@ -202,7 +185,6 @@ fn build_powerline_segments(
         .iter()
         .map(|c| {
             let (fg, bg) = if c.name == "sonde.pacing" {
-                // Dynamic color based on pacing tier
                 let dark = nu_ansi_term::Color::Rgb(30, 30, 46);
                 match modules::pacing::current_pacing(cfg) {
                     Some((tier, _)) => (dark, tier.powerline_bg()),
@@ -278,7 +260,6 @@ fn render_line_powerline(line: &str, ctx: &Context, cfg: &SondeConfig) -> String
     }
 }
 
-/// Render all configured lines.
 pub fn render(ctx: &Context, cfg: &SondeConfig) -> String {
     let theme = cfg.theme.as_deref().unwrap_or("powerline");
     let is_powerline = theme == "powerline";
@@ -355,7 +336,6 @@ mod tests {
         let output = render(&ctx, &cfg);
         let plain = ansi::strip_ansi(&output);
         assert!(plain.contains("Opus"));
-        // Should contain powerline arrow
         assert!(output.contains('\u{e0b0}'));
     }
 
@@ -367,7 +347,6 @@ mod tests {
         let mut cfg = SondeConfig::default();
         cfg.theme = Some("plain".to_string());
         let output = render(&ctx, &cfg);
-        // Plain theme should NOT have powerline arrows
         assert!(!output.contains('\u{e0b0}'));
     }
 

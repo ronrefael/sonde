@@ -2,10 +2,9 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
 use crate::ansi;
-use crate::config::SondeConfig;
+use crate::config::{self, SondeConfig};
 use crate::context::Context;
 
-/// Cursor usage JSON structure (from ~/.cursor/usage.json).
 #[derive(Debug, Deserialize)]
 struct CursorUsage {
     model: Option<String>,
@@ -13,7 +12,6 @@ struct CursorUsage {
     output_tokens: Option<u64>,
 }
 
-/// Cursor JSONL event types (session logs).
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
 enum CursorEvent {
@@ -29,9 +27,7 @@ enum CursorEvent {
     Other,
 }
 
-/// Simple pricing table for Cursor models (per 1M tokens).
 fn price_per_million(model: &str) -> (f64, f64) {
-    // (input_price, output_price) per 1M tokens
     match model {
         m if m.contains("claude-3.5-sonnet") || m.contains("claude-3-5-sonnet") => (3.00, 15.00),
         m if m.contains("claude-3-opus") || m.contains("claude-3.5-opus") => (15.00, 75.00),
@@ -47,23 +43,18 @@ fn price_per_million(model: &str) -> (f64, f64) {
     }
 }
 
-fn data_dir(cfg: &SondeConfig) -> PathBuf {
+fn token_cost(input: u64, output: u64, model: &str) -> f64 {
+    let (input_price, output_price) = price_per_million(model);
+    (input as f64 / 1_000_000.0) * input_price + (output as f64 / 1_000_000.0) * output_price
+}
+
+fn cursor_data_dir(cfg: &SondeConfig) -> PathBuf {
     if let Some(ccfg) = cfg.cursor.as_ref() {
         if let Some(dir) = ccfg.sessions_dir.as_deref() {
-            let expanded = if dir.starts_with('~') {
-                if let Some(home) = dirs::home_dir() {
-                    home.join(&dir[2..])
-                } else {
-                    PathBuf::from(dir)
-                }
-            } else {
-                PathBuf::from(dir)
-            };
-            return expanded;
+            return config::expand_tilde(dir);
         }
     }
 
-    // Default
     if let Some(home) = dirs::home_dir() {
         home.join(".cursor")
     } else {
@@ -71,7 +62,6 @@ fn data_dir(cfg: &SondeConfig) -> PathBuf {
     }
 }
 
-/// Try to read cost from a usage.json file.
 fn cost_from_usage_json(dir: &Path) -> Option<f64> {
     let usage_path = dir.join("usage.json");
     let content = match std::fs::read_to_string(&usage_path) {
@@ -79,104 +69,55 @@ fn cost_from_usage_json(dir: &Path) -> Option<f64> {
         Err(_) => return None,
     };
 
-    // Try as array of usage entries
     if let Ok(entries) = serde_json::from_str::<Vec<CursorUsage>>(&content) {
         let mut total_cost = 0.0;
         for entry in &entries {
             let model = entry.model.as_deref().unwrap_or("claude-3.5-sonnet");
             let input = entry.input_tokens.unwrap_or(0);
             let output = entry.output_tokens.unwrap_or(0);
-            let (input_price, output_price) = price_per_million(model);
-            total_cost += (input as f64 / 1_000_000.0) * input_price;
-            total_cost += (output as f64 / 1_000_000.0) * output_price;
+            total_cost += token_cost(input, output, model);
         }
         if total_cost > 0.0 {
             return Some(total_cost);
         }
     }
 
-    // Try as single usage entry
     if let Ok(entry) = serde_json::from_str::<CursorUsage>(&content) {
         let model = entry.model.as_deref().unwrap_or("claude-3.5-sonnet");
         let input = entry.input_tokens.unwrap_or(0);
         let output = entry.output_tokens.unwrap_or(0);
-        let (input_price, output_price) = price_per_million(model);
-        let mut total_cost = 0.0;
-        total_cost += (input as f64 / 1_000_000.0) * input_price;
-        total_cost += (output as f64 / 1_000_000.0) * output_price;
-        if total_cost > 0.0 {
-            return Some(total_cost);
+        let cost = token_cost(input, output, model);
+        if cost > 0.0 {
+            return Some(cost);
         }
     }
 
     None
 }
 
-/// Find the most recently modified JSONL session file.
-fn latest_session(dir: &Path) -> Option<PathBuf> {
-    let sessions_dir = dir.join("sessions");
-    let search_dir = if sessions_dir.exists() {
-        &sessions_dir
-    } else {
-        dir
-    };
-
-    let entries = std::fs::read_dir(search_dir).ok()?;
-    let mut best: Option<(PathBuf, std::time::SystemTime)> = None;
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
-            if path.is_dir() {
-                if let Some(sub) = latest_session_recursive(&path) {
-                    let mod_time = match sub.metadata().ok().and_then(|m| m.modified().ok()) {
-                        Some(t) => t,
-                        None => continue,
-                    };
-                    if best.as_ref().map(|(_, t)| mod_time > *t).unwrap_or(true) {
-                        best = Some((sub, mod_time));
-                    }
-                }
-            }
-            continue;
-        }
-        if let Ok(meta) = path.metadata() {
-            if let Ok(mod_time) = meta.modified() {
-                if best.as_ref().map(|(_, t)| mod_time > *t).unwrap_or(true) {
-                    best = Some((path, mod_time));
-                }
-            }
-        }
-    }
-
-    best.map(|(p, _)| p)
-}
-
-fn latest_session_recursive(dir: &Path) -> Option<PathBuf> {
+/// Find the most recently modified .jsonl file, searching recursively.
+fn find_newest_jsonl(dir: &Path) -> Option<PathBuf> {
     let entries = std::fs::read_dir(dir).ok()?;
     let mut best: Option<(PathBuf, std::time::SystemTime)> = None;
 
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
-            if path.is_dir() {
-                if let Some(sub) = latest_session_recursive(&path) {
-                    let mod_time = match sub.metadata().ok().and_then(|m| m.modified().ok()) {
-                        Some(t) => t,
-                        None => continue,
-                    };
-                    if best.as_ref().map(|(_, t)| mod_time > *t).unwrap_or(true) {
+        if path.is_dir() {
+            if let Some(sub) = find_newest_jsonl(&path) {
+                if let Some(mod_time) = sub.metadata().ok().and_then(|m| m.modified().ok()) {
+                    if best.as_ref().is_none_or(|(_, t)| mod_time > *t) {
                         best = Some((sub, mod_time));
                     }
                 }
             }
             continue;
         }
-        if let Ok(meta) = path.metadata() {
-            if let Ok(mod_time) = meta.modified() {
-                if best.as_ref().map(|(_, t)| mod_time > *t).unwrap_or(true) {
-                    best = Some((path, mod_time));
-                }
+        if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+            continue;
+        }
+        if let Some(mod_time) = path.metadata().ok().and_then(|m| m.modified().ok()) {
+            if best.as_ref().is_none_or(|(_, t)| mod_time > *t) {
+                best = Some((path, mod_time));
             }
         }
     }
@@ -184,7 +125,17 @@ fn latest_session_recursive(dir: &Path) -> Option<PathBuf> {
     best.map(|(p, _)| p)
 }
 
-/// Calculate cost from a Cursor JSONL session file.
+/// Prefer a `sessions/` subdirectory if it exists, then search recursively.
+fn latest_session(dir: &Path) -> Option<PathBuf> {
+    let sessions_subdir = dir.join("sessions");
+    let search_dir = if sessions_subdir.exists() {
+        &sessions_subdir
+    } else {
+        dir
+    };
+    find_newest_jsonl(search_dir)
+}
+
 fn calculate_session_cost(path: &Path) -> Option<f64> {
     let content = std::fs::read_to_string(path).ok()?;
     let mut total_cost = 0.0;
@@ -210,9 +161,7 @@ fn calculate_session_cost(path: &Path) -> Option<f64> {
                 let model_name = model.as_deref().unwrap_or("claude-3.5-sonnet");
                 let input = input_tokens.unwrap_or(0);
                 let output = output_tokens.unwrap_or(0);
-                let (input_price, output_price) = price_per_million(model_name);
-                total_cost += (input as f64 / 1_000_000.0) * input_price;
-                total_cost += (output as f64 / 1_000_000.0) * output_price;
+                total_cost += token_cost(input, output, model_name);
             }
             CursorEvent::Other => {}
         }
@@ -225,19 +174,16 @@ fn calculate_session_cost(path: &Path) -> Option<f64> {
     }
 }
 
-/// Public helper for combined_spend module.
 pub fn get_latest_session_cost(cfg: &SondeConfig) -> Option<f64> {
-    let dir = data_dir(cfg);
+    let dir = cursor_data_dir(cfg);
     if !dir.exists() {
         return None;
     }
 
-    // Try usage.json first
     if let Some(cost) = cost_from_usage_json(&dir) {
         return Some(cost);
     }
 
-    // Fall back to JSONL session logs
     let session = latest_session(&dir)?;
     calculate_session_cost(&session)
 }
@@ -249,19 +195,17 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
         }
     }
 
-    let dir = data_dir(cfg);
+    let dir = cursor_data_dir(cfg);
     if !dir.exists() {
         tracing::debug!("cursor: data dir does not exist: {}", dir.display());
         return None;
     }
 
-    // Try usage.json first
     if let Some(cost) = cost_from_usage_json(&dir) {
         let text = format!("Cursor: ${cost:.2}");
         return Some(ansi::styled(&text, Some("fg:#a9b1d6")));
     }
 
-    // Fall back to JSONL session logs
     let session = match latest_session(&dir) {
         Some(s) => s,
         None => {

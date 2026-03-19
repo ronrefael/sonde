@@ -3,7 +3,6 @@ use crate::config::SondeConfig;
 use crate::context::Context;
 use crate::promo;
 
-/// Replace emoji circles with nerd font icons.
 fn nerd_icon(emoji: &str) -> &str {
     match emoji {
         "🟢" => "\u{f0e7}", //  bolt
@@ -13,7 +12,6 @@ fn nerd_icon(emoji: &str) -> &str {
     }
 }
 
-/// Format countdown from minutes.
 fn format_countdown(minutes: u64) -> String {
     let hours = minutes / 60;
     let mins = minutes % 60;
@@ -27,7 +25,6 @@ fn format_countdown(minutes: u64) -> String {
 pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let pcfg = cfg.promo_badge.as_ref();
 
-    // Check if disabled
     if let Some(c) = pcfg {
         if c.enabled == Some(false) {
             return None;
@@ -50,7 +47,6 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let icon = nerd_icon(emoji);
     let label = status.label.as_deref().unwrap_or("");
 
-    // Build text with countdown
     let countdown = status
         .minutes_until_change
         .map(format_countdown)
@@ -63,12 +59,10 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
             format!("{icon} {label} \u{f017} {countdown} left")
         }
     } else {
-        // On-peak: show time until next off-peak
         if countdown.is_empty() {
-            return None; // No useful info to show during peak without countdown
-        } else {
-            format!("{icon} Off-peak in {countdown}")
+            return None;
         }
+        format!("{icon} Off-peak in {countdown}")
     };
 
     if text.trim().is_empty() {
