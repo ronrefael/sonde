@@ -1,16 +1,20 @@
 pub mod active_sessions;
+pub mod agent_badge;
 pub mod codex_cost;
 pub mod combined_spend;
 pub mod context_bar;
 pub mod context_window;
 pub mod cost;
+pub mod cursor;
 pub mod git_branch;
+pub mod mascot;
 pub mod model;
 pub mod model_suggestion;
 pub mod pacing;
 pub mod promo_badge;
 pub mod session_clock;
 pub mod usage_limits;
+pub mod worktree;
 
 use crate::config::SondeConfig;
 use crate::context::Context;
@@ -31,6 +35,10 @@ pub fn render_module(name: &str, ctx: &Context, cfg: &SondeConfig) -> Option<Str
         "sonde.active_sessions" => active_sessions::render(ctx, cfg),
         "sonde.model_suggestion" => model_suggestion::render(ctx, cfg),
         "sonde.combined_spend" => combined_spend::render(ctx, cfg),
+        "sonde.cursor" => cursor::render(ctx, cfg),
+        "sonde.mascot_icon" => mascot::render_icon(ctx, cfg),
+        "sonde.agent" => agent_badge::render(ctx, cfg),
+        "sonde.worktree" => worktree::render(ctx, cfg),
         other => {
             tracing::debug!("Unknown module: {other}");
             None

@@ -18,6 +18,7 @@ pub struct Context {
     pub context_window: Option<ContextWindow>,
     pub vim: Option<Vim>,
     pub agent: Option<Agent>,
+    pub worktree: Option<Worktree>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -79,6 +80,16 @@ pub struct Vim {
 #[derive(Debug, Deserialize, Default)]
 pub struct Agent {
     pub name: Option<String>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize, Default)]
+pub struct Worktree {
+    pub name: Option<String>,
+    pub path: Option<String>,
+    pub branch: Option<String>,
+    pub original_cwd: Option<String>,
+    pub original_branch: Option<String>,
 }
 
 /// Read stdin and parse as Context JSON. Returns Default on any error.
