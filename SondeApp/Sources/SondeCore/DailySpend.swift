@@ -20,8 +20,13 @@ public final class DailySpendTracker: Sendable {
     private let filePath: URL
 
     public init() {
+        #if os(macOS)
         let cacheDir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Caches/sonde")
+        #else
+        let cacheDir = URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent("Library/Caches/sonde")
+        #endif
         filePath = cacheDir.appendingPathComponent("daily_spend.json")
 
         // Ensure directory exists

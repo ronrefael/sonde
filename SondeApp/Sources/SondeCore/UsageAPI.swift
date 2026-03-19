@@ -1,4 +1,7 @@
 import Foundation
+import os.log
+
+private let logger = Logger(subsystem: "dev.sonde.app", category: "UsageService")
 
 /// Usage data from the Claude Code OAuth API.
 public struct UsageData: Codable, Sendable {
@@ -103,15 +106,23 @@ public actor UsageService {
                     cachedData = usage
                     lastSuccessfulFetch = Date()
                     consecutiveFailures = 0
-                    // Write to shared cache so the Rust statusline always has fresh data
                     writeToSharedCache(data)
+                    logger.info("Usage API fetch succeeded")
                     return (usage, lastSuccessfulFetch)
                 } else {
+                    let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+                    logger.warning("Usage API returned HTTP \(status)")
+                    if status == 401 {
+                        CredentialProvider.invalidateCachedToken()
+                    }
                     consecutiveFailures += 1
                 }
             } catch {
+                logger.warning("Usage API request failed: \(error.localizedDescription)")
                 consecutiveFailures += 1
             }
+        } else {
+            logger.warning("No OAuth token available — skipping API call")
         }
 
         // Fallback: try Rust cache
@@ -146,11 +157,19 @@ public actor UsageService {
     }
 
     /// Read from Rust binary's cache (bonus, not required).
+    /// Uses the real (non-sandboxed) home path since the Rust binary writes outside the sandbox.
     private func readRustCache() -> (data: UsageData, timestamp: Date)? {
-        guard let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            return nil
+        let realHome: String
+        if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir {
+            realHome = String(cString: dir)
+        } else {
+            guard let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+                return nil
+            }
+            realHome = cacheDir.deletingLastPathComponent().deletingLastPathComponent().path
         }
-        let cachePath = cacheDir.appendingPathComponent("sonde/usage_limits.json")
+        let cachePath = URL(fileURLWithPath: realHome)
+            .appendingPathComponent("Library/Caches/sonde/usage_limits.json")
 
         guard let raw = try? Data(contentsOf: cachePath),
               let envelope = try? JSONDecoder().decode(CacheEnvelope.self, from: raw)

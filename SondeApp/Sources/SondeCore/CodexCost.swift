@@ -24,7 +24,11 @@ public actor CodexCostReader {
     }
 
     private func readLatestSessionCost() -> Double? {
+        #if os(macOS)
         let home = FileManager.default.homeDirectoryForCurrentUser
+        #else
+        guard let home = URL(string: NSHomeDirectory()) else { return nil }
+        #endif
         let sessionsDir = home.appendingPathComponent(".codex/sessions")
 
         guard FileManager.default.fileExists(atPath: sessionsDir.path) else {
@@ -59,7 +63,7 @@ public actor CodexCostReader {
                    let subValues = try? sub.resourceValues(forKeys: [.contentModificationDateKey]),
                    let subDate = subValues.contentModificationDate
                 {
-                    if best == nil || subDate > best!.date {
+                    if best.map({ subDate > $0.date }) ?? true {
                         best = (sub, subDate)
                     }
                 }
@@ -69,7 +73,7 @@ public actor CodexCostReader {
             guard url.pathExtension == "jsonl" else { continue }
 
             if let modDate = values?.contentModificationDate {
-                if best == nil || modDate > best!.date {
+                if best.map({ modDate > $0.date }) ?? true {
                     best = (url, modDate)
                 }
             }

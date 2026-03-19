@@ -1,4 +1,22 @@
 import Foundation
+import os.log
+
+private let logger = Logger(subsystem: "dev.sonde.app", category: "SessionReader")
+
+/// Returns the real (non-sandboxed) home directory.
+/// Inside a sandbox, homeDirectoryForCurrentUser points to the container.
+/// Use pw_dir from getpwuid to get the real home.
+private func realHomeDir() -> URL {
+    if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir {
+        return URL(fileURLWithPath: String(cString: dir))
+    }
+    return FileManager.default.homeDirectoryForCurrentUser
+}
+
+/// Returns the real (non-sandboxed) ~/Library/Caches/sonde directory.
+private func realSondeCacheDir() -> URL {
+    realHomeDir().appendingPathComponent("Library/Caches/sonde")
+}
 
 /// Cost breakdown for a single model used during a session.
 public struct ModelCostEntry: Equatable, Sendable {
@@ -133,6 +151,10 @@ public struct SessionData: Equatable, Sendable {
     public var gitBranch: String?
     public var otherProjects: [ProjectCost] = []
 
+    // Session identity (for multi-session support)
+    public var sessionId: String?
+    public var projectPath: String?
+
     // Stats from Rust session cache
     public var linesAdded: Int?
     public var linesRemoved: Int?
@@ -149,6 +171,12 @@ public struct SessionData: Equatable, Sendable {
     public var messageCount: Int = 0
 
     public init() {}
+
+    /// Display-friendly project name derived from the working directory path.
+    public var projectName: String? {
+        guard let path = projectPath else { return nil }
+        return (path as NSString).lastPathComponent
+    }
 
     public var contextTokensUsed: Int {
         (totalInputTokens ?? 0) + (totalOutputTokens ?? 0)
@@ -198,6 +226,15 @@ public struct SessionData: Equatable, Sendable {
         return "\(Int(ratio))%"
     }
 
+    /// Cost per hour burn rate, e.g. "$6.40/hr"
+    public var costPerHour: String? {
+        guard let cost = sessionCost, cost > 0, let ms = sessionDurationMs, ms > 60_000 else { return nil }
+        let hours = Double(ms) / 3_600_000.0
+        guard hours > 0 else { return nil }
+        let rate = cost / hours
+        return String(format: "$%.2f/hr", rate)
+    }
+
     /// API wait ratio (time spent waiting for API vs total session), e.g. "12%"
     public var apiWaitRatio: String? {
         guard let apiMs = apiDurationMs, let totalMs = sessionDurationMs, totalMs > 0 else { return nil }
@@ -217,6 +254,12 @@ public actor SessionReader {
 
     public func getAllProjects() -> [ProjectSession] {
         return cachedProjects
+    }
+
+    /// Return all active Claude Code sessions from the Rust cache directory.
+    /// Each running session writes its own session_<id>.json file.
+    public func getAllActiveSessions() -> [SessionData] {
+        return readAllRustSessionCaches()
     }
 
     public func getSessionData() async -> SessionData {
@@ -249,14 +292,16 @@ public actor SessionReader {
     /// The Rust statusline writes ~/Library/Caches/sonde/session_data.json
     /// on every render with the exact data from Claude Code's stdin JSON.
     private func readFromRustSessionCache() -> SessionData? {
-        guard let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+        #if os(macOS)
+        let path = realSondeCacheDir().appendingPathComponent("session_data.json")
+        guard let raw = try? Data(contentsOf: path) else {
+            logger.warning("Cannot read session cache at \(path.path)")
             return nil
         }
-        let path = cacheDir.appendingPathComponent("sonde/session_data.json")
-        guard let raw = try? Data(contentsOf: path),
-              let envelope = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+        guard let envelope = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
               let data = envelope["data"] as? [String: Any]
         else {
+            logger.warning("Failed to parse session cache JSON")
             return nil
         }
 
@@ -273,9 +318,109 @@ public actor SessionReader {
         session.apiDurationMs = data["total_api_duration_ms"] as? Int
         session.claudeVersion = data["version"] as? String
         session.agentName = data["agent_name"] as? String
-        session.vimMode = data["vim_mode"] as? String
+        if let cwd = data["cwd"] as? String { session.projectPath = cwd }
+        if let sid = data["session_id"] as? String { session.sessionId = sid }
+        if let branch = data["git_branch"] as? String { session.gitBranch = branch }
 
         return session.modelName != nil ? session : nil
+        #else
+        return nil
+        #endif
+    }
+
+    /// Read ALL active session cache files from the Rust binary's cache directory.
+    /// Each running Claude Code session writes its own session_<id>.json file.
+    /// Filters out stale files (older than 60 seconds).
+    private func readAllRustSessionCaches() -> [SessionData] {
+        #if os(macOS)
+        let sondeDir = realSondeCacheDir()
+        let fm = FileManager.default
+
+        guard let contents = try? fm.contentsOfDirectory(
+            at: sondeDir,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        let now = Date()
+        var sessions: [SessionData] = []
+
+        for fileURL in contents {
+            let filename = fileURL.lastPathComponent
+            // Match session_*.json but NOT the old session_data.json
+            guard filename.hasPrefix("session_"),
+                  filename.hasSuffix(".json"),
+                  filename != "session_data.json"
+            else { continue }
+
+            // Filter out stale files (not updated in 10 minutes)
+            // Sessions may not render frequently when idle, so use a generous window
+            if let values = try? fileURL.resourceValues(forKeys: [.contentModificationDateKey]),
+               let modDate = values.contentModificationDate,
+               now.timeIntervalSince(modDate) > 600 {
+                // Clean up stale session files
+                try? fm.removeItem(at: fileURL)
+                continue
+            }
+
+            guard let raw = try? Data(contentsOf: fileURL),
+                  let envelope = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+                  let data = envelope["data"] as? [String: Any]
+            else { continue }
+
+            // Check cache envelope expiry — handle both Int and Double from JSON
+            let expiresAt: Double?
+            if let d = envelope["expires_at"] as? Double {
+                expiresAt = d
+            } else if let i = envelope["expires_at"] as? Int {
+                expiresAt = Double(i)
+            } else {
+                expiresAt = nil
+            }
+            if let ea = expiresAt, now.timeIntervalSince1970 > ea { continue }
+
+            var session = SessionData()
+            session.modelName = data["model_name"] as? String
+            session.sessionCost = data["session_cost"] as? Double
+            session.contextUsedPct = data["context_used_pct"] as? Double
+            session.contextWindowSize = data["context_window_size"] as? Int
+            session.totalInputTokens = data["total_input_tokens"] as? Int
+            session.totalOutputTokens = data["total_output_tokens"] as? Int
+            session.sessionDurationMs = data["session_duration_ms"] as? Int
+            session.linesAdded = data["total_lines_added"] as? Int
+            session.linesRemoved = data["total_lines_removed"] as? Int
+            session.apiDurationMs = data["total_api_duration_ms"] as? Int
+            session.claudeVersion = data["version"] as? String
+            session.agentName = data["agent_name"] as? String
+            session.vimMode = data["vim_mode"] as? String
+
+            // Store session_id and cwd for multi-session display
+            if let sessionId = data["session_id"] as? String {
+                session.sessionId = sessionId
+            }
+            if let cwd = data["cwd"] as? String {
+                session.projectPath = cwd
+            }
+            if let branch = data["git_branch"] as? String {
+                session.gitBranch = branch
+            }
+
+            if session.modelName != nil {
+                sessions.append(session)
+            }
+        }
+
+        // Sort by cost descending (most expensive session first)
+        sessions.sort { ($0.sessionCost ?? 0) > ($1.sessionCost ?? 0) }
+        if !sessions.isEmpty {
+            logger.debug("Found \(sessions.count) active sessions from cache")
+        }
+        return sessions
+        #else
+        return []
+        #endif
     }
 
     /// Try to read session state from Claude Code's process or recent transcript.
@@ -283,8 +428,8 @@ public actor SessionReader {
         var session = SessionData()
 
         // Find most recent Claude project directory
-        let claudeDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude/projects")
+        // Use realHomeDir() to bypass sandbox container redirection
+        let claudeDir = realHomeDir().appendingPathComponent(".claude/projects")
 
         guard let enumerator = FileManager.default.enumerator(
             at: claudeDir,
@@ -428,7 +573,7 @@ public actor SessionReader {
         // or just the last component if nothing else works.
         let parts = encoded.drop(while: { $0 == "-" }).split(separator: "-", omittingEmptySubsequences: true)
         if parts.count > 1 {
-            return String(parts.last!)
+            return parts.last.map(String.init) ?? encoded
         }
         return encoded
     }
@@ -499,7 +644,7 @@ public actor SessionReader {
 
                     if let model = message["model"] as? String {
                         let name = displayName(for: model)
-                        let cost = Self.calculateCost(model: name, input: input, output: output)
+                        let cost = Self.calculateCost(model: name, input: input, output: output, cacheRead: cacheRead, cacheWrite: cacheWrite)
                         costByModel[name, default: 0] += cost
                     }
                 }
@@ -555,12 +700,12 @@ public actor SessionReader {
             if let message = obj["message"] as? [String: Any],
                let usage = message["usage"] as? [String: Any],
                let model = message["model"] as? String {
-                let input = (usage["input_tokens"] as? Int ?? 0)
-                    + (usage["cache_read_input_tokens"] as? Int ?? 0)
-                    + (usage["cache_creation_input_tokens"] as? Int ?? 0)
+                let cacheRead = usage["cache_read_input_tokens"] as? Int ?? 0
+                let cacheWrite = usage["cache_creation_input_tokens"] as? Int ?? 0
+                let input = (usage["input_tokens"] as? Int ?? 0) + cacheRead + cacheWrite
                 let output = usage["output_tokens"] as? Int ?? 0
                 let name = displayName(for: model)
-                totalCost += Self.calculateCost(model: name, input: input, output: output)
+                totalCost += Self.calculateCost(model: name, input: input, output: output, cacheRead: cacheRead, cacheWrite: cacheWrite)
             }
 
             if costFromTracker == nil,
@@ -652,7 +797,9 @@ public actor SessionReader {
                             info.estimatedCost += Self.calculateCost(
                                 model: name,
                                 input: input + cacheRead + cacheWrite,
-                                output: output
+                                output: output,
+                                cacheRead: cacheRead,
+                                cacheWrite: cacheWrite
                             )
                         }
                     }
@@ -673,6 +820,7 @@ public actor SessionReader {
     }
 
     private func detectGitBranch(from transcriptURL: URL) -> String? {
+        #if os(macOS)
         // Transcript: ~/.claude/projects/-Users-foo-project/uuid.jsonl
         // The parent dir name is the URL-encoded project path (dashes for slashes)
         let projectDir = transcriptURL.deletingLastPathComponent().lastPathComponent
@@ -697,16 +845,27 @@ public actor SessionReader {
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let branch = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
         return branch?.isEmpty == true ? nil : branch
+        #else
+        return nil
+        #endif
     }
 
-    private static func calculateCost(model: String, input: Int, output: Int) -> Double {
-        let (inPrice, outPrice): (Double, Double) = switch model {
-        case "Opus": (15.0, 75.0)
-        case "Sonnet": (3.0, 15.0)
-        case "Haiku": (0.25, 1.25)
-        default: (3.0, 15.0)
+    /// Cache-aware cost calculation using Anthropic's published pricing.
+    /// Cache reads are 90% cheaper, cache writes are 25% more expensive than base input.
+    private static func calculateCost(model: String, input: Int, output: Int, cacheRead: Int = 0, cacheWrite: Int = 0) -> Double {
+        let (inPrice, cacheReadPrice, cacheWritePrice, outPrice): (Double, Double, Double, Double) = switch model {
+        case "Opus": (15.0, 1.50, 18.75, 75.0)
+        case "Sonnet": (3.0, 0.30, 3.75, 15.0)
+        case "Haiku": (0.25, 0.025, 0.3125, 1.25)
+        default: (3.0, 0.30, 3.75, 15.0)
         }
-        return (Double(input) / 1_000_000) * inPrice + (Double(output) / 1_000_000) * outPrice
+        // input param includes cache tokens when called from old code paths;
+        // subtract them out if cache breakdown is provided
+        let baseInput = max(0, input - cacheRead - cacheWrite)
+        return (Double(baseInput) / 1_000_000) * inPrice
+            + (Double(cacheRead) / 1_000_000) * cacheReadPrice
+            + (Double(cacheWrite) / 1_000_000) * cacheWritePrice
+            + (Double(output) / 1_000_000) * outPrice
     }
 
     private func displayName(for modelId: String) -> String {

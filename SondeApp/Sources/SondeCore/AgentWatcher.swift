@@ -31,6 +31,7 @@ public actor AgentWatcher {
     }
 
     private func scanProcesses() -> [AgentSession] {
+        #if os(macOS)
         // Use pgrep for efficient filtering (matches Rust active_sessions.rs approach)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
@@ -66,5 +67,8 @@ public actor AgentWatcher {
         }
 
         return sessions
+        #else
+        return []
+        #endif
     }
 }

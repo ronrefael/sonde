@@ -28,7 +28,8 @@ public final class UsageHistoryTracker {
     private let maxDays = 14
 
     public init() {
-        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
         let dir = caches.appendingPathComponent("sonde")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         self.fileURL = dir.appendingPathComponent("usage_history.json")

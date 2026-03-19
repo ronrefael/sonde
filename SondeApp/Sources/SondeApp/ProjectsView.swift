@@ -5,6 +5,8 @@ import SwiftUI
 struct ProjectsView: View {
     let projects: [ProjectSession]
     @Binding var showProjects: Bool
+    let showCosts: Bool
+    let theme: PopoverTheme
     @State private var selectedProject: ProjectSession?
     @State private var showAllTasks: Bool = false
 
@@ -30,93 +32,166 @@ struct ProjectsView: View {
                         Text("Dashboard")
                             .font(.caption)
                     }
+                    .foregroundStyle(theme.headerAccent)
                 }
                 .buttonStyle(.borderless)
                 Spacer()
-                Text("\(projects.count) projects")
+                Text("\(projects.count) project\(projects.count == 1 ? "" : "s")")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.textSecondary)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
 
-            Divider()
+            Divider().overlay(theme.dividerColor)
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 1) {
+                LazyVStack(spacing: 8) {
                     ForEach(projects) { project in
-                        projectRow(project)
+                        projectCard(project)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 selectedProject = project
                             }
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
             }
         }
     }
 
-    private func projectRow(_ project: ProjectSession) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "folder.fill")
-                .font(.caption)
-                .foregroundStyle(.blue)
-                .frame(width: 16)
+    // MARK: - Project Card
 
-            VStack(alignment: .leading, spacing: 2) {
+    private func projectCard(_ project: ProjectSession) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(theme.headerAccent)
+
                 Text(project.name)
-                    .font(.caption)
-                    .fontWeight(.medium)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(theme.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.middle)
 
-                HStack(spacing: 6) {
-                    if let branch = project.gitBranch {
-                        HStack(spacing: 2) {
-                            Image(systemName: "arrow.triangle.branch")
-                                .font(.system(size: 8))
-                            Text(branch)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                        }
-                        .foregroundStyle(.secondary)
-                    }
-                    if let model = project.modelName {
-                        Text(model)
-                            .foregroundStyle(.tertiary)
-                    }
+                Spacer()
+
+                if showCosts {
+                    Text(project.formattedCost)
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                        .foregroundStyle(costColor(for: project.sessionCost))
                 }
-                .font(.caption2)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textSecondary.opacity(0.5))
             }
 
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(project.formattedCost)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .monospacedDigit()
+            HStack(spacing: 6) {
+                if let model = project.modelName {
+                    modelBadge(model)
+                }
+                if let branch = project.gitBranch {
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .font(.system(size: 8))
+                        Text(branch)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(maxWidth: 90, alignment: .leading)
+                    }
+                    .foregroundStyle(theme.textSecondary)
+                    .font(.system(size: 10))
+                }
+                Spacer()
                 if let activity = project.lastActivity {
                     Text(relativeTime(activity))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 10))
+                        .foregroundStyle(theme.textSecondary.opacity(0.6))
                 }
             }
 
-            Image(systemName: "chevron.right")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            if let pct = project.contextUsedPct, let window = project.contextWindowSize, window > 0 {
+                miniContextBar(pct: pct, used: project.contextTokensUsed, window: window)
+            }
+
+            HStack(spacing: 0) {
+                miniStat(icon: "text.word.spacing", value: formatTokens(project.contextTokensUsed), label: "tokens")
+                if let lines = project.linesAdded, lines > 0 {
+                    miniStat(icon: "plus.square", value: "+\(lines)", label: "lines", color: .green)
+                }
+                if let cache = project.cacheHitRatio {
+                    miniStat(icon: "arrow.triangle.2.circlepath", value: cache, label: "cache")
+                }
+                if project.messageCount > 0 {
+                    miniStat(icon: "bubble.left", value: "\(project.messageCount)", label: "msgs")
+                }
+                if !project.tasks.isEmpty {
+                    miniStat(icon: "list.bullet", value: "\(project.tasks.count)", label: "tasks")
+                }
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color.clear)
+        .padding(10)
+        .background(theme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.borderColor, lineWidth: 1))
+    }
+
+    private func modelBadge(_ name: String) -> some View {
+        Text(name)
+            .font(.system(size: 9, weight: .semibold, design: .monospaced))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(theme.modelColor(for: name), in: RoundedRectangle(cornerRadius: 3))
+    }
+
+    private func miniContextBar(pct: Double, used: Int, window: Int) -> some View {
+        let color: Color = pct >= 80 ? .red : pct >= 60 ? .orange : theme.lowUtilColor
+        return HStack(spacing: 6) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(theme.borderColor)
+                        .frame(height: 3)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(color)
+                        .frame(width: max(0, geo.size.width * min(pct, 100) / 100), height: 3)
+                }
+            }
+            .frame(height: 3)
+
+            Text("\(Int(pct))%")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(color)
+            Text("\(used / 1000)k/\(window / 1000)k")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(theme.textSecondary.opacity(0.5))
+        }
+    }
+
+    private func miniStat(icon: String, value: String, label: String, color: Color? = nil) -> some View {
+        HStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(.system(size: 8))
+                .foregroundStyle(theme.textSecondary.opacity(0.5))
+            Text(value)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(color ?? theme.textPrimary)
+            Text(label)
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textSecondary.opacity(0.5))
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Project Detail
 
     private func projectDetail(_ project: ProjectSession) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let hasLines = (project.linesAdded ?? 0) > 0 || (project.linesRemoved ?? 0) > 0
+
+        return VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Button {
                     selectedProject = nil
@@ -127,6 +202,7 @@ struct ProjectsView: View {
                         Text("Projects")
                             .font(.caption)
                     }
+                    .foregroundStyle(theme.headerAccent)
                 }
                 .buttonStyle(.borderless)
                 Spacer()
@@ -134,126 +210,131 @@ struct ProjectsView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
 
-            Divider()
+            Divider().overlay(theme.dividerColor)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Project header
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(project.name)
-                            .font(.headline)
-                        if let branch = project.gitBranch {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.triangle.branch")
-                                    .font(.caption2)
-                                Text(branch)
-                                    .font(.caption)
-                            }
-                            .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    // Model & Cost
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Model")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                            Text(project.modelName ?? "--")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("Session Cost")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                            Text(project.formattedCost)
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(costColor(for: project.sessionCost))
-                        }
-                    }
-                    .padding(12)
-                    .background(.quaternary.opacity(0.5))
-                    .cornerRadius(8)
-
-                    // Context usage bar
-                    if project.totalInputTokens != nil || project.totalOutputTokens != nil {
-                        contextBar(for: project)
-                    }
-
-                    // Token counts
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Tokens")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        HStack(spacing: 16) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Input")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                Text(formatTokens(project.totalInputTokens))
-                                    .font(.callout)
-                                    .fontWeight(.medium)
-                                    .monospacedDigit()
-                            }
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Output")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                Text(formatTokens(project.totalOutputTokens))
-                                    .font(.callout)
-                                    .fontWeight(.medium)
-                                    .monospacedDigit()
-                            }
-
-                            Spacer()
-
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text("Total")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                Text(formatTokens(project.contextTokensUsed))
-                                    .font(.callout)
-                                    .fontWeight(.semibold)
-                                    .monospacedDigit()
-                            }
-                        }
-                    }
-                    .padding(12)
-                    .background(.quaternary.opacity(0.3))
-                    .cornerRadius(8)
-
-                    // Session Stats
-                    if project.linesAdded != nil || project.messageCount > 0 {
-                        sessionStatsCard(for: project)
-                    }
-
-                    // Last activity
-                    if let activity = project.lastActivity {
-                        HStack {
-                            Text("Last Activity")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(relativeTime(activity))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    // Tasks section
-                    if !project.tasks.isEmpty {
-                        tasksSection(project.tasks)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(theme.headerAccent)
+                    Text(project.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(theme.textPrimary)
+                        .lineLimit(1)
+                    Spacer()
+                    if let model = project.modelName {
+                        modelBadge(model)
                     }
                 }
-                .padding(16)
+
+                if let branch = project.gitBranch {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .font(.system(size: 9))
+                        Text(branch)
+                            .font(.system(size: 11))
+                    }
+                    .foregroundStyle(theme.textSecondary)
+                }
+
+                // Hero row
+                HStack(spacing: 0) {
+                    if showCosts {
+                        VStack(spacing: 1) {
+                            Text("Cost")
+                                .font(.system(size: 9))
+                                .foregroundStyle(theme.textSecondary.opacity(0.6))
+                            Text(project.formattedCost)
+                                .font(.system(size: 18, weight: .bold, design: .monospaced))
+                                .foregroundStyle(costColor(for: project.sessionCost))
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    VStack(spacing: 1) {
+                        Text("Messages")
+                            .font(.system(size: 9))
+                            .foregroundStyle(theme.textSecondary.opacity(0.6))
+                        Text("\(project.messageCount)")
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(theme.textPrimary)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    if let activity = project.lastActivity {
+                        VStack(spacing: 1) {
+                            Text("Activity")
+                                .font(.system(size: 9))
+                                .foregroundStyle(theme.textSecondary.opacity(0.6))
+                            Text(relativeTime(activity))
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(theme.textPrimary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    if showCosts, let cpl = project.costPerLine {
+                        VStack(spacing: 1) {
+                            Text("Per Line")
+                                .font(.system(size: 9))
+                                .foregroundStyle(theme.textSecondary.opacity(0.6))
+                            Text(cpl)
+                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(theme.textPrimary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(10)
+                .background(theme.cardBackground)
+                .cornerRadius(8)
+
+                // Context bar
+                if let _ = project.contextUsedPct, let window = project.contextWindowSize, window > 0 {
+                    contextBar(for: project)
+                }
+
+                // Tokens + stats
+                VStack(spacing: 6) {
+                    HStack(spacing: 0) {
+                        statCell(label: "Input", value: formatTokens(project.totalInputTokens))
+                        statCell(label: "Output", value: formatTokens(project.totalOutputTokens))
+                        statCell(label: "Cache Read", value: formatTokens(project.cacheReadTokens))
+                        statCell(label: "Cache Write", value: formatTokens(project.cacheWriteTokens))
+                    }
+
+                    Divider().overlay(theme.dividerColor).opacity(0.3)
+
+                    HStack(spacing: 0) {
+                        if let cache = project.cacheHitRatio {
+                            statCell(label: "Cache Hit", value: cache)
+                        }
+                        if hasLines {
+                            statCell(label: "Added", value: "+\(project.linesAdded ?? 0)", color: .green)
+                            statCell(label: "Removed", value: "-\(project.linesRemoved ?? 0)", color: .red)
+                        }
+                        if project.webSearchCount > 0 {
+                            statCell(label: "Searches", value: "\(project.webSearchCount)")
+                        }
+                        if project.webFetchCount > 0 {
+                            statCell(label: "Fetches", value: "\(project.webFetchCount)")
+                        }
+                        if !hasLines && project.webSearchCount == 0 && project.webFetchCount == 0 {
+                            statCell(label: "Total", value: formatTokens(project.contextTokensUsed))
+                        }
+                    }
+                }
+                .padding(10)
+                .background(theme.cardBackground)
+                .cornerRadius(8)
+
+                if !project.tasks.isEmpty {
+                    tasksSection(project.tasks)
+                }
             }
+            .padding(14)
+
+            Spacer(minLength: 0)
         }
     }
 
@@ -263,13 +344,13 @@ struct ProjectsView: View {
         let displayTasks = showAllTasks ? tasks : Array(tasks.prefix(20))
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Tasks")
+                Text("Conversations")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.textSecondary)
                 Spacer()
                 Text("\(tasks.count)")
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(theme.textSecondary.opacity(0.5))
             }
 
             VStack(spacing: 1) {
@@ -277,16 +358,16 @@ struct ProjectsView: View {
                     taskRow(task)
                 }
             }
-            .background(.quaternary.opacity(0.3))
+            .background(theme.cardBackground)
             .cornerRadius(8)
 
             if tasks.count > 20 && !showAllTasks {
                 Button {
                     showAllTasks = true
                 } label: {
-                    Text("Show all \(tasks.count) tasks")
+                    Text("Show all \(tasks.count) conversations")
                         .font(.caption2)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(theme.headerAccent)
                 }
                 .buttonStyle(.borderless)
             }
@@ -297,45 +378,51 @@ struct ProjectsView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(task.title)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(theme.textPrimary)
+                    .lineLimit(2)
                     .truncationMode(.tail)
+
+                Spacer()
+
+                if showCosts {
+                    Text(task.formattedCost)
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary)
+                }
+            }
+
+            HStack(spacing: 6) {
+                if let model = task.modelName {
+                    modelBadge(model)
+                }
+
+                Text(task.formattedTokens)
+                    .font(.caption2)
+                    .monospacedDigit()
+                    .foregroundStyle(theme.textSecondary)
+
+                if task.messageCount > 0 {
+                    HStack(spacing: 1) {
+                        Image(systemName: "bubble.left")
+                            .font(.system(size: 8))
+                        Text("\(task.messageCount)")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(theme.textSecondary.opacity(0.6))
+                }
 
                 Spacer()
 
                 if let activity = task.lastActivity {
                     Text(relativeTime(activity))
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(theme.textSecondary.opacity(0.6))
                 }
-            }
-
-            HStack(spacing: 6) {
-                if let model = task.modelName {
-                    Text(model)
-                        .font(.system(size: 9, weight: .medium))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
-                        .background(.quaternary)
-                        .cornerRadius(3)
-                }
-
-                Text(task.formattedTokens)
-                    .font(.caption2)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-
-                Text(task.formattedCost)
-                    .font(.caption2)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-
-                Spacer()
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, 7)
     }
 
     private func contextBar(for project: ProjectSession) -> some View {
@@ -343,13 +430,13 @@ struct ProjectsView: View {
         let size = project.contextWindowSize ?? 200_000
         let pct = size > 0 ? Double(used) / Double(size) * 100 : 0
         let barPct = min(pct, 100)
-        let color: Color = pct >= 70 ? .red : pct >= 40 ? .orange : .green
+        let color: Color = pct >= 70 ? .red : pct >= 40 ? .orange : theme.lowUtilColor
 
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text("Context")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.textSecondary)
                 Spacer()
                 if pct > 100 {
                     Text("FULL")
@@ -365,13 +452,13 @@ struct ProjectsView: View {
                 }
                 Text("\(used / 1000)k/\(size / 1000)k")
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(theme.textSecondary.opacity(0.5))
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(theme.borderColor)
                         .frame(height: 6)
                     RoundedRectangle(cornerRadius: 3)
                         .fill(color)
@@ -382,86 +469,14 @@ struct ProjectsView: View {
         }
     }
 
-    // MARK: - Session Stats
-
-    private func sessionStatsCard(for project: ProjectSession) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Stats")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            VStack(spacing: 6) {
-                // Row 1: Lines Added | Lines Removed | Velocity
-                HStack(spacing: 0) {
-                    statCell(
-                        label: "Added",
-                        value: project.linesAdded.map { "+\($0)" } ?? "--",
-                        color: .green
-                    )
-                    statCell(
-                        label: "Removed",
-                        value: project.linesRemoved.map { "-\($0)" } ?? "--",
-                        color: .red
-                    )
-                    statCell(
-                        label: "Velocity",
-                        value: project.codeVelocity ?? "--",
-                        color: .primary
-                    )
-                }
-
-                // Row 2: Cache Hits | Cost/Line | Messages
-                HStack(spacing: 0) {
-                    statCell(
-                        label: "Cache Hits",
-                        value: project.cacheHitRatio ?? "--",
-                        color: .primary
-                    )
-                    statCell(
-                        label: "Cost/Line",
-                        value: project.costPerLine ?? "--",
-                        color: .primary
-                    )
-                    statCell(
-                        label: "Messages",
-                        value: "\(project.messageCount)",
-                        color: .primary
-                    )
-                }
-
-                // Row 3: Web Searches | Web Fetches | Lines Changed
-                HStack(spacing: 0) {
-                    statCell(
-                        label: "Searches",
-                        value: "\(project.webSearchCount)",
-                        color: .primary
-                    )
-                    statCell(
-                        label: "Fetches",
-                        value: "\(project.webFetchCount)",
-                        color: .primary
-                    )
-                    statCell(
-                        label: "Changed",
-                        value: "\(project.totalLinesChanged)",
-                        color: .primary
-                    )
-                }
-            }
-        }
-        .padding(12)
-        .background(.quaternary.opacity(0.3))
-        .cornerRadius(8)
-    }
-
-    private func statCell(label: String, value: String, color: Color) -> some View {
+    private func statCell(label: String, value: String, color: Color? = nil) -> some View {
         VStack(spacing: 1) {
             Text(label)
                 .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(theme.textSecondary.opacity(0.6))
             Text(value)
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(color)
+                .foregroundStyle(color ?? theme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -471,21 +486,21 @@ struct ProjectsView: View {
     // MARK: - Helpers
 
     private func costColor(for cost: Double?) -> Color {
-        guard let cost else { return .primary }
-        if cost >= 5.0 { return .red }
-        if cost >= 2.0 { return .orange }
-        return .primary
+        guard let cost else { return theme.textPrimary }
+        if cost >= 5.0 { return theme.costHighColor }
+        if cost >= 2.0 { return theme.costMedColor }
+        return theme.textPrimary
     }
 
     private func formatTokens(_ count: Int?) -> String {
         guard let count else { return "--" }
-        if count >= 1_000_000 {
-            return String(format: "%.1fM", Double(count) / 1_000_000)
-        }
-        if count >= 1000 {
-            return String(format: "%.1fk", Double(count) / 1000)
-        }
+        if count >= 1_000_000 { return String(format: "%.1fM", Double(count) / 1_000_000) }
+        if count >= 1000 { return String(format: "%.1fk", Double(count) / 1000) }
         return "\(count)"
+    }
+
+    private func formatTokens(_ count: Int) -> String {
+        formatTokens(Optional(count))
     }
 
     private func relativeTime(_ date: Date) -> String {

@@ -2,59 +2,65 @@ import SondeCore
 import SwiftUI
 
 /// A bar chart showing the 5-hour peak utilization for the last 14 days.
+/// Adapts to its container size when no explicit frame is set.
 struct HistoryChartView: View {
     let history: [DailySnapshot]
+    var compact: Bool = false
 
     var body: some View {
         if history.isEmpty {
             Text("No history yet")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
-                .frame(width: 280, height: 100)
+                .frame(maxWidth: .infinity, minHeight: compact ? 50 : 100)
         } else {
-            VStack(spacing: 4) {
-                // Chart area
-                HStack(alignment: .bottom, spacing: 2) {
-                    // Y-axis label
-                    VStack {
-                        Text("100")
-                            .font(.system(size: 7))
-                            .foregroundStyle(.tertiary)
-                        Spacer()
-                        Text("50")
-                            .font(.system(size: 7))
-                            .foregroundStyle(.tertiary)
-                        Spacer()
-                        Text("0")
-                            .font(.system(size: 7))
-                            .foregroundStyle(.tertiary)
+            GeometryReader { outer in
+                let chartHeight = compact ? outer.size.height : min(outer.size.height, 88)
+                let barHeight = chartHeight - (compact ? 10 : 16)
+
+                HStack(alignment: .bottom, spacing: compact ? 1.5 : 2) {
+                    if !compact {
+                        // Y-axis label
+                        VStack {
+                            Text("100")
+                                .font(.system(size: 7))
+                                .foregroundStyle(.tertiary)
+                            Spacer()
+                            Text("50")
+                                .font(.system(size: 7))
+                                .foregroundStyle(.tertiary)
+                            Spacer()
+                            Text("0")
+                                .font(.system(size: 7))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .frame(width: 20, height: barHeight)
                     }
-                    .frame(width: 20, height: 80)
 
                     ForEach(Array(history.enumerated()), id: \.offset) { _, snapshot in
-                        VStack(spacing: 2) {
+                        VStack(spacing: compact ? 1 : 2) {
                             GeometryReader { geo in
                                 let pct = min(snapshot.fiveHourPeak, 100) / 100.0
-                                let barHeight = max(1, geo.size.height * CGFloat(pct))
+                                let h = max(1, geo.size.height * CGFloat(pct))
                                 VStack {
                                     Spacer()
-                                    RoundedRectangle(cornerRadius: 2)
+                                    RoundedRectangle(cornerRadius: compact ? 1.5 : 2)
                                         .fill(barColor(for: snapshot.fiveHourPeak))
-                                        .frame(height: barHeight)
+                                        .frame(height: h)
                                 }
                             }
-                            .frame(height: 72)
+                            .frame(height: barHeight)
 
-                            Text(dayLabel(for: snapshot.date))
-                                .font(.system(size: 7))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
+                            if !compact {
+                                Text(dayLabel(for: snapshot.date))
+                                    .font(.system(size: 7))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
                     }
                 }
-                .frame(width: 280, height: 88)
             }
-            .frame(width: 280, height: 100)
         }
     }
 
@@ -72,7 +78,6 @@ struct HistoryChartView: View {
         let dayFormatter = DateFormatter()
         dayFormatter.dateFormat = "EEE"
         let full = dayFormatter.string(from: date)
-        // Return first 2-3 chars (Mon, Tue, etc.)
         return String(full.prefix(3))
     }
 }

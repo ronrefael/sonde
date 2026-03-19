@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// 6-tier pacing assessment matching the Rust binary.
 public enum PaceTier: String, Sendable, Equatable {
@@ -9,25 +10,38 @@ public enum PaceTier: String, Sendable, Equatable {
     case critical = "Critical"
     case runaway = "Runaway"
 
+    /// Text emoji for menu bar label (SF Symbols don't render in NSStatusItem).
     public var emoji: String {
         switch self {
-        case .comfortable: "🟢"
-        case .onTrack: "🔵"
-        case .elevated: "🟡"
-        case .hot: "🟠"
-        case .critical: "🔴"
-        case .runaway: "⛔"
+        case .comfortable: "●"
+        case .onTrack: "●"
+        case .elevated: "▲"
+        case .hot: "▲"
+        case .critical: "✕"
+        case .runaway: "⊘"
         }
     }
 
-    public var color: String {
+    /// SF Symbol name for use in SwiftUI views.
+    public var icon: String {
         switch self {
-        case .comfortable: "green"
-        case .onTrack: "blue"
-        case .elevated: "yellow"
-        case .hot: "orange"
-        case .critical: "red"
-        case .runaway: "red"
+        case .comfortable: "checkmark.circle.fill"
+        case .onTrack: "checkmark.circle"
+        case .elevated: "exclamationmark.triangle.fill"
+        case .hot: "flame.fill"
+        case .critical: "xmark.octagon.fill"
+        case .runaway: "nosign"
+        }
+    }
+
+    public var swiftColor: Color {
+        switch self {
+        case .comfortable: .green
+        case .onTrack: .blue
+        case .elevated: .yellow
+        case .hot: .orange
+        case .critical: .red
+        case .runaway: .red
         }
     }
 

@@ -6,7 +6,6 @@ struct SondeMenuBarApp: App {
     @StateObject private var viewModel = SondeViewModel()
 
     init() {
-        // Wire toast notifications from SondeCore into the app-layer ToastManager
         NotificationManager.shared.toastHandler = { message, icon in
             ToastManager.shared.show(message: message, icon: icon)
         }
@@ -17,51 +16,58 @@ struct SondeMenuBarApp: App {
             PopoverView(viewModel: viewModel)
         } label: {
             MenuBarLabel(viewModel: viewModel)
+                .onAppear { viewModel.startPolling() }
+                .onDisappear { viewModel.stopPolling() }
         }
         .menuBarExtraStyle(.window)
     }
 }
 
-/// Menu bar display style.
-enum MenuBarStyle: String, CaseIterable {
-    case emojiPercent = "Emoji + %"
-    case emojiCost = "Emoji + Cost"
-    case percentOnly = "% Only"
-    case costOnly = "Cost Only"
-    case emojiPercentCost = "All"
-}
-
 /// The tiny label shown in the menu bar.
+/// Shows: daily spend | remaining % | reset countdown (optionally 2x prefix).
 struct MenuBarLabel: View {
     @ObservedObject var viewModel: SondeViewModel
-    @AppStorage("menuBarStyle") private var style: String = MenuBarStyle.emojiPercentCost.rawValue
 
     var body: some View {
         HStack(spacing: 4) {
-            if viewModel.isLoading {
-                Text("sonde")
-            } else {
-                let s = MenuBarStyle(rawValue: style) ?? .emojiPercentCost
-
-                if s == .emojiPercent || s == .emojiCost || s == .emojiPercentCost {
-                    Text(viewModel.paceTier.emoji)
-                }
-
-                if s == .emojiPercent || s == .percentOnly || s == .emojiPercentCost {
-                    if let util = viewModel.fiveHourUtil {
-                        Text("\(Int(util))%")
-                            .monospacedDigit()
-                    }
-                }
-
-                if s == .emojiCost || s == .costOnly || s == .emojiPercentCost {
-                    if let cost = viewModel.session.sessionCost {
-                        Text("$\(String(format: "%.2f", cost))")
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                    }
-                }
+            // Pace tier icon with color
+            if !viewModel.isLoading, viewModel.fiveHourUtil != nil {
+                Image(systemName: paceTierIcon)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(paceTierColor)
             }
+            Text(labelText)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .monospacedDigit()
         }
     }
+
+    private var labelText: String {
+        if viewModel.isLoading { return "sonde" }
+        var parts: [String] = []
+
+        // Daily spend total
+        let dailyTotal = viewModel.dailyClaudeCost + viewModel.dailyCodexCost
+        if dailyTotal > 0 {
+            parts.append(String(format: "$%.2f", dailyTotal))
+        }
+
+        // 2x prefix when promo active
+        if viewModel.promoActive { parts.append("2x") }
+
+        // Remaining percentage
+        if let util = viewModel.fiveHourUtil {
+            parts.append("\(max(0, Int(100 - util)))%")
+        }
+
+        // Reset countdown
+        if let reset = viewModel.fiveHourReset {
+            parts.append(TimeFormatting.formatResetCountdown(from: reset))
+        }
+
+        return parts.isEmpty ? "sonde" : parts.joined(separator: " | ")
+    }
+
+    private var paceTierIcon: String { viewModel.paceTier.icon }
+    private var paceTierColor: Color { viewModel.paceTier.swiftColor }
 }
