@@ -73,7 +73,16 @@ impl App {
         if self.frame.is_multiple_of(20) {
             self.scanned_sessions = session_scanner::scan_sessions();
             self.check_alerts();
+            self.load_usage_history();
         }
+    }
+
+    fn load_usage_history(&mut self) {
+        let history = crate::history::read_history();
+        self.usage_history = history
+            .iter()
+            .filter_map(|e| e.five_hour_util.map(|u| u.round() as u64))
+            .collect();
     }
 
     pub fn poll(&mut self) {
@@ -177,31 +186,39 @@ impl App {
     }
 }
 
-/// Uses macOS-specific APIs (afplay, osascript, say). No-ops silently on other platforms.
+/// Uses macOS-specific APIs (afplay, osascript, say). No-ops on other platforms.
 fn trigger_alert(project_name: &str, threshold: u8) {
-    let sound = if threshold >= 90 {
-        "/System/Library/Sounds/Sosumi.aiff"
-    } else {
-        "/System/Library/Sounds/Glass.aiff"
-    };
-    let _ = std::process::Command::new("afplay").arg(sound).spawn();
+    #[cfg(target_os = "macos")]
+    {
+        let sound = if threshold >= 90 {
+            "/System/Library/Sounds/Sosumi.aiff"
+        } else {
+            "/System/Library/Sounds/Glass.aiff"
+        };
+        let _ = std::process::Command::new("afplay").arg(sound).spawn();
 
-    let message = if threshold >= 90 {
-        format!("{} — Context almost full!", project_name)
-    } else {
-        format!("{} — Save context soon!", project_name)
-    };
-    let script = format!(
-        r#"display notification "{}" with title "sonde" sound name "Glass""#,
-        message
-    );
-    let _ = std::process::Command::new("osascript")
-        .args(["-e", &script])
-        .spawn();
-
-    if threshold >= 90 {
-        let _ = std::process::Command::new("say")
-            .arg("Claude context almost full")
+        let message = if threshold >= 90 {
+            format!("{} — Context almost full!", project_name)
+        } else {
+            format!("{} — Save context soon!", project_name)
+        };
+        let script = format!(
+            r#"display notification "{}" with title "sonde" sound name "Glass""#,
+            message
+        );
+        let _ = std::process::Command::new("osascript")
+            .args(["-e", &script])
             .spawn();
+
+        if threshold >= 90 {
+            let _ = std::process::Command::new("say")
+                .arg("Claude context almost full")
+                .spawn();
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (project_name, threshold);
     }
 }

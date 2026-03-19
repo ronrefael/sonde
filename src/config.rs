@@ -28,6 +28,12 @@ pub struct SondeConfig {
     pub combined_spend: Option<ModuleConfig>,
     pub cursor: Option<CursorConfig>,
     pub mascot: Option<MascotConfig>,
+    pub windsurf: Option<WindsurfConfig>,
+    pub notifications: Option<NotificationsConfig>,
+    pub accounts: Option<HashMap<String, AccountConfig>>,
+    pub copilot: Option<CopilotConfig>,
+    pub gemini: Option<GeminiConfig>,
+    pub custom: Option<HashMap<String, CustomModuleConfig>>,
 
     #[serde(flatten)]
     pub extra: Option<HashMap<String, toml::Value>>,
@@ -88,6 +94,7 @@ pub struct PacingConfig {
     pub enabled: Option<bool>,
     pub style: Option<String>,
     pub promo_aware: Option<bool>,
+    pub show_prediction: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -106,6 +113,44 @@ pub struct CursorConfig {
 pub struct MascotConfig {
     pub enabled: Option<bool>,
     pub frame_ms: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct WindsurfConfig {
+    pub enabled: Option<bool>,
+    pub sessions_dir: Option<String>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct AccountConfig {
+    pub name: Option<String>,
+    pub credential_service: Option<String>,
+    pub api_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct CopilotConfig {
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct GeminiConfig {
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct CustomModuleConfig {
+    pub enabled: Option<bool>,
+    pub command: Option<String>,
+    pub style: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct NotificationsConfig {
+    pub webhook_url: Option<String>,
+    pub thresholds: Option<Vec<f64>>,
+    pub rate_limit_minutes: Option<u64>,
 }
 
 pub fn default_lines() -> Vec<String> {

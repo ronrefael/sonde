@@ -4,8 +4,11 @@ pub mod codex_cost;
 pub mod combined_spend;
 pub mod context_bar;
 pub mod context_window;
+pub mod copilot_cost;
 pub mod cost;
 pub mod cursor;
+pub mod custom;
+pub mod gemini_cost;
 pub mod git_branch;
 pub mod mascot;
 pub mod model;
@@ -14,6 +17,7 @@ pub mod pacing;
 pub mod promo_badge;
 pub mod session_clock;
 pub mod usage_limits;
+pub mod windsurf_cost;
 pub mod worktree;
 
 use crate::config::SondeConfig;
@@ -38,6 +42,13 @@ pub fn render_module(name: &str, ctx: &Context, cfg: &SondeConfig) -> Option<Str
         "sonde.mascot_icon" => mascot::render_icon(ctx, cfg),
         "sonde.agent" => agent_badge::render(ctx, cfg),
         "sonde.worktree" => worktree::render(ctx, cfg),
+        "sonde.windsurf_cost" => windsurf_cost::render(ctx, cfg),
+        "sonde.copilot_cost" => copilot_cost::render(ctx, cfg),
+        "sonde.gemini_cost" => gemini_cost::render(ctx, cfg),
+        other if other.starts_with("sonde.custom.") => {
+            let key = &other["sonde.custom.".len()..];
+            custom::render(key, ctx, cfg)
+        }
         other => {
             tracing::debug!("Unknown module: {other}");
             None

@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Gauge, Paragraph},
+    widgets::{Block, Borders, Gauge, Paragraph, Sparkline},
     Frame,
 };
 
@@ -33,6 +33,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
             Constraint::Length(3), // 5h usage bar
             Constraint::Length(3), // 7d usage bar
             Constraint::Length(3), // Pacing
+            Constraint::Length(5), // Usage history sparkline
             Constraint::Min(3),    // Sessions list
             Constraint::Length(1), // Footer
         ])
@@ -43,8 +44,9 @@ pub fn draw(frame: &mut Frame, app: &App) {
     draw_usage_bar(frame, app, chunks[2], true);
     draw_usage_bar(frame, app, chunks[3], false);
     draw_pacing(frame, app, chunks[4]);
-    draw_sessions(frame, app, chunks[5]);
-    draw_footer(frame, chunks[6]);
+    draw_sparkline(frame, app, chunks[5]);
+    draw_sessions(frame, app, chunks[6]);
+    draw_footer(frame, chunks[7]);
 }
 
 fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
@@ -173,6 +175,46 @@ fn draw_pacing(frame: &mut Frame, app: &App, area: Rect) {
             .border_style(Style::default().fg(MUTED)),
     );
     frame.render_widget(pacing, area);
+}
+
+fn draw_sparkline(frame: &mut Frame, app: &App, area: Rect) {
+    if app.usage_history.is_empty() {
+        let empty = Paragraph::new(Line::from(Span::styled(
+            " No history data yet",
+            Style::default().fg(MUTED),
+        )))
+        .block(
+            Block::default()
+                .title(" 24h Usage History ")
+                .title_style(Style::default().fg(TEXT))
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(MUTED)),
+        );
+        frame.render_widget(empty, area);
+        return;
+    }
+
+    let max_val = app.usage_history.iter().copied().max().unwrap_or(100);
+    let color = if max_val >= 85 {
+        RED
+    } else if max_val >= 40 {
+        YELLOW
+    } else {
+        GREEN
+    };
+
+    let sparkline = Sparkline::default()
+        .block(
+            Block::default()
+                .title(" 24h Usage History ")
+                .title_style(Style::default().fg(TEXT))
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(MUTED)),
+        )
+        .data(&app.usage_history)
+        .max(100)
+        .style(Style::default().fg(color));
+    frame.render_widget(sparkline, area);
 }
 
 fn draw_sessions(frame: &mut Frame, app: &App, area: Rect) {

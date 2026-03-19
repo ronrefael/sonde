@@ -19,6 +19,8 @@ public final class SondeViewModel: ObservableObject {
     @Published public var promoActive: Bool = false
     @Published public var promoEmoji: String = ""
     @Published public var promoLabel: String = ""
+    /// Short multiplier for menu bar: "2x", "3x", or "Promo" as fallback
+    @Published public var promoShortLabel: String = ""
     @Published public var promoCountdown: String = ""
     @Published public var promoCountdownLabel: String = ""
     @Published public var promoDescription: String = ""
@@ -282,9 +284,34 @@ public final class SondeViewModel: ObservableObject {
         let transition = PromoSchedule.nextTransition()
         let detectedPromo = await promoDetector.detectPromo()
 
-        let newPromoActive = detectedPromo != nil && transition.isCurrentlyOffpeak
+        let newPromoActive = transition.isCurrentlyOffpeak
         let newPromoEmoji = "" // No emoji — using SF Symbols now
-        let newPromoLabel = detectedPromo?.title ?? (transition.isCurrentlyOffpeak ? "2X — Off-peak limits active" : "")
+
+        // Determine the promo multiplier from all available sources
+        let promoMultiplier: String = {
+            // 1. Try schedule label (e.g. "2x ends" → "2x")
+            let schedLabel = transition.label.lowercased()
+            for m in ["5x", "4x", "3x", "2x"] {
+                if schedLabel.contains(m) { return m.uppercased() }
+            }
+            // 2. Try detected promo title from web
+            if let title = detectedPromo?.title {
+                let lower = title.lowercased()
+                for m in ["5x", "4x", "3x", "2x"] {
+                    if lower.contains(m) { return m.uppercased() }
+                }
+            }
+            // 3. Fallback: we know promo is active but not the multiplier
+            return transition.isCurrentlyOffpeak ? "⚡" : ""
+        }()
+
+        let newPromoLabel: String = {
+            if !transition.isCurrentlyOffpeak { return "" }
+            if promoMultiplier == "⚡" {
+                return "⚡ Promotion active"
+            }
+            return "\(promoMultiplier) — Off-peak limits active"
+        }()
 
         let fhChanged = fiveHourUtil != newFiveHourUtil
         let sdChanged = sevenDayUtil != newSevenDayUtil
@@ -297,6 +324,7 @@ public final class SondeViewModel: ObservableObject {
         if promoActive != newPromoActive { promoActive = newPromoActive }
         if promoEmoji != newPromoEmoji { promoEmoji = newPromoEmoji }
         if promoLabel != newPromoLabel { promoLabel = newPromoLabel }
+        if promoShortLabel != promoMultiplier { promoShortLabel = promoMultiplier }
 
         // Promo countdown (from PromoSchedule — local calculation)
         if promoCountdownLabel != transition.label { promoCountdownLabel = transition.label }

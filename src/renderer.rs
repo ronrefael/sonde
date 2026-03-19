@@ -87,6 +87,9 @@ fn module_priority(name: &str) -> u8 {
         "sonde.agent" => 2,
         "sonde.worktree" => 3,
         "sonde.mascot_icon" => 0, // highest priority — always visible
+        "sonde.windsurf_cost" => 4,
+        "sonde.copilot_cost" => 4,
+        "sonde.gemini_cost" => 4,
         _ => 6,
     }
 }
@@ -180,18 +183,19 @@ fn usable_width() -> usize {
 fn build_powerline_segments(
     candidates: &[Candidate],
     cfg: &SondeConfig,
+    theme: &str,
 ) -> Vec<ansi::PowerlineSegment> {
     candidates
         .iter()
         .map(|c| {
             let (fg, bg) = if c.name == "sonde.pacing" {
-                let dark = nu_ansi_term::Color::Rgb(30, 30, 46);
+                let palette = crate::themes::get_palette(theme);
                 match modules::pacing::current_pacing(cfg) {
-                    Some((tier, _)) => (dark, tier.powerline_bg()),
-                    None => ansi::default_powerline_colors(&c.name),
+                    Some((tier, _)) => (palette.base, tier.powerline_bg()),
+                    None => ansi::powerline_colors_for_theme(theme, &c.name),
                 }
             } else {
-                ansi::default_powerline_colors(&c.name)
+                ansi::powerline_colors_for_theme(theme, &c.name)
             };
             ansi::PowerlineSegment {
                 text: c.text.clone(),
@@ -203,7 +207,7 @@ fn build_powerline_segments(
 }
 
 /// Render a format line in powerline style with auto-compact.
-fn render_line_powerline(line: &str, ctx: &Context, cfg: &SondeConfig) -> String {
+fn render_line_powerline(line: &str, ctx: &Context, cfg: &SondeConfig, theme: &str) -> String {
     let module_names = extract_module_names(line);
     let mut candidates: Vec<Candidate> = Vec::new();
 
@@ -226,7 +230,7 @@ fn render_line_powerline(line: &str, ctx: &Context, cfg: &SondeConfig) -> String
     }
 
     let term_width = usable_width();
-    let segments = build_powerline_segments(&candidates, cfg);
+    let segments = build_powerline_segments(&candidates, cfg, theme);
     let current_width = ansi::powerline_width(&segments);
 
     if current_width <= term_width {
@@ -238,21 +242,21 @@ fn render_line_powerline(line: &str, ctx: &Context, cfg: &SondeConfig) -> String
         c.text = abbreviate(&c.text);
     }
 
-    let segments = build_powerline_segments(&candidates, cfg);
+    let segments = build_powerline_segments(&candidates, cfg, theme);
     if ansi::powerline_width(&segments) <= term_width {
         return ansi::render_powerline(&segments);
     }
 
     // Phase 2: Drop lowest-priority segments until it fits
     loop {
-        let segments = build_powerline_segments(&candidates, cfg);
+        let segments = build_powerline_segments(&candidates, cfg, theme);
         if ansi::powerline_width(&segments) <= term_width || candidates.len() <= 1 {
             return ansi::render_powerline(&segments);
         }
 
         // Find the highest priority number (= lowest importance) and remove last such entry
         let Some(max_pri) = candidates.iter().map(|c| c.priority).max() else {
-            return ansi::render_powerline(&build_powerline_segments(&candidates, cfg));
+            return ansi::render_powerline(&build_powerline_segments(&candidates, cfg, theme));
         };
         if let Some(pos) = candidates.iter().rposition(|c| c.priority == max_pri) {
             candidates.remove(pos);
@@ -262,7 +266,7 @@ fn render_line_powerline(line: &str, ctx: &Context, cfg: &SondeConfig) -> String
 
 pub fn render(ctx: &Context, cfg: &SondeConfig) -> String {
     let theme = cfg.theme.as_deref().unwrap_or("powerline");
-    let is_powerline = theme == "powerline";
+    let is_powerline = theme != "plain";
 
     let lines = cfg.lines.as_ref().cloned().unwrap_or_else(|| {
         if is_powerline {
@@ -276,7 +280,7 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> String {
         .iter()
         .map(|line| {
             if is_powerline {
-                render_line_powerline(line, ctx, cfg)
+                render_line_powerline(line, ctx, cfg, theme)
             } else {
                 render_line(line, ctx, cfg)
             }

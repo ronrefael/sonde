@@ -2,16 +2,21 @@ use crate::ansi;
 use crate::config::SondeConfig;
 use crate::context::Context;
 use crate::modules::codex_cost;
+use crate::modules::copilot_cost;
 use crate::modules::cursor;
+use crate::modules::gemini_cost;
+use crate::modules::windsurf_cost;
 
 pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let claude_cost = ctx.cost.as_ref()?.total_cost_usd?;
 
     let codex = codex_cost::get_latest_session_cost(cfg).unwrap_or(0.0);
-
     let cursor = cursor::get_latest_session_cost(cfg).unwrap_or(0.0);
+    let windsurf = windsurf_cost::get_latest_session_cost(cfg).unwrap_or(0.0);
+    let copilot = copilot_cost::get_latest_session_cost(cfg).unwrap_or(0.0);
+    let gemini = gemini_cost::get_latest_session_cost(cfg).unwrap_or(0.0);
 
-    let total = claude_cost + codex + cursor;
+    let total = claude_cost + codex + cursor + windsurf + copilot + gemini;
     let text = format!("Total: ${total:.2}");
 
     let style = if total >= 5.0 {

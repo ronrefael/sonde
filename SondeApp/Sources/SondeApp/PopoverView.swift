@@ -519,6 +519,7 @@ struct PopoverView: View {
                 updateAvailable: viewModel.updateAvailable,
                 promoActive: viewModel.promoActive,
                 promoCountdown: viewModel.promoCountdown,
+                promoShortLabel: viewModel.promoShortLabel,
                 promoDescription: viewModel.promoDescription,
                 promoUrl: viewModel.promoUrl,
                 agentName: viewModel.session.agentName
@@ -629,6 +630,7 @@ private struct HeaderBar: View {
     let updateAvailable: String?
     let promoActive: Bool
     let promoCountdown: String
+    let promoShortLabel: String
     let promoDescription: String
     let promoUrl: String
     let agentName: String?
@@ -639,14 +641,17 @@ private struct HeaderBar: View {
 
     var body: some View {
         HStack {
-            HStack(spacing: 5) {
-                Image(systemName: "waveform.path.ecg")
-                    .foregroundStyle(theme.headerAccent)
-                    .shadow(color: theme.textGlow ?? .clear, radius: 3)
-                Text("sonde")
-                    .font(.system(size: 16, weight: .semibold, design: theme.preferMonospaced ? .monospaced : .default))
-                    .foregroundStyle(theme.textPrimary)
-                    .shadow(color: theme.textGlow ?? .clear, radius: 3)
+            HStack(spacing: 6) {
+                SondeLogoMascot()
+                    .frame(width: 20, height: 20)
+                HStack(spacing: 0) {
+                    Text("sond")
+                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color(red: 0.114, green: 0.620, blue: 0.459))
+                    Text("e")
+                        .font(.system(size: 16, weight: .semibold, design: .default))
+                        .foregroundStyle(Color(red: 0.114, green: 0.620, blue: 0.459))
+                }
             }
             .help(lastUpdatedText)
 
@@ -690,6 +695,7 @@ private struct HeaderBar: View {
                     theme: theme,
                     promoActive: promoActive,
                     promoCountdown: promoCountdown,
+                    promoShortLabel: promoShortLabel,
                     promoDescription: promoDescription,
                     promoUrl: promoUrl
                 )
@@ -714,6 +720,7 @@ private struct PromoBadge: View {
     let theme: PopoverTheme
     let promoActive: Bool
     let promoCountdown: String
+    let promoShortLabel: String
     let promoDescription: String
     let promoUrl: String
 
@@ -729,7 +736,8 @@ private struct PromoBadge: View {
                     .font(.system(size: 10))
                     .foregroundStyle(promoActive ? theme.highlightAccent : theme.textPrimary)
                 if promoActive {
-                    Text("2X Active")
+                    let activeLabel = promoShortLabel == "⚡" ? "Promo Active" : "\(promoShortLabel) Active"
+                    Text(activeLabel)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(theme.highlightAccent)
                     if !promoCountdown.isEmpty {
@@ -738,7 +746,8 @@ private struct PromoBadge: View {
                             .foregroundStyle(theme.textSecondary)
                     }
                 } else {
-                    Text("2x in \(promoCountdown)")
+                    let endsLabel = promoShortLabel == "⚡" || promoShortLabel.isEmpty ? "Promo" : promoShortLabel.lowercased()
+                    Text("\(endsLabel) ends in \(promoCountdown)")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(theme.textPrimary)
                 }
@@ -810,17 +819,27 @@ private struct DashboardContent: View {
                     showCosts: showCosts
                 )
 
-                DailySpendCard(
+                UsageCard(
                     theme: theme,
-                    claudeCost: viewModel.dailyClaudeCost,
-                    codexCost: viewModel.dailyCodexCost,
-                    budget: viewModel.dailyBudget,
-                    budgetExceeded: viewModel.budgetExceeded,
                     dailyHistory: viewModel.dailyHistory,
-                    otherProjects: viewModel.session.otherProjects,
-                    showCosts: showCosts,
-                    onSetBudget: { viewModel.dailyBudget = $0 }
+                    usageHistory: viewModel.usageHistory,
+                    fiveHourUtil: viewModel.fiveHourUtil,
+                    sevenDayUtil: viewModel.sevenDayUtil
                 )
+
+                if showCosts {
+                    DailySpendCard(
+                        theme: theme,
+                        claudeCost: viewModel.dailyClaudeCost,
+                        codexCost: viewModel.dailyCodexCost,
+                        budget: viewModel.dailyBudget,
+                        budgetExceeded: viewModel.budgetExceeded,
+                        dailyHistory: viewModel.dailyHistory,
+                        otherProjects: viewModel.session.otherProjects,
+                        showCosts: showCosts,
+                        onSetBudget: { viewModel.dailyBudget = $0 }
+                    )
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -1220,55 +1239,10 @@ private struct SessionActivityCard: View {
                     }
                 }
 
-                // Cache + I/O ratio
-                HStack(spacing: 12) {
-                    if cacheTotal > 0 {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 9))
-                                .foregroundStyle(theme.textSecondary.opacity(0.5))
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(theme.borderColor)
-                                        .frame(height: 4)
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(theme.lowUtilColor)
-                                        .frame(width: max(0, geo.size.width * min(cacheRatio, 100) / 100), height: 4)
-                                }
-                            }
-                            .frame(height: 4)
-                            Text("\(Int(cacheRatio))%")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(theme.lowUtilColor)
-                        }
-                    }
-                    // Input/Output ratio
-                    if totalOutput > 0 {
-                        HStack(spacing: 3) {
-                            Image(systemName: "arrow.down.arrow.up")
-                                .font(.system(size: 9))
-                                .foregroundStyle(theme.textSecondary.opacity(0.5))
-                            Text(String(format: "%.0f:1", ioRatio))
-                                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                .foregroundStyle(theme.textSecondary)
-                            Text("i/o")
-                                .font(.system(size: 9))
-                                .foregroundStyle(theme.textSecondary.opacity(0.4))
-                        }
-                    }
-                }
-
                 // Activity counters row
                 HStack(spacing: 0) {
                     if totalMessages > 0 {
                         miniStatView(icon: "bubble.left.fill", value: "\(totalMessages)", label: "msgs")
-                    }
-                    if totalWebSearches > 0 {
-                        miniStatView(icon: "magnifyingglass", value: "\(totalWebSearches)", label: "search")
-                    }
-                    if totalWebFetches > 0 {
-                        miniStatView(icon: "globe", value: "\(totalWebFetches)", label: "fetch")
                     }
                     if let apiWait = session.apiWaitRatio {
                         miniStatView(icon: "hourglass", value: apiWait, label: "wait")
@@ -1337,6 +1311,159 @@ private struct SessionActivityCard: View {
         if lower.contains("haiku") { return "Haiku" }
         if lower.contains("sonnet") { return "Sonnet" }
         return name
+    }
+}
+
+// MARK: - Usage Card
+
+private struct UsageCard: View {
+    let theme: PopoverTheme
+    let dailyHistory: [DailySnapshot]
+    let usageHistory: [Double]
+    let fiveHourUtil: Double?
+    let sevenDayUtil: Double?
+
+    /// Build 7-day bar data: peak 5h utilization per day.
+    /// Pads with zeros for missing days so we always show 7 bars.
+    private var weekData: [(label: String, value: Double, isToday: Bool)] {
+        let cal = Calendar.current
+        let dateFmt = DateFormatter()
+        dateFmt.dateFormat = "yyyy-MM-dd"
+        let dayFmt = DateFormatter()
+        dayFmt.dateFormat = "EEE"
+
+        let today = cal.startOfDay(for: Date())
+        var result: [(label: String, value: Double, isToday: Bool)] = []
+
+        for offset in (-6...0) {
+            guard let day = cal.date(byAdding: .day, value: offset, to: today) else { continue }
+            let key = dateFmt.string(from: day)
+            let label = dayFmt.string(from: day)
+            let isToday = offset == 0
+
+            if let snap = dailyHistory.first(where: { $0.date == key }) {
+                result.append((label, snap.fiveHourPeak, isToday))
+            } else if isToday, let util = fiveHourUtil {
+                result.append((label, util, true))
+            } else {
+                result.append((label, 0, isToday))
+            }
+        }
+        return result
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Usage")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(theme.textSecondary.opacity(0.7))
+                Spacer()
+                if let util = fiveHourUtil {
+                    Text("5h: \(Int(util))%")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary.opacity(0.7))
+                }
+                if let util = sevenDayUtil {
+                    Text("7d: \(Int(util))%")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary.opacity(0.7))
+                }
+            }
+
+            let data = weekData
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(data.enumerated()), id: \.offset) { _, day in
+                    VStack(spacing: 2) {
+                        GeometryReader { geo in
+                            let ratio = min(day.value / 100.0, 1.0)
+                            VStack {
+                                Spacer()
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(barColor(day.value, isToday: day.isToday))
+                                    .frame(height: max(2, geo.size.height * CGFloat(ratio)))
+                            }
+                        }
+                        Text(day.label)
+                            .font(.system(size: 7))
+                            .foregroundStyle(day.isToday ? theme.textPrimary : theme.textSecondary.opacity(0.4))
+                    }
+                }
+            }
+            .frame(height: 48)
+        }
+        .padding(10)
+        .background(theme.cardBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(theme.borderColor, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func barColor(_ value: Double, isToday: Bool) -> Color {
+        if value >= 85 { return .red }
+        if value >= 60 { return .orange }
+        if isToday { return theme.lowUtilColor }
+        return theme.lowUtilColor.opacity(0.6)
+    }
+}
+
+private struct UsageSparkline: View {
+    let data: [Double]
+    let theme: PopoverTheme
+
+    var body: some View {
+        GeometryReader { geo in
+            let maxVal = max(data.max() ?? 100, 100)
+            let w = geo.size.width
+            let h = geo.size.height
+            let step = data.count > 1 ? w / CGFloat(data.count - 1) : w
+
+            // Fill area
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: h))
+                for (i, val) in data.enumerated() {
+                    let x = CGFloat(i) * step
+                    let y = h - (CGFloat(val / maxVal) * h)
+                    if i == 0 {
+                        path.addLine(to: CGPoint(x: x, y: y))
+                    } else {
+                        path.addLine(to: CGPoint(x: x, y: y))
+                    }
+                }
+                path.addLine(to: CGPoint(x: CGFloat(data.count - 1) * step, y: h))
+                path.closeSubpath()
+            }
+            .fill(
+                LinearGradient(
+                    colors: [sparkColor.opacity(0.3), sparkColor.opacity(0.05)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+
+            // Line
+            Path { path in
+                for (i, val) in data.enumerated() {
+                    let x = CGFloat(i) * step
+                    let y = h - (CGFloat(val / maxVal) * h)
+                    if i == 0 {
+                        path.move(to: CGPoint(x: x, y: y))
+                    } else {
+                        path.addLine(to: CGPoint(x: x, y: y))
+                    }
+                }
+            }
+            .stroke(sparkColor, lineWidth: 1.5)
+        }
+    }
+
+    private var sparkColor: Color {
+        let peak = data.max() ?? 0
+        if peak >= 85 { return .red }
+        if peak >= 60 { return .orange }
+        return theme.lowUtilColor
     }
 }
 
@@ -1597,6 +1724,7 @@ private struct FooterBar: View {
     @Binding var showCosts: Bool
 
     @State private var spinning = false
+    @State private var showSettings = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1678,6 +1806,22 @@ private struct FooterBar: View {
             .buttonStyle(.borderless)
             .tint(theme.headerAccent)
             .help("Theme")
+
+            // Settings
+            Button { showSettings.toggle() } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.headerAccent)
+            }
+            .buttonStyle(.borderless)
+            .help("Settings")
+            .popover(isPresented: $showSettings, arrowEdge: .top) {
+                SettingsView(
+                    theme: theme,
+                    showCosts: $showCosts,
+                    themeName: $themeName
+                )
+            }
 
             Spacer()
 

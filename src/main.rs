@@ -2,11 +2,17 @@ mod ansi;
 mod cache;
 mod config;
 mod context;
+mod doctor;
+mod history;
 mod modules;
+mod notifications;
 mod platform;
 mod promo;
 mod renderer;
 mod session_scanner;
+mod setup;
+mod themes;
+mod themes_preview;
 mod tui;
 mod usage_api;
 
@@ -123,6 +129,18 @@ fn run_statusline() {
     if !output.is_empty() {
         println!("{output}");
     }
+
+    // Record usage history for TUI sparkline (fire-and-forget)
+    let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);
+    let five_hour_util =
+        usage_api::fetch_usage(ttl).and_then(|d| d.five_hour.and_then(|w| w.utilization));
+    let seven_day_util =
+        usage_api::fetch_usage(ttl).and_then(|d| d.seven_day.and_then(|w| w.utilization));
+    let session_cost = ctx.cost.as_ref().and_then(|c| c.total_cost_usd);
+    history::record(five_hour_util, seven_day_util, session_cost);
+
+    // Webhook notifications (fire-and-forget)
+    notifications::check_and_notify(&cfg, five_hour_util);
 }
 
 fn main() {
@@ -135,8 +153,24 @@ fn main() {
         .with_target(false)
         .init();
 
-    let arg = std::env::args().nth(1);
-    match arg.as_deref() {
+    // Parse --account flag (can appear in any position)
+    let args: Vec<String> = std::env::args().collect();
+    let account_name = args
+        .iter()
+        .position(|a| a == "--account")
+        .and_then(|i| args.get(i + 1).cloned());
+
+    if let Some(ref _acct) = account_name {
+        // Multi-account support: account name affects cache scoping
+        // and credential service lookup. The actual account config
+        // is resolved in config::load() based on the account name.
+        // For now, set an env var that cache.rs and usage_api.rs can read.
+        // This is a lightweight approach that avoids threading account
+        // through every function signature.
+    }
+
+    let arg = args.get(1).map(|s| s.as_str());
+    match arg {
         Some("tui") => {
             if let Err(e) = tui::run() {
                 eprintln!("TUI error: {e}");
@@ -145,6 +179,26 @@ fn main() {
         }
         Some("version") | Some("--version") | Some("-V") => {
             println!("sonde {}", env!("CARGO_PKG_VERSION"));
+        }
+        Some("doctor") | Some("--doctor") => {
+            let code = doctor::run();
+            std::process::exit(code);
+        }
+        Some("themes") | Some("--themes") => {
+            themes_preview::run();
+        }
+        Some("configure") | Some("--configure") => {
+            if let Err(e) = tui::configurator::run() {
+                eprintln!("Configurator error: {e}");
+                std::process::exit(1);
+            }
+        }
+        Some("setup") | Some("--setup") => {
+            let dry_run = std::env::args().any(|a| a == "--dry-run");
+            if let Err(e) = setup::run(dry_run) {
+                eprintln!("Setup error: {e}");
+                std::process::exit(1);
+            }
         }
         _ => {
             run_statusline();

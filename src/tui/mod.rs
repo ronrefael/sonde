@@ -1,4 +1,5 @@
 mod app;
+pub mod configurator;
 mod ui;
 
 use std::io;

@@ -1,26 +1,28 @@
 use std::path::PathBuf;
 
+const DEFAULT_SERVICE: &str = "Claude Code-credentials";
+
 /// SECURITY: Token must NOT be written to disk, cache, stdout, or stderr.
 pub fn get_oauth_token() -> Option<String> {
+    get_oauth_token_for_service(DEFAULT_SERVICE)
+}
+
+/// Retrieve OAuth token for a custom credential service name (multi-account support).
+pub fn get_oauth_token_for_service(service: &str) -> Option<String> {
     #[cfg(target_os = "macos")]
     {
-        get_token_macos()
+        get_token_macos(service)
     }
     #[cfg(not(target_os = "macos"))]
     {
-        get_token_linux()
+        get_token_linux(service)
     }
 }
 
 #[cfg(target_os = "macos")]
-fn get_token_macos() -> Option<String> {
+fn get_token_macos(service: &str) -> Option<String> {
     let output = match std::process::Command::new("security")
-        .args([
-            "find-generic-password",
-            "-s",
-            "Claude Code-credentials",
-            "-w",
-        ])
+        .args(["find-generic-password", "-s", service, "-w"])
         .output()
     {
         Ok(o) => o,
@@ -40,13 +42,15 @@ fn get_token_macos() -> Option<String> {
 }
 
 #[cfg(not(target_os = "macos"))]
-fn get_token_linux() -> Option<String> {
-    if let Some(token) = get_token_from_file() {
-        return Some(token);
+fn get_token_linux(service: &str) -> Option<String> {
+    if service == DEFAULT_SERVICE {
+        if let Some(token) = get_token_from_file() {
+            return Some(token);
+        }
     }
 
     let output = match std::process::Command::new("secret-tool")
-        .args(["lookup", "service", "Claude Code-credentials"])
+        .args(["lookup", "service", service])
         .output()
     {
         Ok(o) => o,

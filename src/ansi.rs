@@ -162,26 +162,16 @@ pub fn render_powerline(segments: &[PowerlineSegment]) -> String {
     out
 }
 
-/// Catppuccin Mocha palette — dark text on pastel backgrounds.
+/// Backward-compat wrapper — returns Catppuccin Mocha colors.
+#[allow(dead_code)]
 pub fn default_powerline_colors(module_name: &str) -> (Color, Color) {
-    let dark = Color::Rgb(30, 30, 46); // Catppuccin Base
-    let light = Color::Rgb(205, 214, 244); // Catppuccin Text
-    match module_name {
-        "sonde.model" => (dark, Color::Rgb(203, 166, 247)), // mauve
-        "sonde.cost" => (dark, Color::Rgb(137, 180, 250)),  // blue
-        "sonde.context_bar" => (dark, Color::Rgb(116, 199, 236)), // sapphire
-        "sonde.context_window" => (dark, Color::Rgb(116, 199, 236)), // sapphire
-        "sonde.usage_limits" => (dark, Color::Rgb(166, 227, 161)), // green
-        "sonde.promo_badge" => (dark, Color::Rgb(250, 179, 135)), // peach
-        "sonde.pacing" => (dark, Color::Rgb(249, 226, 175)), // yellow
-        "sonde.session_clock" => (light, Color::Rgb(69, 71, 90)), // surface1
-        "sonde.git_branch" => (dark, Color::Rgb(148, 226, 213)), // teal
-        "sonde.codex_cost" => (dark, Color::Rgb(243, 139, 168)), // red
-        "sonde.combined_spend" => (dark, Color::Rgb(250, 179, 135)), // peach
-        "sonde.active_sessions" => (light, Color::Rgb(69, 71, 90)), // surface1
-        "sonde.model_suggestion" => (dark, Color::Rgb(249, 226, 175)), // yellow
-        _ => (light, Color::Rgb(69, 71, 90)),               // surface1
-    }
+    powerline_colors_for_theme("catppuccin-mocha", module_name)
+}
+
+/// Returns powerline (fg, bg) for a named theme palette.
+pub fn powerline_colors_for_theme(theme: &str, module_name: &str) -> (Color, Color) {
+    let palette = crate::themes::get_palette(theme);
+    crate::themes::powerline_colors(palette, module_name)
 }
 
 #[cfg(test)]

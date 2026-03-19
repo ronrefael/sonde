@@ -27,18 +27,24 @@ struct SondeMenuBarApp: App {
 /// Shows: daily spend | remaining % | reset countdown (optionally 2x prefix).
 struct MenuBarLabel: View {
     @ObservedObject var viewModel: SondeViewModel
+    @AppStorage("showCosts") private var showCosts: Bool = false
+    @AppStorage("showMenuBarCost") private var showMenuBarCost: Bool = true
+    @AppStorage("showMenuBarPromo") private var showMenuBarPromo: Bool = true
+    @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown: Bool = true
 
     var body: some View {
-        HStack(spacing: 4) {
-            // Pace tier icon with color
+        let text = labelText
+        HStack(spacing: 3) {
             if !viewModel.isLoading, viewModel.fiveHourUtil != nil {
                 Image(systemName: paceTierIcon)
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(paceTierColor)
             }
-            Text(labelText)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .monospacedDigit()
+            if !text.isEmpty {
+                Text(text)
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .monospacedDigit()
+            }
         }
     }
 
@@ -46,14 +52,19 @@ struct MenuBarLabel: View {
         if viewModel.isLoading { return "sonde" }
         var parts: [String] = []
 
-        // Daily spend total
-        let dailyTotal = viewModel.dailyClaudeCost + viewModel.dailyCodexCost
-        if dailyTotal > 0 {
-            parts.append(String(format: "$%.2f", dailyTotal))
+        // Daily spend total — only show when enabled and there's a real cost
+        if showMenuBarCost && showCosts {
+            let dailyTotal = viewModel.dailyClaudeCost + viewModel.dailyCodexCost
+            if dailyTotal >= 0.01 {
+                parts.append(String(format: "$%.2f", dailyTotal))
+            }
         }
 
-        // 2x prefix when promo active
-        if viewModel.promoActive { parts.append("2x") }
+        // Promo multiplier when active (2x, 3x, or ⚡)
+        if showMenuBarPromo && viewModel.promoActive {
+            let label = viewModel.promoShortLabel
+            parts.append(label.isEmpty ? "⚡" : label)
+        }
 
         // Remaining percentage
         if let util = viewModel.fiveHourUtil {
@@ -61,11 +72,15 @@ struct MenuBarLabel: View {
         }
 
         // Reset countdown
-        if let reset = viewModel.fiveHourReset {
-            parts.append(TimeFormatting.formatResetCountdown(from: reset))
+        if showMenuBarCountdown, let reset = viewModel.fiveHourReset {
+            let countdown = TimeFormatting.formatResetCountdown(from: reset)
+            if !countdown.isEmpty {
+                parts.append(countdown)
+            }
         }
 
-        return parts.isEmpty ? "sonde" : parts.joined(separator: " | ")
+        if parts.isEmpty { return viewModel.fiveHourUtil != nil ? "" : "sonde" }
+        return parts.joined(separator: " | ")
     }
 
     private var paceTierIcon: String { viewModel.paceTier.icon }

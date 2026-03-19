@@ -45,7 +45,16 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let is_offpeak = status.is_offpeak.unwrap_or(false);
     let emoji = status.emoji.as_deref().unwrap_or("");
     let icon = nerd_icon(emoji);
-    let label = status.label.as_deref().unwrap_or("");
+
+    // Use multiplier if available, fall back to label, then generic
+    let promo_label = match status.limits_multiplier {
+        Some(m) if m > 1 => format!("{m}X"),
+        _ => status
+            .label
+            .as_deref()
+            .unwrap_or(if is_offpeak { "\u{f0e7} Promo" } else { "" })
+            .to_string(),
+    };
 
     let countdown = status
         .minutes_until_change
@@ -54,9 +63,9 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
 
     let text = if is_offpeak {
         if countdown.is_empty() {
-            format!("{icon} {label}")
+            format!("{icon} {promo_label}")
         } else {
-            format!("{icon} {label} \u{f017} {countdown} left")
+            format!("{icon} {promo_label} \u{f017} {countdown} left")
         }
     } else {
         if countdown.is_empty() {

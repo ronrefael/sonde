@@ -19,7 +19,7 @@ public enum TimeFormatting {
         }
 
         let diff = resetDate.timeIntervalSince(Date())
-        if diff <= 0 { return "now" }
+        if diff <= 0 { return "" }
 
         let totalSeconds = Int(diff)
         let hours = totalSeconds / 3600
