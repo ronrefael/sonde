@@ -30,4 +30,24 @@ public enum TimeFormatting {
         }
         return "\(mins)m"
     }
+
+    /// Return remaining minutes until reset (for elapsed calculation).
+    public static func remainingMinutes(from rfc3339: String) -> Int {
+        guard let resetDate = isoFormatter.date(from: rfc3339)
+            ?? isoFormatterBasic.date(from: rfc3339)
+        else { return 0 }
+        let diff = resetDate.timeIntervalSince(Date())
+        return max(0, Int(diff / 60))
+    }
+
+    /// Format reset time as local clock time (e.g. "2:30 PM").
+    public static func formatResetTime(from rfc3339: String) -> String {
+        guard let resetDate = isoFormatter.date(from: rfc3339)
+            ?? isoFormatterBasic.date(from: rfc3339)
+        else { return "" }
+        if resetDate.timeIntervalSince(Date()) <= 0 { return "" }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "h:mm a"
+        return fmt.string(from: resetDate)
+    }
 }

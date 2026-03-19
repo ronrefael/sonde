@@ -1,0 +1,6 @@
+[sonde]
+theme = "dracula"
+lines = [
+  "$sonde.model $sonde.session_clock $sonde.context_bar $sonde.usage_limits $sonde.pacing $sonde.agent $sonde.worktree",
+  "$sonde.promo_badge",
+]

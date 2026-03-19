@@ -502,6 +502,7 @@ struct PopoverView: View {
     @AppStorage("popoverTheme") private var themeName: String = PopoverTheme.system.rawValue
     @AppStorage("showCosts") private var showCosts: Bool = false
     @State private var showProjects = false
+    @State private var showSettings = false
 
     private var theme: PopoverTheme {
         PopoverTheme(rawValue: themeName) ?? .system
@@ -548,7 +549,14 @@ struct PopoverView: View {
                 Divider().overlay(theme.dividerColor)
             }
 
-            if showProjects {
+            if showSettings {
+                SettingsTab(
+                    theme: theme,
+                    showCosts: $showCosts,
+                    themeName: $themeName,
+                    showSettings: $showSettings
+                )
+            } else if showProjects {
                 ProjectsView(
                     projects: viewModel.allProjects,
                     showProjects: $showProjects,
@@ -581,8 +589,7 @@ struct PopoverView: View {
                         FloatingWatcherPanel.shared.close()
                     }
                 },
-                themeName: $themeName,
-                showCosts: $showCosts
+                showSettings: $showSettings
             )
         }
         .frame(width: 380, height: 700)
@@ -1720,11 +1727,9 @@ private struct FooterBar: View {
     let onExport: () -> Void
     let onCopySummary: () -> Void
     let onToggleWatcher: () -> Void
-    @Binding var themeName: String
-    @Binding var showCosts: Bool
+    @Binding var showSettings: Bool
 
     @State private var spinning = false
-    @State private var showSettings = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1743,24 +1748,6 @@ private struct FooterBar: View {
             .keyboardShortcut("r", modifiers: .command)
             .help("Refresh (Cmd+R)")
 
-            Button(action: onCopySummary) {
-                Image(systemName: "doc.on.clipboard")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.headerAccent)
-            }
-            .buttonStyle(.borderless)
-            .keyboardShortcut("c", modifiers: .command)
-            .help("Copy summary (Cmd+C)")
-
-            Button(action: onExport) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.headerAccent)
-            }
-            .buttonStyle(.borderless)
-            .keyboardShortcut("e", modifiers: .command)
-            .help("Export JSON (Cmd+E)")
-
             Button(action: onToggleWatcher) {
                 Image(systemName: "pip")
                     .font(.system(size: 11))
@@ -1770,70 +1757,35 @@ private struct FooterBar: View {
             .keyboardShortcut("p", modifiers: .command)
             .help("Toggle watcher (Cmd+P)")
 
-            // Show costs toggle
             Button {
-                showCosts.toggle()
+                withAnimation(.easeInOut(duration: 0.2)) { showSettings.toggle() }
             } label: {
-                Image(systemName: showCosts ? "dollarsign.circle.fill" : "dollarsign.circle")
+                Image(systemName: showSettings ? "gearshape.fill" : "gearshape")
                     .font(.system(size: 11))
-                    .foregroundStyle(showCosts ? theme.headerAccent : theme.footerText)
-            }
-            .buttonStyle(.borderless)
-            .help(showCosts ? "Hide costs" : "Show costs")
-
-            // Theme picker
-            Menu {
-                ForEach(PopoverTheme.allCases, id: \.rawValue) { t in
-                    Button {
-                        themeName = t.rawValue
-                    } label: {
-                        HStack {
-                            if t.rawValue == themeName {
-                                Circle()
-                                    .fill(t.swatchColor)
-                                    .frame(width: 8, height: 8)
-                            }
-                            Text(t.rawValue)
-                        }
-                    }
-                }
-            } label: {
-                Image(systemName: "paintpalette")
-                    .symbolRenderingMode(.monochrome)
-                    .font(.system(size: 11))
-            }
-            .menuIndicator(.hidden)
-            .buttonStyle(.borderless)
-            .tint(theme.headerAccent)
-            .help("Theme")
-
-            // Settings
-            Button { showSettings.toggle() } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.headerAccent)
+                    .foregroundStyle(showSettings ? theme.popoverBackground : theme.headerAccent)
+                    .padding(4)
+                    .background(
+                        showSettings
+                            ? AnyShapeStyle(theme.headerAccent)
+                            : AnyShapeStyle(.clear),
+                        in: RoundedRectangle(cornerRadius: 4)
+                    )
             }
             .buttonStyle(.borderless)
             .help("Settings")
-            .popover(isPresented: $showSettings, arrowEdge: .top) {
-                SettingsView(
-                    theme: theme,
-                    showCosts: $showCosts,
-                    themeName: $themeName
-                )
-            }
 
             Spacer()
 
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                Text("Quit")
+                Image(systemName: "power")
                     .font(.system(size: 11))
-                    .foregroundStyle(theme.headerAccent)
+                    .foregroundStyle(theme.footerText)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)
+            .help("Quit (Cmd+Q)")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)

@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct SondeMenuBarApp: App {
     @StateObject private var viewModel = SondeViewModel()
+    @AppStorage("pollInterval") private var pollInterval: Double = 30
 
     init() {
         NotificationManager.shared.toastHandler = { message, icon in
@@ -16,8 +17,11 @@ struct SondeMenuBarApp: App {
             PopoverView(viewModel: viewModel)
         } label: {
             MenuBarLabel(viewModel: viewModel)
-                .onAppear { viewModel.startPolling() }
+                .onAppear { viewModel.startPolling(interval: pollInterval) }
                 .onDisappear { viewModel.stopPolling() }
+                .onChange(of: pollInterval) { newInterval in
+                    viewModel.startPolling(interval: newInterval)
+                }
         }
         .menuBarExtraStyle(.window)
     }
@@ -31,19 +35,26 @@ struct MenuBarLabel: View {
     @AppStorage("showMenuBarCost") private var showMenuBarCost: Bool = true
     @AppStorage("showMenuBarPromo") private var showMenuBarPromo: Bool = true
     @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown: Bool = true
+    @AppStorage("menuBarTimerMode") private var menuBarTimerMode: String = "5h_left"
 
     var body: some View {
         let text = labelText
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             if !viewModel.isLoading, viewModel.fiveHourUtil != nil {
                 Image(systemName: paceTierIcon)
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(paceTierColor)
             }
             if !text.isEmpty {
-                Text(text)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .monospacedDigit()
+                if !viewModel.isLoading, viewModel.fiveHourUtil != nil {
+                    Text("| \(text)")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .monospacedDigit()
+                } else {
+                    Text(text)
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .monospacedDigit()
+                }
             }
         }
     }
@@ -71,11 +82,51 @@ struct MenuBarLabel: View {
             parts.append("\(max(0, Int(100 - util)))%")
         }
 
-        // Reset countdown
-        if showMenuBarCountdown, let reset = viewModel.fiveHourReset {
-            let countdown = TimeFormatting.formatResetCountdown(from: reset)
-            if !countdown.isEmpty {
-                parts.append(countdown)
+        // Timer (configurable mode)
+        if showMenuBarCountdown {
+            let timerText: String = {
+                switch menuBarTimerMode {
+                case "5h_left":
+                    guard let reset = viewModel.fiveHourReset else { return "" }
+                    let cd = TimeFormatting.formatResetCountdown(from: reset)
+                    return cd.isEmpty ? "0m" : cd
+
+                case "5h_elapsed":
+                    guard let reset = viewModel.fiveHourReset else { return "" }
+                    let remaining = TimeFormatting.remainingMinutes(from: reset)
+                    let elapsed = max(0, 300 - remaining)
+                    let h = elapsed / 60; let m = elapsed % 60
+                    return h > 0 ? "\(h)h\(String(format: "%02d", m))m" : "\(m)m"
+
+                case "5h_reset_time":
+                    guard let reset = viewModel.fiveHourReset else { return "" }
+                    let t = TimeFormatting.formatResetTime(from: reset)
+                    return t.isEmpty ? "reset" : t
+
+                case "7d_left":
+                    guard let reset = viewModel.sevenDayReset else { return "" }
+                    return TimeFormatting.formatResetCountdown(from: reset)
+
+                case "7d_reset_time":
+                    guard let reset = viewModel.sevenDayReset else { return "" }
+                    return TimeFormatting.formatResetTime(from: reset)
+
+                case "promo_left":
+                    guard viewModel.promoActive else { return "" }
+                    return viewModel.promoCountdown
+
+                case "session":
+                    let dur = viewModel.liveSessionDuration
+                    return dur.isEmpty ? "" : dur
+
+                default:
+                    guard let reset = viewModel.fiveHourReset else { return "" }
+                    return TimeFormatting.formatResetCountdown(from: reset)
+                }
+            }()
+
+            if !timerText.isEmpty {
+                parts.append(timerText)
             }
         }
 
