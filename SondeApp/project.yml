@@ -1,0 +1,100 @@
+name: Sonde
+options:
+  bundleIdPrefix: dev.sonde
+  deploymentTarget:
+    macOS: "13.0"
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: false
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+
+targets:
+  SondeCore:
+    type: framework
+    platform: macOS
+    sources:
+      - path: Sources/SondeCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.sonde.core
+        PRODUCT_NAME: SondeCore
+        SKIP_INSTALL: "YES"
+        GENERATE_INFOPLIST_FILE: "YES"
+
+  SondeCoreiOS:
+    type: framework
+    platform: iOS
+    sources:
+      - path: Sources/SondeCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.sonde.core
+        PRODUCT_NAME: SondeCore
+        PRODUCT_MODULE_NAME: SondeCore
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        SKIP_INSTALL: "YES"
+        SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+
+  SondeiOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/SondeiOS
+        excludes:
+          - "*.plist"
+          - "*.entitlements"
+    dependencies:
+      - target: SondeCoreiOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.sonde.app.ios
+        PRODUCT_NAME: Sonde
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        INFOPLIST_FILE: Sources/SondeiOS/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/SondeiOS/SondeiOS.entitlements
+        SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+
+  SondeWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Sources/SondeWidget
+        excludes:
+          - "*.entitlements"
+          - "*.plist"
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.sonde.app.widget
+        PRODUCT_NAME: SondeWidget
+        INFOPLIST_FILE: Sources/SondeWidget/Info.plist
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks"
+        SKIP_INSTALL: "YES"
+        CODE_SIGN_ENTITLEMENTS: Sources/SondeWidget/SondeWidget.entitlements
+
+  Sonde:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/SondeApp
+        excludes:
+          - "*.plist"
+          - "*.entitlements"
+    dependencies:
+      - target: SondeCore
+      - target: SondeWidget
+        embed: true
+        codeSign: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.sonde.app
+        PRODUCT_NAME: Sonde
+        INFOPLIST_FILE: Sources/SondeApp/Info.plist
+        LS_UI_ELEMENT: "YES"
+        CODE_SIGN_ENTITLEMENTS: Sources/SondeApp/SondeApp.entitlements

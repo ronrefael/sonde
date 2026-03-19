@@ -7,8 +7,8 @@ sonde sits in your terminal statusline and continuously reports model, cost, con
 ## What it looks like
 
 ```
- Opus  $ 0.53  [████░░░░░░] 42%  5h 20% (3h41m)  7d 39% (81h41m)
-🟢2X  🟢 Comfortable
+ ◆  Opus  2h14m  [████░░░░░░] 42%  5h 20% (3h41m)  7d 39% (81h41m)  🟢 Comfortable
+ ⚡ 2X — Off-peak limits active ⏳ 15h33m left
 ```
 
 ## What makes sonde different
@@ -16,7 +16,7 @@ sonde sits in your terminal statusline and continuously reports model, cost, con
 - **Promo awareness** — shows peak/off-peak 2x status (first tool to do this)
 - **Promo-aware pacing** — 6-tier burn rate that accounts for 2x capacity
 - **Combined Claude + Codex view** — unified daily spend across both
-- **13 modules** — model, cost, context bar, usage limits, pacing, promo badge, codex cost, session clock, git branch, active sessions, model suggestions, combined spend, context window
+- **16 tokens across 15 modules** — model, cost, context bar, usage limits, pacing, promo badge, codex cost, session clock, git branch, active sessions, model suggestions, combined spend, context window, mascot (art + icon), cursor
 
 ## Install
 
@@ -81,9 +81,10 @@ sonde looks for config in this order:
 
 ```toml
 [sonde]
+theme = "powerline"   # default; also: "retro", "plain"
 lines = [
-  "$sonde.model $sonde.cost $sonde.context_bar $sonde.usage_limits",
-  "$sonde.promo_badge $sonde.pacing"
+  "$sonde.mascot_icon $sonde.model $sonde.session_clock $sonde.context_bar $sonde.usage_limits $sonde.pacing",
+  "$sonde.promo_badge"
 ]
 
 [sonde.model]
@@ -98,14 +99,6 @@ warn_style         = "fg:#e0af68"
 critical_threshold = 70.0
 critical_style     = "bold fg:#f7768e"
 
-[sonde.cost]
-symbol             = "$ "
-style              = "fg:#a9b1d6"
-warn_threshold     = 2.0
-warn_style         = "fg:#e0af68"
-critical_threshold = 5.0
-critical_style     = "bold fg:#f7768e"
-
 [sonde.usage_limits]
 five_hour_format   = " 5h {pct}% ({reset})"
 seven_day_format   = " 7d {pct}% ({reset})"
@@ -115,6 +108,14 @@ ttl                = 60
 
 [sonde.promo_badge]
 enabled = true
+
+[sonde.mascot]
+enabled  = true
+frame_ms = 250
+
+[sonde.cursor]
+enabled      = true
+sessions_dir = "~/.cursor"
 
 [sonde.pacing]
 enabled     = true
@@ -138,6 +139,10 @@ promo_aware = true
 | git_branch | `$sonde.git_branch` | Current git branch |
 | active_sessions | `$sonde.active_sessions` | Count of parallel Claude Code sessions |
 | model_suggestion | `$sonde.model_suggestion` | Switch-model suggestions at usage thresholds |
+| mascot_top | `$sonde.mascot_top` | Animated mascot top row — expression changes with session state |
+| mascot_bot | `$sonde.mascot_bot` | Animated mascot bottom row |
+| mascot_icon | `$sonde.mascot_icon` | Compact animated status icon — single character, color shifts with state |
+| cursor | `$sonde.cursor` | Cursor IDE session cost (reads `~/.cursor/`) |
 
 ## Pacing tiers
 
@@ -151,6 +156,13 @@ promo_aware = true
 | Runaway | > 90% absolute | ⛔ |
 
 When the 2x promo is active, effective capacity doubles and pacing adjusts automatically.
+
+## TUI Dashboard
+
+Run `sonde tui` for a full-screen terminal dashboard:
+- Live session info, usage bars, pacing, and sessions list
+- Auto-refreshes every 30 seconds
+- Press `r` to force refresh, `q` or `Esc` to quit
 
 ## Debugging
 
