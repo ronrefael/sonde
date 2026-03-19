@@ -6,12 +6,16 @@ mod modules;
 mod platform;
 mod promo;
 mod renderer;
+mod session_scanner;
+mod tui;
 mod usage_api;
 
 /// Write session data to cache so the Swift menu bar app can read authoritative
 /// cost/context/model data instead of re-parsing transcripts.
 fn write_session_cache(ctx: &context::Context) {
-    let cache_path = match cache::cache_path("session_data") {
+    let session_id = ctx.session_id.as_deref().unwrap_or("default");
+    let cache_key = format!("session_{}", session_id);
+    let cache_path = match cache::cache_path(&cache_key) {
         Some(p) => p,
         None => return,
     };
@@ -88,22 +92,31 @@ fn write_session_cache(ctx: &context::Context) {
         obj.insert("cwd".into(), serde_json::Value::String(cwd.clone()));
     }
 
-    // Write with short TTL — this refreshes on every statusline render
+    if let Some(ref wt) = ctx.worktree {
+        if let Some(ref branch) = wt.branch {
+            obj.insert(
+                "git_branch".into(),
+                serde_json::Value::String(branch.clone()),
+            );
+        }
+    }
+
+    obj.insert(
+        "provider".into(),
+        serde_json::Value::String("claude".to_string()),
+    );
+
+    // Write with 10-min TTL — sessions may be idle between statusline renders
     let data = serde_json::Value::Object(obj);
-    cache::write_cache(&cache_path, &data, 30, None);
+    cache::write_cache(&cache_path, &data, 600, None);
+
+    // Also write legacy session_data.json — the Swift menu bar app reads this directly
+    if let Some(legacy_path) = cache::cache_path("session_data") {
+        cache::write_cache(&legacy_path, &data, 600, None);
+    }
 }
 
-fn main() {
-    // Initialize tracing to stderr (never stdout)
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(tracing::Level::WARN.into()),
-        )
-        .with_writer(std::io::stderr)
-        .with_target(false)
-        .init();
-
+fn run_statusline() {
     // Parse stdin JSON
     let ctx = context::parse_stdin();
 
@@ -117,5 +130,33 @@ fn main() {
     let output = renderer::render(&ctx, &cfg);
     if !output.is_empty() {
         println!("{output}");
+    }
+}
+
+fn main() {
+    // Initialize tracing to stderr (never stdout)
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive(tracing::Level::WARN.into()),
+        )
+        .with_writer(std::io::stderr)
+        .with_target(false)
+        .init();
+
+    let arg = std::env::args().nth(1);
+    match arg.as_deref() {
+        Some("tui") => {
+            if let Err(e) = tui::run() {
+                eprintln!("TUI error: {e}");
+                std::process::exit(1);
+            }
+        }
+        Some("version") | Some("--version") | Some("-V") => {
+            println!("sonde {}", env!("CARGO_PKG_VERSION"));
+        }
+        _ => {
+            run_statusline();
+        }
     }
 }
