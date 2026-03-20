@@ -79,7 +79,7 @@ struct MenuBarLabel: View {
 
         // Remaining percentage
         if let util = viewModel.fiveHourUtil {
-            parts.append("\(max(0, Int(100 - util)))%")
+            parts.append("\(min(100, max(0, Int(util))))% used")
         }
 
         // Timer (configurable mode)

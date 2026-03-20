@@ -1198,7 +1198,7 @@ private struct CircleGauge: View {
     private let gaugeSize: CGFloat = 90
     private let lineWidth: CGFloat = 6
 
-    private var remaining: Int { max(0, Int(100 - util)) }
+    private var used: Int { max(0, min(100, Int(util))) }
 
     private var gaugeColor: Color {
         if util >= 80 { return theme.highUtilColor }
@@ -1223,7 +1223,7 @@ private struct CircleGauge: View {
 
                 // Center label
                 VStack(spacing: 1) {
-                    Text("\(remaining)%")
+                    Text("\(used)%")
                         .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundStyle(gaugeColor)
                         .contentTransition(.numericText())
