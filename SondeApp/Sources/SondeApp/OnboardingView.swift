@@ -502,20 +502,18 @@ private struct ThemeStep: View {
     ]
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
-            VStack(spacing: 8) {
+        VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 Text("Choose a Theme")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(Color(white: 0.1))
-
                 Text("Pick a look that suits your style.")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color(white: 0.4))
             }
+            .padding(.top, 6)
 
-            LazyVGrid(columns: columns, spacing: 10) {
+            LazyVGrid(columns: columns, spacing: 4) {
                 ForEach(PopoverTheme.allCases, id: \.rawValue) { t in
                     let isSelected = selectedTheme == t.rawValue
                     Button {
@@ -523,29 +521,19 @@ private struct ThemeStep: View {
                             selectedTheme = t.rawValue
                         }
                     } label: {
-                        VStack(spacing: 6) {
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(t.popoverBackground)
-                                .frame(height: 44)
+                        VStack(spacing: 2) {
+                            ThemeSwatchMini(theme: t)
+                                .aspectRatio(380.0 / 420.0, contentMode: .fit)
+                                .clipShape(RoundedRectangle(cornerRadius: 5))
                                 .overlay(
-                                    VStack(spacing: 2) {
-                                        Circle()
-                                            .fill(t.swatchColor)
-                                            .frame(width: 14, height: 14)
-                                        if isSelected {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 8, weight: .bold))
-                                                .foregroundStyle(t.headerAccent)
-                                        }
-                                    }
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .stroke(isSelected ? t.headerAccent : Color(white: 0.8), lineWidth: isSelected ? 2 : 0.5)
                                 )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(isSelected ? t.headerAccent : Color(white: 0.85), lineWidth: isSelected ? 2 : 1)
-                                )
+                                .shadow(color: isSelected ? t.headerAccent.opacity(0.3) : .clear, radius: 4, y: 1)
+                                .scaleEffect(isSelected ? 1.03 : 1.0)
 
                             Text(t.rawValue)
-                                .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+                                .font(.system(size: 8, weight: isSelected ? .bold : .regular))
                                 .foregroundStyle(isSelected ? SondeColors.brandGreen : Color(white: 0.4))
                                 .lineLimit(1)
                         }
@@ -553,11 +541,109 @@ private struct ThemeStep: View {
                     .buttonStyle(.borderless)
                 }
             }
-            .padding(.horizontal, 8)
-
-            Spacer()
+            .padding(.horizontal, 12)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 20)
+    }
+}
+
+/// Mini dashboard thumbnail for theme grid — shows a tiny preview of how each theme looks.
+private struct ThemeSwatchMini: View {
+    let theme: PopoverTheme
+
+    private var bg: Color { theme.popoverBackground }
+    private var card: Color { theme.cardBackground }
+    private var accent: Color { theme.headerAccent }
+    private var text: Color { theme.textPrimary }
+    private var dim: Color { theme.textSecondary }
+    private var low: Color { theme.lowUtilColor }
+    private var border: Color { theme.borderColor }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Session strip mockup
+            HStack(spacing: 2) {
+                Text("Op")
+                    .font(.system(size: 4, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 1)
+                    .background(theme.modelOpusColor, in: RoundedRectangle(cornerRadius: 1.5))
+                Spacer()
+                RoundedRectangle(cornerRadius: 1).fill(dim.opacity(0.4)).frame(width: 14, height: 3)
+            }
+            .padding(.horizontal, 4).padding(.vertical, 3)
+
+            // Context bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Rectangle().fill(border.opacity(0.3))
+                    Rectangle().fill(low).frame(width: geo.size.width * 0.35)
+                }
+            }
+            .frame(height: 1.5)
+
+            // Usage card
+            VStack(spacing: 2) {
+                HStack {
+                    Text("Usage").font(.system(size: 3.5, weight: .medium)).foregroundStyle(dim)
+                    Spacer()
+                }
+                .padding(.horizontal, 4).padding(.top, 2)
+
+                // Mini rings
+                HStack(spacing: 0) {
+                    MiniRing(color: accent, track: border).frame(width: 16, height: 16)
+                    Spacer()
+                    MiniRing(color: low, track: border).frame(width: 16, height: 16)
+                }
+                .padding(.horizontal, 6).padding(.vertical, 2)
+            }
+            .background(card)
+            .clipShape(RoundedRectangle(cornerRadius: 2))
+            .overlay(RoundedRectangle(cornerRadius: 2).stroke(border.opacity(0.3), lineWidth: 0.5))
+            .padding(.horizontal, 3).padding(.top, 2)
+
+            // Activity card
+            VStack(spacing: 1) {
+                HStack {
+                    Text("Activity").font(.system(size: 3.5, weight: .medium)).foregroundStyle(dim)
+                    Spacer()
+                }
+                .padding(.horizontal, 4).padding(.top, 2)
+                // Code bar
+                GeometryReader { geo in
+                    HStack(spacing: 0) {
+                        Rectangle().fill(low).frame(width: geo.size.width * 0.7)
+                        Rectangle().fill(Color.red.opacity(0.7))
+                    }
+                }
+                .frame(height: 2)
+                .clipShape(RoundedRectangle(cornerRadius: 1))
+                .padding(.horizontal, 4).padding(.bottom, 2)
+            }
+            .background(card)
+            .clipShape(RoundedRectangle(cornerRadius: 2))
+            .overlay(RoundedRectangle(cornerRadius: 2).stroke(border.opacity(0.3), lineWidth: 0.5))
+            .padding(.horizontal, 3).padding(.top, 1)
+
+            Spacer(minLength: 2)
+        }
+        .background(bg)
+    }
+}
+
+/// Tiny circle gauge for theme swatch thumbnails.
+private struct MiniRing: View {
+    let color: Color
+    let track: Color
+    var body: some View {
+        ZStack {
+            Circle().stroke(track.opacity(0.3), lineWidth: 1.5)
+            Circle().trim(from: 0, to: 0.35)
+                .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+        }
     }
 }
 
