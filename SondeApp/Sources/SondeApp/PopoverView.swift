@@ -1200,13 +1200,13 @@ private struct CircleGauge: View {
                 Circle()
                     .stroke(theme.borderColor.opacity(hasGlow ? 0.5 : 1.0), lineWidth: lineWidth)
 
-                // Backlit glow behind fill for themed views — bright halo effect
+                // Backlit glow behind fill — tight halo, high opacity for brightness without blur
                 if hasGlow {
                     Circle()
                         .trim(from: 0, to: min(util, 100) / 100)
-                        .stroke(gaugeColor.opacity(0.6), style: StrokeStyle(lineWidth: lineWidth + 10, lineCap: .round))
+                        .stroke(gaugeColor.opacity(0.6), style: StrokeStyle(lineWidth: lineWidth + 6, lineCap: .round))
                         .rotationEffect(.degrees(-90))
-                        .blur(radius: 6)
+                        .blur(radius: 3)
                         .animation(.easeOut(duration: 1.0), value: util)
                 }
 
@@ -1217,18 +1217,17 @@ private struct CircleGauge: View {
                     .rotationEffect(.degrees(-90))
                     .animation(.easeOut(duration: 1.0), value: util)
 
-                // Center label
+                // Center label — larger + heavier for brightness, single tight shadow for sharpness
                 VStack(spacing: 1) {
                     Text("\(used)%")
                         .font(.system(size: 20, weight: .heavy, design: .monospaced))
                         .foregroundStyle(gaugeColor)
                         .contentTransition(.numericText())
-                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 10 : 0)
-                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 5 : 0)
+                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 6 : 0)
                     Text(label)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(theme.textSecondary.opacity(hasGlow ? 0.9 : 0.6))
-                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 5 : 0)
+                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 3 : 0)
                 }
             }
             .frame(width: gaugeSize, height: gaugeSize)
