@@ -1,6 +1,25 @@
 import SwiftUI
 import SondeCore
 
+// MARK: - Glow Text Modifier
+
+/// Adds a subtle text glow shadow for themed views (Terminal, Cyberpunk, Synthwave, Solarflare).
+/// No-op for themes where `textGlow` is nil.
+struct GlowText: ViewModifier {
+    let theme: PopoverTheme
+    let radius: CGFloat
+
+    func body(content: Content) -> some View {
+        content.shadow(color: theme.textGlow ?? .clear, radius: theme.textGlow != nil ? radius : 0)
+    }
+}
+
+extension View {
+    func glowText(_ theme: PopoverTheme, radius: CGFloat = 3) -> some View {
+        modifier(GlowText(theme: theme, radius: radius))
+    }
+}
+
 /// Full settings tab that replaces the dashboard content area.
 struct SettingsTab: View {
     let theme: PopoverTheme
@@ -50,12 +69,14 @@ struct SettingsTab: View {
                                 .font(.system(size: 11, weight: .medium))
                         }
                         .foregroundStyle(theme.headerAccent)
+                        .glowText(theme)
                     }
                     .buttonStyle(.borderless)
                     Spacer()
                     Text("Settings")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(rowTextColor)
+                        .glowText(theme)
                     Spacer()
                     Text("Dashboard").font(.system(size: 11)).hidden()
                 }
@@ -74,6 +95,7 @@ struct SettingsTab: View {
                         Text("Timer shows")
                             .font(.system(size: 12))
                             .foregroundColor(rowTextColor)
+                            .glowText(theme)
                         Spacer()
                         chipPicker(
                             selection: $menuBarTimerMode,
@@ -101,6 +123,7 @@ struct SettingsTab: View {
                         Text("Light / Dark")
                             .font(.system(size: 12))
                             .foregroundColor(rowTextColor)
+                            .glowText(theme)
                         Spacer()
                         chipPicker(
                             selection: $appearanceMode,
@@ -133,6 +156,7 @@ struct SettingsTab: View {
                                     .font(.system(size: 11, weight: .medium))
                             }
                             .foregroundStyle(theme.headerAccent)
+                            .glowText(theme)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
                             .background(theme.headerAccent.opacity(0.12), in: Capsule())
@@ -159,6 +183,7 @@ struct SettingsTab: View {
                 .font(.system(size: 9, weight: .bold, design: .rounded))
                 .foregroundStyle(theme.headerAccent)
                 .tracking(0.8)
+                .glowText(theme)
                 .padding(.bottom, 6)
 
             let card = VStack(spacing: 0) {
@@ -175,6 +200,7 @@ struct SettingsTab: View {
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(theme.borderColor, lineWidth: 1)
                 )
+                .shadow(color: theme.cardGlow ?? .clear, radius: 4)
             }
         }
     }
@@ -203,6 +229,7 @@ struct SettingsTab: View {
             Text(label)
                 .font(.system(size: 12))
                 .foregroundColor(rowTextColor)
+                .glowText(theme)
             Spacer()
             trailing()
         }
@@ -230,7 +257,9 @@ struct SettingsTab: View {
     }
 
     private var thinDivider: some View {
-        Divider().overlay(theme.borderColor.opacity(0.5))
+        Divider()
+            .overlay(theme.borderColor.opacity(0.5))
+            .shadow(color: theme.cardGlow ?? .clear, radius: 2)
     }
 
     /// Custom pill toggle that matches the theme.

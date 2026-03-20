@@ -32,17 +32,20 @@ struct ProjectsView: View {
                             .font(.caption)
                     }
                     .foregroundStyle(theme.headerAccent)
+                    .glowText(theme)
                 }
                 .buttonStyle(.borderless)
                 Spacer()
                 Text("\(projects.count) project\(projects.count == 1 ? "" : "s")")
                     .font(.caption)
                     .foregroundStyle(theme.textSecondary)
+                    .glowText(theme)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
 
             Divider().overlay(theme.dividerColor)
+                .shadow(color: theme.cardGlow ?? .clear, radius: 2)
 
             ScrollView {
                 LazyVStack(spacing: 8) {
@@ -72,6 +75,7 @@ struct ProjectsView: View {
                 Text(project.name)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(theme.textPrimary)
+                    .glowText(theme)
                     .lineLimit(1)
                     .truncationMode(.middle)
 
@@ -97,12 +101,14 @@ struct ProjectsView: View {
                     }
                     .foregroundStyle(theme.textSecondary)
                     .font(.system(size: 10))
+                    .glowText(theme)
                 }
                 Spacer()
                 if let activity = project.lastActivity {
                     Text(relativeTime(activity))
                         .font(.system(size: 10))
                         .foregroundStyle(theme.textSecondary.opacity(0.6))
+                        .glowText(theme)
                 }
             }
 
@@ -129,12 +135,14 @@ struct ProjectsView: View {
         .padding(10)
         .background(theme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.borderColor, lineWidth: 1))
+        .shadow(color: theme.cardGlow ?? .clear, radius: 4)
     }
 
     private func modelBadge(_ name: String) -> some View {
         Text(name)
             .font(.system(size: 9, weight: .semibold, design: .monospaced))
             .foregroundStyle(.white)
+            .glowText(theme)
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
             .background(theme.modelColor(for: name), in: RoundedRectangle(cornerRadius: 3))
@@ -158,9 +166,11 @@ struct ProjectsView: View {
             Text("\(Int(pct))%")
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundStyle(color)
+                .glowText(theme)
             Text("\(used / 1000)k/\(window / 1000)k")
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(theme.textSecondary.opacity(0.5))
+                .glowText(theme)
         }
     }
 
@@ -172,9 +182,11 @@ struct ProjectsView: View {
             Text(value)
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(color ?? theme.textPrimary)
+                .glowText(theme)
             Text(label)
                 .font(.system(size: 9))
                 .foregroundStyle(theme.textSecondary.opacity(0.5))
+                .glowText(theme)
         }
         .frame(maxWidth: .infinity)
     }
@@ -196,6 +208,7 @@ struct ProjectsView: View {
                             .font(.caption)
                     }
                     .foregroundStyle(theme.headerAccent)
+                    .glowText(theme)
                 }
                 .buttonStyle(.borderless)
                 Spacer()
@@ -204,6 +217,7 @@ struct ProjectsView: View {
             .padding(.vertical, 8)
 
             Divider().overlay(theme.dividerColor)
+                .shadow(color: theme.cardGlow ?? .clear, radius: 2)
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
@@ -213,6 +227,7 @@ struct ProjectsView: View {
                     Text(project.name)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(theme.textPrimary)
+                        .glowText(theme)
                         .lineLimit(1)
                     Spacer()
                     if let model = project.modelName {
@@ -228,6 +243,7 @@ struct ProjectsView: View {
                             .font(.system(size: 11))
                     }
                     .foregroundStyle(theme.textSecondary)
+                    .glowText(theme)
                 }
 
                 // Hero row
@@ -236,9 +252,11 @@ struct ProjectsView: View {
                         Text("Messages")
                             .font(.system(size: 9))
                             .foregroundStyle(theme.textSecondary.opacity(0.6))
+                            .glowText(theme)
                         Text("\(project.messageCount)")
                             .font(.system(size: 14, weight: .semibold, design: .monospaced))
                             .foregroundStyle(theme.textPrimary)
+                            .glowText(theme)
                     }
                     .frame(maxWidth: .infinity)
 
@@ -247,9 +265,11 @@ struct ProjectsView: View {
                             Text("Activity")
                                 .font(.system(size: 9))
                                 .foregroundStyle(theme.textSecondary.opacity(0.6))
+                                .glowText(theme)
                             Text(relativeTime(activity))
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(theme.textPrimary)
+                                .glowText(theme)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -258,6 +278,8 @@ struct ProjectsView: View {
                 .padding(10)
                 .background(theme.cardBackground)
                 .cornerRadius(8)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.borderColor, lineWidth: 1))
+                .shadow(color: theme.cardGlow ?? .clear, radius: 4)
 
                 // Context bar
                 if let _ = project.contextUsedPct, let window = project.contextWindowSize, window > 0 {
@@ -274,6 +296,7 @@ struct ProjectsView: View {
                     }
 
                     Divider().overlay(theme.dividerColor).opacity(0.3)
+                        .shadow(color: theme.cardGlow ?? .clear, radius: 2)
 
                     HStack(spacing: 0) {
                         if let cache = project.cacheHitRatio {
@@ -297,6 +320,8 @@ struct ProjectsView: View {
                 .padding(10)
                 .background(theme.cardBackground)
                 .cornerRadius(8)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.borderColor, lineWidth: 1))
+                .shadow(color: theme.cardGlow ?? .clear, radius: 4)
 
                 if !project.tasks.isEmpty {
                     tasksSection(project.tasks)
@@ -317,10 +342,12 @@ struct ProjectsView: View {
                 Text("Conversations")
                     .font(.caption)
                     .foregroundStyle(theme.textSecondary)
+                    .glowText(theme)
                 Spacer()
                 Text("\(tasks.count)")
                     .font(.caption2)
                     .foregroundStyle(theme.textSecondary.opacity(0.5))
+                    .glowText(theme)
             }
 
             VStack(spacing: 1) {
@@ -330,6 +357,8 @@ struct ProjectsView: View {
             }
             .background(theme.cardBackground)
             .cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.borderColor, lineWidth: 1))
+            .shadow(color: theme.cardGlow ?? .clear, radius: 4)
 
             if tasks.count > 20 && !showAllTasks {
                 Button {
@@ -338,6 +367,7 @@ struct ProjectsView: View {
                     Text("Show all \(tasks.count) conversations")
                         .font(.caption2)
                         .foregroundStyle(theme.headerAccent)
+                        .glowText(theme)
                 }
                 .buttonStyle(.borderless)
             }
@@ -350,6 +380,7 @@ struct ProjectsView: View {
                 Text(task.title)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(theme.textPrimary)
+                    .glowText(theme)
                     .lineLimit(2)
                     .truncationMode(.tail)
 
@@ -365,6 +396,7 @@ struct ProjectsView: View {
                     .font(.caption2)
                     .monospacedDigit()
                     .foregroundStyle(theme.textSecondary)
+                    .glowText(theme)
 
                 if task.messageCount > 0 {
                     HStack(spacing: 1) {
@@ -374,6 +406,7 @@ struct ProjectsView: View {
                             .font(.caption2)
                     }
                     .foregroundStyle(theme.textSecondary.opacity(0.6))
+                    .glowText(theme)
                 }
 
                 Spacer()
@@ -382,6 +415,7 @@ struct ProjectsView: View {
                     Text(relativeTime(activity))
                         .font(.caption2)
                         .foregroundStyle(theme.textSecondary.opacity(0.6))
+                        .glowText(theme)
                 }
             }
         }
@@ -401,22 +435,26 @@ struct ProjectsView: View {
                 Text("Context")
                     .font(.caption)
                     .foregroundStyle(theme.textSecondary)
+                    .glowText(theme)
                 Spacer()
                 if pct > 100 {
                     Text("FULL")
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundStyle(theme.highUtilColor)
+                        .glowText(theme)
                 } else {
                     Text("\(Int(pct))%")
                         .font(.caption)
                         .fontWeight(.bold)
                         .monospacedDigit()
                         .foregroundStyle(color)
+                        .glowText(theme)
                 }
                 Text("\(used / 1000)k/\(size / 1000)k")
                     .font(.caption2)
                     .foregroundStyle(theme.textSecondary.opacity(0.5))
+                    .glowText(theme)
             }
 
             GeometryReader { geo in
@@ -438,9 +476,11 @@ struct ProjectsView: View {
             Text(label)
                 .font(.system(size: 9))
                 .foregroundStyle(theme.textSecondary.opacity(0.6))
+                .glowText(theme)
             Text(value)
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .foregroundStyle(color ?? theme.textPrimary)
+                .glowText(theme)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }

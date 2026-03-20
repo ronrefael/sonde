@@ -346,6 +346,7 @@ private struct ModelPill: View {
         Text(shortName)
             .font(.system(size: 11, weight: .semibold, design: .monospaced))
             .foregroundStyle(theme.modelPillText)
+            .glowText(theme)
             .padding(.horizontal, 7)
             .padding(.vertical, 3)
             .background(theme.modelColor(for: name), in: RoundedRectangle(cornerRadius: 4))
@@ -389,6 +390,13 @@ private struct ContextBar: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(theme.borderColor)
                         .frame(height: 4)
+                    if theme.textGlow != nil {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(barColor)
+                            .frame(width: max(0, geo.size.width * min(pct, 100) / 100), height: 4)
+                            .blur(radius: 3)
+                            .opacity(0.5)
+                    }
                     RoundedRectangle(cornerRadius: 2)
                         .fill(barColor)
                         .frame(width: max(0, geo.size.width * min(pct, 100) / 100), height: 4)
@@ -402,10 +410,12 @@ private struct ContextBar: View {
                 Text("\(Int(pct))%")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundStyle(barColor)
+                    .glowText(theme)
                     .contentTransition(.numericText())
                 Text("  \(formatK(tokensUsed))/\(formatK(windowSize))")
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundStyle(theme.textSecondary.opacity(0.6))
+                    .glowText(theme, radius: 2)
             }
         }
     }
@@ -435,6 +445,7 @@ private struct LiveSessionStrip: View {
                             Text(formatWindowSize(window))
                                 .font(.system(size: 9, weight: .medium, design: .monospaced))
                                 .foregroundStyle(theme.textSecondary.opacity(0.6))
+                                .glowText(theme, radius: 2)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
                                 .background(theme.borderColor, in: RoundedRectangle(cornerRadius: 3))
@@ -454,6 +465,7 @@ private struct LiveSessionStrip: View {
                                     .lineLimit(1)
                             }
                             .foregroundStyle(theme.textPrimary)
+                            .glowText(theme)
                         }
                         if let branch = session.gitBranch {
                             HStack(spacing: 3) {
@@ -464,6 +476,7 @@ private struct LiveSessionStrip: View {
                                     .lineLimit(1)
                             }
                             .foregroundStyle(theme.textSecondary)
+                            .glowText(theme, radius: 2)
                         }
                     }
                 }
@@ -473,6 +486,7 @@ private struct LiveSessionStrip: View {
                 Text(liveTimer)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(theme.textSecondary)
+                    .glowText(theme, radius: 2)
                     .contentTransition(.numericText())
 
                 PulseDot(theme: theme)
@@ -739,9 +753,11 @@ private struct HeaderBar: View {
                     Text("sond")
                         .font(.system(size: 16, weight: .bold, design: .monospaced))
                         .foregroundStyle(SondeColors.brandGreen)
+                        .glowText(theme)
                     Text("e")
                         .font(.system(size: 16, weight: .semibold, design: .default))
                         .foregroundStyle(SondeColors.brandGreen)
+                        .glowText(theme)
                 }
             }
             .help(lastUpdatedText)
@@ -755,6 +771,7 @@ private struct HeaderBar: View {
                     Text("v\(version)")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.white)
+                        .glowText(theme)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.blue, in: RoundedRectangle(cornerRadius: 4))
@@ -774,6 +791,7 @@ private struct HeaderBar: View {
                         .lineLimit(1)
                 }
                 .foregroundStyle(theme.headerAccent)
+                .glowText(theme)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)
                 .background(theme.headerAccent.opacity(0.12))
@@ -826,26 +844,31 @@ private struct PromoBadge: View {
                 Image(systemName: promoActive ? "bolt.fill" : "clock")
                     .font(.system(size: 10))
                     .foregroundStyle(promoActive ? theme.highlightAccent : theme.textPrimary)
+                    .glowText(theme)
                 if promoActive {
                     let activeLabel = promoShortLabel == "⚡" ? "Promo Active" : "\(promoShortLabel) Active"
                     Text(activeLabel)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(theme.highlightAccent)
+                        .glowText(theme)
                     if !promoCountdown.isEmpty {
                         Text("· \(promoCountdown)")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(theme.textSecondary)
+                            .glowText(theme, radius: 2)
                     }
                 } else {
                     Text("Off-peak in \(promoCountdown)")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(theme.textPrimary)
+                        .glowText(theme)
                 }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(promoActive ? theme.highlightAccent.opacity(0.15) : theme.cardBackground)
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(promoActive ? theme.highlightAccent.opacity(0.4) : theme.borderColor, lineWidth: 1))
+            .shadow(color: theme.cardGlow ?? .clear, radius: theme.textGlow != nil ? 3 : 0)
             .cornerRadius(6)
         }
         .buttonStyle(.borderless)
@@ -955,6 +978,7 @@ private struct MainCard: View {
                     Text("Usage")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(theme.textSecondary.opacity(0.7))
+                        .glowText(theme, radius: 2)
                     Spacer()
                 }
 
@@ -981,6 +1005,7 @@ private struct MainCard: View {
                                 .foregroundStyle(theme.textSecondary.opacity(0.3))
                         }
                         .foregroundStyle(theme.textSecondary)
+                        .glowText(theme, radius: 2)
 
                         if usageHistory.count > 2 {
                             SparklineView(data: usageHistory)
@@ -993,9 +1018,11 @@ private struct MainCard: View {
                                 Image(systemName: "bolt.fill")
                                     .font(.system(size: 9))
                                     .foregroundStyle(theme.highlightAccent)
+                                    .glowText(theme)
                                 Text(velocity)
                                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                                     .foregroundStyle(theme.highlightAccent)
+                                    .glowText(theme)
                             }
                         }
                     }
@@ -1027,9 +1054,11 @@ private struct MainCard: View {
                         Image(systemName: paceTier.icon)
                             .font(.system(size: 10))
                             .foregroundStyle(paceTier.swiftColor)
+                            .glowText(theme)
                         Text(paceTier.rawValue)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(theme.textSecondary)
+                            .glowText(theme, radius: 2)
                     }
                 }
 
@@ -1044,6 +1073,7 @@ private struct MainCard: View {
                     Label(predict, systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90")
                         .font(.system(size: 11))
                         .foregroundStyle(theme.costMedColor)
+                        .glowText(theme)
                 }
             }
             .padding(12)
@@ -1074,9 +1104,11 @@ private struct MainCard: View {
             Text(value)
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .foregroundStyle(theme.textPrimary)
+                .glowText(theme)
             Text(unit)
                 .font(.system(size: 10))
                 .foregroundStyle(theme.textSecondary.opacity(0.5))
+                .glowText(theme, radius: 2)
         }
     }
 
@@ -1107,6 +1139,7 @@ private struct UsageBar: View {
             Text(label)
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(theme.textSecondary.opacity(0.6))
+                .glowText(theme, radius: 2)
                 .frame(width: 30, alignment: .trailing)
 
             GeometryReader { geo in
@@ -1124,6 +1157,7 @@ private struct UsageBar: View {
             Text("\(Int(util))%")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundStyle(barColor)
+                .glowText(theme)
                 .frame(width: 30, alignment: .leading)
                 .contentTransition(.numericText())
 
@@ -1131,6 +1165,7 @@ private struct UsageBar: View {
                 Text(TimeFormatting.formatResetCountdown(from: reset))
                     .font(.system(size: 10))
                     .foregroundStyle(theme.textSecondary.opacity(0.5))
+                    .glowText(theme, radius: 2)
             }
         }
     }
@@ -1245,6 +1280,7 @@ private struct SessionActivityCard: View {
                     Text("Activity")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(theme.textSecondary.opacity(0.7))
+                        .glowText(theme, radius: 2)
                     Spacer()
                 }
 
@@ -1255,22 +1291,26 @@ private struct SessionActivityCard: View {
                             Text("Code")
                                 .font(.system(size: 9))
                                 .foregroundStyle(theme.textSecondary.opacity(0.5))
+                                .glowText(theme, radius: 2)
                             Spacer()
                             Text("+\(totalLinesAdded)")
                                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                                 .foregroundStyle(theme.lowUtilColor)
+                                .glowText(theme)
                             Text("/")
                                 .font(.system(size: 9))
                                 .foregroundStyle(theme.textSecondary.opacity(0.3))
                             Text("-\(totalLinesRemoved)")
                                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                                 .foregroundStyle(theme.highUtilColor)
+                                .glowText(theme)
                             Text("=")
                                 .font(.system(size: 9))
                                 .foregroundStyle(theme.textSecondary.opacity(0.3))
                             Text("\(netLines > 0 ? "+" : "")\(netLines) net")
                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundStyle(netLines >= 0 ? theme.lowUtilColor : theme.highUtilColor)
+                                .glowText(theme)
                         }
                         // Visual ratio bar: green (added) vs red (removed)
                         let total = max(totalLinesAdded + totalLinesRemoved, 1)
@@ -1310,6 +1350,7 @@ private struct SessionActivityCard: View {
                                 Text(s.projectName ?? "Unknown")
                                     .font(.system(size: 10))
                                     .foregroundStyle(theme.textPrimary)
+                                    .glowText(theme)
                                     .lineLimit(1)
                                     .frame(width: 120, alignment: .leading)
 
@@ -1320,6 +1361,7 @@ private struct SessionActivityCard: View {
                                     Text(shortModel(model))
                                         .font(.system(size: 8, weight: .semibold, design: .monospaced))
                                         .foregroundStyle(theme.modelPillText)
+                                        .glowText(theme)
                                         .padding(.horizontal, 5)
                                         .padding(.vertical, 2)
                                         .background(theme.modelColor(for: model), in: RoundedRectangle(cornerRadius: 3))
@@ -1330,6 +1372,7 @@ private struct SessionActivityCard: View {
                                 Text(s.formattedDuration)
                                     .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(theme.textSecondary.opacity(0.6))
+                                    .glowText(theme, radius: 2)
                                     .frame(width: 60, alignment: .trailing)
                             }
                         }
@@ -1347,12 +1390,15 @@ private struct SessionActivityCard: View {
             Image(systemName: icon)
                 .font(.system(size: 8))
                 .foregroundStyle(theme.textSecondary.opacity(0.5))
+                .glowText(theme, radius: 2)
             Text(value)
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(theme.textPrimary)
+                .glowText(theme)
             Text(label)
                 .font(.system(size: 9))
                 .foregroundStyle(theme.textSecondary.opacity(0.4))
+                .glowText(theme, radius: 2)
         }
         .frame(maxWidth: .infinity)
     }
@@ -1410,16 +1456,19 @@ private struct UsageCard: View {
                 Text("Usage")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(theme.textSecondary.opacity(0.7))
+                    .glowText(theme, radius: 2)
                 Spacer()
                 if let util = fiveHourUtil {
                     Text("5h: \(Int(util))%")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(theme.textSecondary.opacity(0.7))
+                        .glowText(theme, radius: 2)
                 }
                 if let util = sevenDayUtil {
                     Text("7d: \(Int(util))%")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(theme.textSecondary.opacity(0.7))
+                        .glowText(theme, radius: 2)
                 }
             }
 
@@ -1439,6 +1488,7 @@ private struct UsageCard: View {
                         Text(day.label)
                             .font(.system(size: 7))
                             .foregroundStyle(day.isToday ? theme.textPrimary : theme.textSecondary.opacity(0.4))
+                            .glowText(theme, radius: day.isToday ? 3 : 2)
                     }
                 }
             }
@@ -1541,6 +1591,7 @@ private struct FooterBar: View {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 11))
                     .foregroundStyle(theme.headerAccent)
+                    .glowText(theme)
                     .rotationEffect(.degrees(spinning ? 360 : 0))
                     .animation(.linear(duration: 0.5), value: spinning)
             }
@@ -1552,6 +1603,7 @@ private struct FooterBar: View {
                 Image(systemName: "pip")
                     .font(.system(size: 11))
                     .foregroundStyle(theme.headerAccent)
+                    .glowText(theme)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("p", modifiers: .command)
@@ -1563,6 +1615,7 @@ private struct FooterBar: View {
                 Image(systemName: showSettings ? "gearshape.fill" : "gearshape")
                     .font(.system(size: 11))
                     .foregroundStyle(showSettings ? theme.popoverBackground : theme.headerAccent)
+                    .glowText(theme)
                     .padding(4)
                     .background(
                         showSettings
@@ -1582,6 +1635,7 @@ private struct FooterBar: View {
                 Image(systemName: "power")
                     .font(.system(size: 11))
                     .foregroundStyle(theme.textSecondary)
+                    .glowText(theme, radius: 2)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)
