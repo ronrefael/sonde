@@ -1610,16 +1610,9 @@ private struct FooterBar: View {
                 withAnimation(.easeInOut(duration: 0.2)) { showSettings.toggle() }
             } label: {
                 Image(systemName: showSettings ? "gearshape.fill" : "gearshape")
-                    .font(.system(size: 11))
-                    .foregroundStyle(showSettings ? theme.popoverBackground : theme.headerAccent)
+                    .font(.system(size: 12))
+                    .foregroundStyle(theme.headerAccent)
                     .glowText(theme)
-                    .padding(4)
-                    .background(
-                        showSettings
-                            ? AnyShapeStyle(theme.headerAccent)
-                            : AnyShapeStyle(.clear),
-                        in: RoundedRectangle(cornerRadius: 4)
-                    )
             }
             .buttonStyle(.borderless)
             .help("Settings")
