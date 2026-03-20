@@ -22,7 +22,7 @@ public struct DailySnapshot: Codable, Equatable {
     }
 }
 
-/// Tracks daily usage peaks and persists them to ~/Library/Caches/sonde/usage_history.json.
+/// Tracks daily usage peaks and persists them to ~/Library/Caches/sonde/usage_history_daily.json.
 public final class UsageHistoryTracker {
     private let fileURL: URL
     private let maxDays = 14
@@ -32,7 +32,7 @@ public final class UsageHistoryTracker {
             ?? FileManager.default.temporaryDirectory
         let dir = caches.appendingPathComponent("sonde")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        self.fileURL = dir.appendingPathComponent("usage_history.json")
+        self.fileURL = dir.appendingPathComponent("usage_history_daily.json")
     }
 
     /// Record current values, keeping the max of current vs stored peak for today.

@@ -11,7 +11,7 @@ pub struct HistoryEntry {
 }
 
 fn history_path() -> Option<PathBuf> {
-    dirs::cache_dir().map(|d| d.join("sonde").join("usage_history.json"))
+    dirs::cache_dir().map(|d| d.join("sonde").join("usage_history_raw.json"))
 }
 
 fn now_epoch() -> u64 {
