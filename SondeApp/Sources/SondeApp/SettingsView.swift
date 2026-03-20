@@ -260,6 +260,7 @@ struct SettingsTab: View {
         Divider()
             .overlay(theme.borderColor.opacity(0.5))
             .shadow(color: theme.cardGlow ?? .clear, radius: 2)
+            .padding(.vertical, 4)
     }
 
     /// Custom pill toggle that matches the theme.

@@ -45,7 +45,7 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
 
     let fmt = ucfg
         .and_then(|c| c.seven_day_format.as_deref())
-        .unwrap_or("\u{f073} 7d {pct}% ({reset})");
+        .unwrap_or("\u{f00ed} 7d {pct}% ({reset})");
 
     let text = fmt
         .replace("{pct}", &format!("{pct:.0}"))
