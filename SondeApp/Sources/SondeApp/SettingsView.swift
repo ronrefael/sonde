@@ -75,16 +75,21 @@ struct SettingsTab: View {
                     settingsRow("Show timer") {
                         sondeToggle($showMenuBarCountdown)
                     }
-                    if showMenuBarCountdown {
-                        thinDivider
-                        settingsRow("Timer shows") {
-                            themedMenu(
-                                selection: $menuBarTimerMode,
-                                options: timerOptions,
-                                label: { timerOptions.first { $0.0 == menuBarTimerMode }?.1 ?? "5h — Time left" }
-                            )
-                        }
+                    thinDivider
+                    HStack {
+                        Text("Timer shows")
+                            .font(.system(size: 12))
+                            .foregroundColor(rowTextColor)
+                        Spacer()
+                        themedMenu(
+                            selection: $menuBarTimerMode,
+                            options: timerOptions,
+                            label: { timerOptions.first { $0.0 == menuBarTimerMode }?.1 ?? "5h time left" }
+                        )
                     }
+                    .padding(.vertical, 3)
+                    .opacity(showMenuBarCountdown ? 1.0 : 0.3)
+                    .allowsHitTesting(showMenuBarCountdown)
                 }
 
                 // DISPLAY
@@ -179,13 +184,7 @@ struct SettingsTab: View {
     }
 
     /// Whether the current theme has a dark card background.
-    private var isDarkTheme: Bool {
-        switch theme {
-        case .system: return false
-        case .liquidGlass: return true
-        default: return true
-        }
-    }
+    private var isDarkTheme: Bool { theme.isDark }
 
     /// Text color for row labels.
     private var rowTextColor: Color {
