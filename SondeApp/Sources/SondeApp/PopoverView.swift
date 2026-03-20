@@ -70,7 +70,7 @@ enum PopoverTheme: String, CaseIterable {
         case .synthwave: hex(0x2D1B4E)
         case .solarFlare: hex(0x1A0A12)
         case .system: isDark ? hex(0x2C2C2E) : .white
-        case .sonde: hex(0x313244)
+        case .sonde: isDark ? hex(0x313244) : .white
         }
     }
 
@@ -82,7 +82,7 @@ enum PopoverTheme: String, CaseIterable {
         case .synthwave: hex(0xFF2975)
         case .solarFlare: hex(0xFF6B2B)
         case .system: isDark ? hex(0x0A84FF) : hex(0x007AFF)
-        case .sonde: hex(0x74C7EC)
+        case .sonde: isDark ? hex(0x74C7EC) : hex(0x209FB5)
         }
     }
 
@@ -94,7 +94,7 @@ enum PopoverTheme: String, CaseIterable {
         case .synthwave: hex(0xF0E6FF)
         case .solarFlare: hex(0xFFE0C8)
         case .system: isDark ? Color(white: 0.95) : Color(white: 0.0)
-        case .sonde: hex(0xCDD6F4)
+        case .sonde: isDark ? hex(0xCDD6F4) : hex(0x4C4F69)
         }
     }
 
@@ -106,7 +106,7 @@ enum PopoverTheme: String, CaseIterable {
         case .synthwave: hex(0xC4A0E8)
         case .solarFlare: hex(0xC08050)
         case .system: isDark ? hex(0x98989D) : hex(0x3C3C43).opacity(0.6)
-        case .sonde: hex(0xA6ADC8)
+        case .sonde: isDark ? hex(0xA6ADC8) : hex(0x6C6F85)
         }
     }
 
@@ -114,7 +114,7 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Color(red: 1.0, green: 0.15, blue: 0.15)
         case .system: isDark ? hex(0xFF6961) : hex(0xE5484D)
-        case .sonde: hex(0xF38BA8)
+        case .sonde: isDark ? hex(0xF38BA8) : hex(0xD20F39)
         default: .red
         }
     }
@@ -123,7 +123,7 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Self.amber
         case .system: isDark ? hex(0xF5A623) : hex(0xD97706)
-        case .sonde: hex(0xFAB387)
+        case .sonde: isDark ? hex(0xFAB387) : hex(0xFE640B)
         default: .orange
         }
     }
@@ -136,7 +136,7 @@ enum PopoverTheme: String, CaseIterable {
         case .synthwave: hex(0xFF2975).opacity(0.2)
         case .solarFlare: hex(0xFF6B2B).opacity(0.2)
         case .system: isDark ? Color.white.opacity(0.12) : hex(0xC6C6C8).opacity(0.8)
-        case .sonde: hex(0x45475A).opacity(0.5)
+        case .sonde: isDark ? hex(0x45475A).opacity(0.5) : hex(0xBCC0CC).opacity(0.6)
         }
     }
 
@@ -148,7 +148,7 @@ enum PopoverTheme: String, CaseIterable {
         case .synthwave: hex(0x1A1025)
         case .solarFlare: hex(0x0D0208)
         case .system: isDark ? hex(0x1C1C1E) : hex(0xF2F2F7)
-        case .sonde: hex(0x1E1E2E)
+        case .sonde: isDark ? hex(0x1E1E2E) : hex(0xEFF1F5)
         }
     }
 
@@ -157,7 +157,7 @@ enum PopoverTheme: String, CaseIterable {
         case .liquidGlass: Color.primary.opacity(0.1)
         case .terminal: Self.phosphor.opacity(0.12)
         case .system: isDark ? Color.white.opacity(0.08) : hex(0xC6C6C8).opacity(0.6)
-        case .sonde: hex(0x45475A).opacity(0.3)
+        case .sonde: isDark ? hex(0x45475A).opacity(0.3) : hex(0xBCC0CC).opacity(0.4)
         default: borderColor
         }
     }
@@ -167,7 +167,7 @@ enum PopoverTheme: String, CaseIterable {
         case .liquidGlass: .secondary
         case .terminal: Self.phosphorFaint
         case .system: isDark ? hex(0x98989D) : hex(0x3C3C43).opacity(0.6)
-        case .sonde: hex(0x6C7086)
+        case .sonde: isDark ? hex(0x6C7086) : hex(0x8C8FA1)
         default: textSecondary.opacity(0.7)
         }
     }
@@ -202,7 +202,7 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x18E0FF).opacity(0.1)
         case .synthwave: hex(0xFF2975).opacity(0.08)
         case .solarFlare: hex(0xFF6B2B).opacity(0.1)
-        case .sonde: hex(0xCBA6F7).opacity(0.06)
+        case .sonde: isDark ? hex(0xCBA6F7).opacity(0.06) : nil
         default: nil
         }
     }
@@ -211,7 +211,7 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Self.cyan
         case .system: isDark ? hex(0x64D2FF) : hex(0x5B8DEF)
-        case .sonde: hex(0x89DCEB)
+        case .sonde: isDark ? hex(0x89DCEB) : hex(0x04A5E5)
         default: headerAccent
         }
     }
@@ -220,7 +220,7 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Self.phosphor
         case .system: isDark ? hex(0x30D158) : hex(0x2DB87B)
-        case .sonde: hex(0xA6E3A1)
+        case .sonde: isDark ? hex(0xA6E3A1) : hex(0x40A02B)
         default: .green
         }
     }
@@ -229,7 +229,7 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Self.amber
         case .system: isDark ? hex(0x64D2FF) : hex(0x5B8DEF)
-        case .sonde: hex(0xF9E2AF)
+        case .sonde: isDark ? hex(0xF9E2AF) : hex(0xDF8E1D)
         default: .orange
         }
     }
@@ -238,14 +238,14 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Color(red: 1.0, green: 0.15, blue: 0.15)
         case .system: isDark ? hex(0xFF6961) : hex(0xE5484D)
-        case .sonde: hex(0xF38BA8)
+        case .sonde: isDark ? hex(0xF38BA8) : hex(0xD20F39)
         default: .red
         }
     }
 
     var swatchColor: Color {
         switch self {
-        case .sonde: hex(0xCBA6F7)
+        case .sonde: isDark ? hex(0xCBA6F7) : hex(0x8839EF)
         default: headerAccent
         }
     }
@@ -255,7 +255,7 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Self.amber
         case .system: isDark ? hex(0xBF5AF2) : hex(0xAF52DE)
-        case .sonde: hex(0xCBA6F7)
+        case .sonde: isDark ? hex(0xCBA6F7) : hex(0x8839EF)
         default: Color(red: 0.55, green: 0.25, blue: 0.85)
         }
     }
@@ -264,7 +264,7 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Self.cyan
         case .system: isDark ? hex(0x0A84FF) : hex(0x007AFF)
-        case .sonde: hex(0xEBBE64)
+        case .sonde: isDark ? hex(0xEBBE64) : hex(0xB48723)
         default: Color(red: 0.2, green: 0.45, blue: 0.9)
         }
     }
@@ -272,7 +272,7 @@ enum PopoverTheme: String, CaseIterable {
     var modelHaikuColor: Color {
         switch self {
         case .terminal: Self.phosphorDim
-        case .sonde: hex(0x181825)
+        case .sonde: isDark ? hex(0x181825) : hex(0x9CA0B0)
         default: Color(red: 0.0, green: 0.65, blue: 0.55)
         }
     }
