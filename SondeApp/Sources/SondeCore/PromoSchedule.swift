@@ -6,9 +6,23 @@ import Foundation
 public struct PromoSchedule {
     private static let easternTimeZone = TimeZone(identifier: "America/New_York")!
 
+    // Promo runs March 13 - March 28, 2026 at 11:59 PM PT (07:59 UTC March 29)
+    private static let promotionEnd: Date = {
+        var comps = DateComponents()
+        comps.year = 2026; comps.month = 3; comps.day = 29
+        comps.hour = 7; comps.minute = 59; comps.second = 0
+        comps.timeZone = TimeZone(identifier: "UTC")
+        return Calendar(identifier: .gregorian).date(from: comps) ?? Date.distantFuture
+    }()
+
     /// Returns the label, formatted time remaining, and whether it's currently off-peak.
     public static func nextTransition() -> (label: String, timeRemaining: String, isCurrentlyOffpeak: Bool) {
         let now = Date()
+
+        // After promo ends, return inactive state
+        if now >= promotionEnd {
+            return ("", "", false)
+        }
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = easternTimeZone
 
