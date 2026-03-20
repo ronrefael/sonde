@@ -6,8 +6,9 @@ use crate::cache;
 use crate::platform;
 
 const USAGE_API_URL: &str = "https://api.anthropic.com/api/oauth/usage";
+const MESSAGES_API_URL: &str = "https://api.anthropic.com/v1/messages";
 const CACHE_NAME: &str = "usage_limits";
-const DEFAULT_TTL: u64 = 60;
+const DEFAULT_TTL: u64 = 300; // 5 min — usage API aggressively rate-limits
 
 /// Per-process memoization — avoids duplicate API calls when multiple
 /// modules (usage_limits, pacing, model_suggestion) all request usage data
@@ -97,21 +98,114 @@ fn fetch_api_direct() -> Option<UsageData> {
 fn fetch_from_api() -> Result<UsageData, String> {
     let token = platform::get_oauth_token().ok_or("No OAuth token available")?;
 
-    let response = ureq::AgentBuilder::new()
+    let agent = ureq::AgentBuilder::new()
         .timeout(Duration::from_secs(5))
-        .build()
+        .build();
+
+    // Try the dedicated usage endpoint first
+    match agent
         .get(USAGE_API_URL)
         .set("Authorization", &format!("Bearer {token}"))
         .set("anthropic-beta", "oauth-2025-04-20")
         .call()
-        .map_err(|e| format!("HTTP request failed: {e}"))?;
+    {
+        Ok(response) => {
+            let data: UsageData = response
+                .into_json()
+                .map_err(|e| format!("Failed to parse usage response: {e}"))?;
+            tracing::debug!("Usage data from dedicated endpoint");
+            return Ok(data);
+        }
+        Err(ureq::Error::Status(429, _)) => {
+            tracing::debug!("Usage endpoint returned 429, falling back to Messages API headers");
+        }
+        Err(e) => {
+            tracing::debug!("Usage endpoint failed: {e}, trying Messages API fallback");
+        }
+    }
 
-    let data: UsageData = response
-        .into_json()
-        .map_err(|e| format!("Failed to parse response: {e}"))?;
+    // Fallback: send a minimal Messages API request and read rate limit headers.
+    // The response headers contain the same utilization data.
+    fetch_from_messages_headers(&token, &agent)
+}
 
-    // Token is dropped here - never stored
-    Ok(data)
+/// Send a minimal Messages API request to extract rate limit headers.
+/// Headers like `anthropic-ratelimit-unified-5h-utilization` contain
+/// the same data as the usage endpoint.
+fn fetch_from_messages_headers(token: &str, agent: &ureq::Agent) -> Result<UsageData, String> {
+    let body = serde_json::json!({
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 1,
+        "messages": [{"role": "user", "content": "."}]
+    });
+
+    let result = agent
+        .post(MESSAGES_API_URL)
+        .set("x-api-key", token)
+        .set("anthropic-version", "2023-06-01")
+        .set("content-type", "application/json")
+        .send_string(&body.to_string());
+
+    match result {
+        Ok(resp) => {
+            // Success — parse headers from 200 response
+            if let Some(data) = parse_rate_limit_headers(&resp) {
+                tracing::debug!("Usage data from Messages API headers (200)");
+                return Ok(data);
+            }
+            Err("No rate limit headers in Messages API 200 response".to_string())
+        }
+        Err(ureq::Error::Status(_, resp)) => {
+            // Error response (400, 429, etc.) — headers are still present
+            if let Some(data) = parse_rate_limit_headers(&resp) {
+                tracing::debug!("Usage data from Messages API headers (error response)");
+                return Ok(data);
+            }
+            Err(format!(
+                "Messages API returned {} with no rate limit headers",
+                resp.status()
+            ))
+        }
+        Err(e) => Err(format!("Messages API request failed: {e}")),
+    }
+}
+
+fn parse_rate_limit_headers(resp: &ureq::Response) -> Option<UsageData> {
+    // Values are 0.0-1.0 decimals — multiply by 100 for percentage
+    let five_hour_util = resp
+        .header("anthropic-ratelimit-unified-5h-utilization")
+        .and_then(|v| v.parse::<f64>().ok())
+        .map(|v| v * 100.0);
+    let seven_day_util = resp
+        .header("anthropic-ratelimit-unified-7d-utilization")
+        .and_then(|v| v.parse::<f64>().ok())
+        .map(|v| v * 100.0);
+
+    // Reset times are epoch seconds — convert to ISO 8601
+    let five_hour_reset = resp
+        .header("anthropic-ratelimit-unified-5h-reset")
+        .and_then(|s| s.parse::<i64>().ok())
+        .and_then(|epoch| chrono::DateTime::from_timestamp(epoch, 0).map(|dt| dt.to_rfc3339()));
+    let seven_day_reset = resp
+        .header("anthropic-ratelimit-unified-7d-reset")
+        .and_then(|s| s.parse::<i64>().ok())
+        .and_then(|epoch| chrono::DateTime::from_timestamp(epoch, 0).map(|dt| dt.to_rfc3339()));
+
+    if five_hour_util.is_none() && seven_day_util.is_none() {
+        return None;
+    }
+
+    Some(UsageData {
+        five_hour: Some(UsageWindow {
+            utilization: five_hour_util,
+            resets_at: five_hour_reset,
+        }),
+        seven_day: Some(UsageWindow {
+            utilization: seven_day_util,
+            resets_at: seven_day_reset,
+        }),
+        extra_usage: None,
+    })
 }
 
 #[cfg(test)]
