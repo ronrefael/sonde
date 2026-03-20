@@ -258,7 +258,7 @@ mod tests {
         let file: ConfigFile = toml::from_str(toml_str).unwrap();
         let cfg = file.sonde.unwrap();
         assert_eq!(cfg.lines.as_ref().unwrap().len(), 2);
-        assert_eq!(cfg.context_bar.as_ref().unwrap().width, Some(10));
+        assert_eq!(cfg.theme.as_deref(), Some("catppuccin-mocha"));
     }
 
     #[test]

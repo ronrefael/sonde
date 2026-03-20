@@ -81,10 +81,9 @@ struct SettingsTab: View {
                             .font(.system(size: 12))
                             .foregroundColor(rowTextColor)
                         Spacer()
-                        themedMenu(
+                        chipPicker(
                             selection: $menuBarTimerMode,
                             options: timerOptions,
-                            label: { timerOptions.first { $0.0 == menuBarTimerMode }?.1 ?? "5h time left" }
                         )
                     }
                     .padding(.vertical, 3)
@@ -99,36 +98,12 @@ struct SettingsTab: View {
                     }
                     thinDivider
                     settingsRow("Theme") {
-                        Menu {
-                            ForEach(PopoverTheme.allCases, id: \.rawValue) { t in
-                                Button {
-                                    themeName = t.rawValue
-                                } label: {
-                                    Label {
-                                        Text(t.rawValue)
-                                    } icon: {
-                                        Image(systemName: t.rawValue == themeName ? "checkmark.circle.fill" : "circle.fill")
-                                            .foregroundStyle(t.swatchColor)
-                                    }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 5) {
-                                Circle()
-                                    .fill(theme.swatchColor)
-                                    .frame(width: 8, height: 8)
-                                Text(themeName)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(dropdownTextColor)
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .foregroundColor(dropdownTextColor.opacity(0.6))
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(dropdownBgColor, in: RoundedRectangle(cornerRadius: 5))
-                        }
-                        .buttonStyle(.borderless)
+                        ThemeChipPicker(
+                            selection: $themeName,
+                            accentColor: theme.headerAccent,
+                            isDark: isDarkTheme,
+                            currentSwatch: theme.swatchColor
+                        )
                     }
                     thinDivider
                     // Light/Dark — always visible, greyed when not System theme
@@ -137,10 +112,9 @@ struct SettingsTab: View {
                             .font(.system(size: 12))
                             .foregroundColor(rowTextColor)
                         Spacer()
-                        themedMenu(
+                        chipPicker(
                             selection: $appearanceMode,
                             options: appearanceOptions,
-                            label: { appearanceOptions.first { $0.0 == appearanceMode }?.1 ?? "Auto" }
                         )
                     }
                     .padding(.vertical, 3)
@@ -151,10 +125,9 @@ struct SettingsTab: View {
                 // DATA (bottom)
                 sectionCard("DATA") {
                     settingsRow("Refresh interval") {
-                        themedMenu(
+                        chipPicker(
                             selection: $pollInterval,
                             options: intervalOptions,
-                            label: { intervalOptions.first { $0.0 == pollInterval }?.1 ?? "30 sec" }
                         )
                     }
                 }
@@ -223,40 +196,24 @@ struct SettingsTab: View {
         .padding(.vertical, 3)
     }
 
-    /// A themed dropdown menu that uses theme colors for the button label.
+    /// Chip-style picker — selected value shows as an accent chip.
+    /// Tapping opens a popover with all options as selectable chips.
     @ViewBuilder
-    private func themedMenu<T: Equatable>(
+    private func chipPicker<T: Equatable>(
         selection: Binding<T>,
         options: [(T, String)],
-        label: () -> String
+        icon: String? = nil
     ) -> some View {
-        Menu {
-            ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-                Button {
-                    selection.wrappedValue = option.0
-                } label: {
-                    HStack {
-                        Text(option.1)
-                        if selection.wrappedValue == option.0 {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text(label())
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(dropdownTextColor)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(dropdownTextColor.opacity(0.6))
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(dropdownBgColor, in: RoundedRectangle(cornerRadius: 5))
-        }
-        .buttonStyle(.borderless)
+        ChipPickerButton(
+            selection: selection,
+            options: options,
+            icon: icon,
+            accentColor: theme.headerAccent,
+            textColor: rowTextColor,
+            isDark: isDarkTheme,
+            cardBg: theme.cardBackground,
+            borderColor: theme.borderColor
+        )
     }
 
     private var thinDivider: some View {
@@ -281,5 +238,209 @@ struct SettingsTab: View {
             }
         }
         .buttonStyle(.borderless)
+    }
+}
+
+// MARK: - Chip Picker
+
+/// A chip-style picker button that shows the selected value as an accent chip.
+/// Tapping opens a popover with all options displayed as selectable chips with hover animation.
+private struct ChipPickerButton<T: Equatable>: View {
+    @Binding var selection: T
+    let options: [(T, String)]
+    let icon: String?
+    let accentColor: Color
+    let textColor: Color
+    let isDark: Bool
+    let cardBg: Color
+    let borderColor: Color
+
+    @State private var showPicker = false
+    @State private var hoveredIndex: Int?
+
+    private var selectedLabel: String {
+        options.first { $0.0 == selection }?.1 ?? ""
+    }
+
+    var body: some View {
+        Button { showPicker.toggle() } label: {
+            HStack(spacing: 5) {
+                if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 9))
+                        .foregroundColor(accentColor)
+                }
+                Text(selectedLabel)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(isDark ? .white : accentColor)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                accentColor.opacity(isDark ? 0.2 : 0.12),
+                in: Capsule()
+            )
+            .overlay(
+                Capsule()
+                    .stroke(accentColor.opacity(isDark ? 0.3 : 0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.borderless)
+        .popover(isPresented: $showPicker, arrowEdge: .trailing) {
+            chipGrid
+        }
+    }
+
+    private var chipGrid: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(Array(options.enumerated()), id: \.offset) { idx, option in
+                let isSelected = selection == option.0
+                let isHovered = hoveredIndex == idx
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        selection = option.0
+                    }
+                    showPicker = false
+                } label: {
+                    HStack(spacing: 8) {
+                        // Selection indicator
+                        Circle()
+                            .fill(isSelected ? accentColor : accentColor.opacity(0.15))
+                            .frame(width: 8, height: 8)
+                            .overlay(
+                                isSelected
+                                    ? Circle().stroke(Color.white.opacity(0.8), lineWidth: 1.5).frame(width: 5, height: 5)
+                                    : nil
+                            )
+
+                        Text(option.1)
+                            .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
+                            .foregroundColor(isSelected ? accentColor : textColor)
+
+                        Spacer()
+
+                        if isSelected {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(accentColor)
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        isSelected
+                            ? accentColor.opacity(isDark ? 0.15 : 0.08)
+                            : isHovered
+                                ? accentColor.opacity(isDark ? 0.08 : 0.04)
+                                : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 6)
+                    )
+                    .scaleEffect(isHovered && !isSelected ? 1.02 : 1.0)
+                    .animation(.easeOut(duration: 0.12), value: isHovered)
+                }
+                .buttonStyle(.borderless)
+                .onHover { hovering in
+                    hoveredIndex = hovering ? idx : nil
+                }
+            }
+        }
+        .padding(8)
+        .frame(minWidth: 180)
+        .background(isDark ? Color(white: 0.12) : .white)
+    }
+}
+
+// MARK: - Theme Chip Picker
+
+/// Special chip picker for themes — shows color swatch in chip and popover.
+private struct ThemeChipPicker: View {
+    @Binding var selection: String
+    let accentColor: Color
+    let isDark: Bool
+    let currentSwatch: Color
+
+    @State private var showPicker = false
+    @State private var hoveredTheme: String?
+
+    var body: some View {
+        Button { showPicker.toggle() } label: {
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(currentSwatch)
+                    .frame(width: 8, height: 8)
+                Text(selection)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(isDark ? .white : accentColor)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                accentColor.opacity(isDark ? 0.2 : 0.12),
+                in: Capsule()
+            )
+            .overlay(
+                Capsule()
+                    .stroke(accentColor.opacity(isDark ? 0.3 : 0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.borderless)
+        .popover(isPresented: $showPicker, arrowEdge: .trailing) {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(PopoverTheme.allCases, id: \.rawValue) { t in
+                    let isSelected = selection == t.rawValue
+                    let isHovered = hoveredTheme == t.rawValue
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            selection = t.rawValue
+                        }
+                        showPicker = false
+                    } label: {
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(t.swatchColor)
+                                .frame(width: 10, height: 10)
+                                .overlay(
+                                    isSelected
+                                        ? Circle().stroke(Color.white, lineWidth: 2).frame(width: 14, height: 14)
+                                        : nil
+                                )
+
+                            Text(t.rawValue)
+                                .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
+                                .foregroundColor(isSelected ? t.swatchColor : (isDark ? .white : Color(white: 0.15)))
+
+                            Spacer()
+
+                            if isSelected {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(t.swatchColor)
+                            }
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            isSelected
+                                ? t.swatchColor.opacity(isDark ? 0.15 : 0.08)
+                                : isHovered
+                                    ? t.swatchColor.opacity(isDark ? 0.08 : 0.04)
+                                    : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 6)
+                        )
+                        .scaleEffect(isHovered && !isSelected ? 1.02 : 1.0)
+                        .animation(.easeOut(duration: 0.12), value: isHovered)
+                    }
+                    .buttonStyle(.borderless)
+                    .onHover { hovering in
+                        hoveredTheme = hovering ? t.rawValue : nil
+                    }
+                }
+            }
+            .padding(8)
+            .frame(minWidth: 180)
+            .background(isDark ? Color(white: 0.12) : .white)
+        }
     }
 }
