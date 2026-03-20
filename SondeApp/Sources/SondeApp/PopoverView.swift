@@ -92,6 +92,7 @@ enum PopoverTheme: String, CaseIterable {
     var costHighColor: Color {
         switch self {
         case .terminal: Color(red: 1.0, green: 0.15, blue: 0.15)
+        case .system: isDark ? hex(0xFF453A) : hex(0xFF3B30) // Apple system red
         default: .red
         }
     }
@@ -99,6 +100,7 @@ enum PopoverTheme: String, CaseIterable {
     var costMedColor: Color {
         switch self {
         case .terminal: Self.amber
+        case .system: isDark ? hex(0xFF9F0A) : hex(0xFF9500) // Apple system orange
         default: .orange
         }
     }
@@ -179,15 +181,35 @@ enum PopoverTheme: String, CaseIterable {
     var highlightAccent: Color {
         switch self {
         case .terminal: Self.cyan
+        case .system: isDark ? hex(0x64D2FF) : hex(0x007AFF) // Apple teal/blue
         default: headerAccent
         }
     }
 
-    /// Low-utilization color for gauges and bars (replaces hardcoded .green)
+    /// Low-utilization color for gauges and bars
     var lowUtilColor: Color {
         switch self {
         case .terminal: Self.phosphor
+        case .system: isDark ? hex(0x30D158) : hex(0x34C759) // Apple system green
         default: .green
+        }
+    }
+
+    /// Medium-utilization color for gauges
+    var medUtilColor: Color {
+        switch self {
+        case .terminal: Self.amber
+        case .system: isDark ? hex(0xFF9F0A) : hex(0xFF9500) // Apple system orange
+        default: .orange
+        }
+    }
+
+    /// High-utilization color for gauges
+    var highUtilColor: Color {
+        switch self {
+        case .terminal: Color(red: 1.0, green: 0.15, blue: 0.15)
+        case .system: isDark ? hex(0xFF453A) : hex(0xFF3B30) // Apple system red
+        default: .red
         }
     }
 
@@ -197,6 +219,7 @@ enum PopoverTheme: String, CaseIterable {
     var modelOpusColor: Color {
         switch self {
         case .terminal: Self.amber
+        case .system: isDark ? hex(0xBF5AF2) : hex(0xAF52DE) // Apple system purple
         default: Color(red: 0.55, green: 0.25, blue: 0.85)
         }
     }
@@ -204,6 +227,7 @@ enum PopoverTheme: String, CaseIterable {
     var modelSonnetColor: Color {
         switch self {
         case .terminal: Self.cyan
+        case .system: isDark ? hex(0x0A84FF) : hex(0x007AFF) // Apple system blue
         default: Color(red: 0.2, green: 0.45, blue: 0.9)
         }
     }
