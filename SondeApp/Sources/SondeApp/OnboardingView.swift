@@ -36,32 +36,18 @@ struct OnboardingView: View {
                 .padding(.bottom, 4)
             }
 
-            TabView(selection: $currentStep) {
-                WelcomeStep(theme: theme) {
-                    withAnimation { currentStep = 1 }
+            Group {
+                switch currentStep {
+                case 0: WelcomeStep(theme: theme) { withAnimation { currentStep = 1 } }
+                case 1: ClaudeCheckStep(theme: theme)
+                case 2: AuthCheckStep(theme: theme)
+                case 3: StatuslineStep(theme: theme)
+                case 4: ThemeStep(theme: theme, selectedTheme: $selectedTheme)
+                case 5: DoneStep(theme: theme, onComplete: onComplete)
+                default: EmptyView()
                 }
-                .tag(0)
-
-                ClaudeCheckStep(theme: theme)
-                    .tag(1)
-
-                AuthCheckStep(theme: theme)
-                    .tag(2)
-
-                StatuslineStep(theme: theme)
-                    .tag(3)
-
-                ThemeStep(theme: theme, selectedTheme: $selectedTheme)
-                    .tag(4)
-
-                DoneStep(theme: theme, onComplete: onComplete)
-                    .tag(5)
             }
-            .tabViewStyle(.automatic)
-            .overlay(alignment: .top) {
-                // Cover the system tab indicator — we use custom dots in the footer
-                Rectangle().fill(Color(white: 0.97)).frame(height: 28)
-            }
+            .frame(maxHeight: .infinity)
             .animation(.easeInOut(duration: 0.3), value: currentStep)
 
             // Navigation controls
