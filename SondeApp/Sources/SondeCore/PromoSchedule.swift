@@ -112,10 +112,15 @@ public struct PromoSchedule {
 
     private static func formatMinutes(_ total: Int) -> String {
         if total <= 0 { return "<1m" }
-        let hours = total / 60
+        let totalHours = total / 60
         let mins = total % 60
-        if hours > 0 {
-            return "\(hours)h\(String(format: "%02d", mins))m"
+        if totalHours >= 24 {
+            let days = totalHours / 24
+            let hours = totalHours % 24
+            return "\(days)d \(hours)h\(String(format: "%02d", mins))m"
+        }
+        if totalHours > 0 {
+            return "\(totalHours)h\(String(format: "%02d", mins))m"
         }
         return "\(mins)m"
     }
