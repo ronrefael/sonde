@@ -1200,13 +1200,13 @@ private struct CircleGauge: View {
                 Circle()
                     .stroke(theme.borderColor.opacity(hasGlow ? 0.5 : 1.0), lineWidth: lineWidth)
 
-                // Backlit glow behind fill for themed views
+                // Backlit glow behind fill for themed views — bright halo effect
                 if hasGlow {
                     Circle()
                         .trim(from: 0, to: min(util, 100) / 100)
-                        .stroke(gaugeColor.opacity(0.4), style: StrokeStyle(lineWidth: lineWidth + 6, lineCap: .round))
+                        .stroke(gaugeColor.opacity(0.6), style: StrokeStyle(lineWidth: lineWidth + 10, lineCap: .round))
                         .rotationEffect(.degrees(-90))
-                        .blur(radius: 4)
+                        .blur(radius: 6)
                         .animation(.easeOut(duration: 1.0), value: util)
                 }
 
@@ -1220,14 +1220,15 @@ private struct CircleGauge: View {
                 // Center label
                 VStack(spacing: 1) {
                     Text("\(used)%")
-                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                        .font(.system(size: 20, weight: .heavy, design: .monospaced))
                         .foregroundStyle(gaugeColor)
                         .contentTransition(.numericText())
-                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 6 : 0)
+                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 10 : 0)
+                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 5 : 0)
                     Text(label)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(theme.textSecondary.opacity(hasGlow ? 0.8 : 0.6))
-                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 3 : 0)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(theme.textSecondary.opacity(hasGlow ? 0.9 : 0.6))
+                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 5 : 0)
                 }
             }
             .frame(width: gaugeSize, height: gaugeSize)
@@ -1235,9 +1236,9 @@ private struct CircleGauge: View {
             // Reset countdown
             if let reset {
                 Text(TimeFormatting.formatResetCountdown(from: reset))
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(theme.textSecondary.opacity(hasGlow ? 0.7 : 0.5))
-                    .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 2 : 0)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(theme.textSecondary.opacity(hasGlow ? 0.85 : 0.5))
+                    .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 4 : 0)
             }
         }
     }
