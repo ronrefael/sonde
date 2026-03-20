@@ -57,7 +57,7 @@ struct SettingsTab: View {
                     Spacer()
                     Text("Settings")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(theme.textPrimary)
+                        .foregroundColor(rowTextColor)
                     Spacer()
                     Text("Dashboard").font(.system(size: 11)).hidden()
                 }
@@ -65,21 +65,15 @@ struct SettingsTab: View {
                 // MENU BAR
                 sectionCard("MENU BAR") {
                     settingsRow("Show cost") {
-                        Toggle("", isOn: $showMenuBarCost)
-                            .toggleStyle(.switch).controlSize(.mini)
-                            .tint(theme.headerAccent).labelsHidden()
+                        sondeToggle($showMenuBarCost)
                     }
                     thinDivider
                     settingsRow("Show promo status") {
-                        Toggle("", isOn: $showMenuBarPromo)
-                            .toggleStyle(.switch).controlSize(.mini)
-                            .tint(theme.headerAccent).labelsHidden()
+                        sondeToggle($showMenuBarPromo)
                     }
                     thinDivider
                     settingsRow("Show timer") {
-                        Toggle("", isOn: $showMenuBarCountdown)
-                            .toggleStyle(.switch).controlSize(.mini)
-                            .tint(theme.headerAccent).labelsHidden()
+                        sondeToggle($showMenuBarCountdown)
                     }
                     if showMenuBarCountdown {
                         thinDivider
@@ -107,9 +101,7 @@ struct SettingsTab: View {
                         thinDivider
                     }
                     settingsRow("Show costs") {
-                        Toggle("", isOn: $showCosts)
-                            .toggleStyle(.switch).controlSize(.mini)
-                            .tint(theme.headerAccent).labelsHidden()
+                        sondeToggle($showCosts)
                     }
                     thinDivider
                     settingsRow("Theme") {
@@ -190,26 +182,29 @@ struct SettingsTab: View {
     private var isDarkTheme: Bool {
         switch theme {
         case .system: return false
-        case .liquidGlass: return true // translucent dark
+        case .liquidGlass: return true
         default: return true
         }
     }
 
-    /// Text color for row labels — always readable on card background.
+    /// Text color for row labels.
     private var rowTextColor: Color {
-        isDarkTheme ? Color(white: 0.95) : Color(white: 0.1)
+        isDarkTheme ? Color(white: 0.95) : Color(white: 0.08)
     }
 
-    /// Accent color for dropdown buttons — needs contrast on card background.
+    /// Accent color for dropdown buttons.
     private var dropdownTextColor: Color {
-        // Use headerAccent on dark themes (it's always bright)
-        // Use a darker accent on light themes
-        isDarkTheme ? theme.headerAccent : Color(red: 0.2, green: 0.3, blue: 0.8)
+        isDarkTheme ? theme.headerAccent : Color(red: 0.15, green: 0.2, blue: 0.65)
     }
 
     /// Background for dropdown pills.
     private var dropdownBgColor: Color {
-        isDarkTheme ? theme.headerAccent.opacity(0.15) : Color(white: 0.0).opacity(0.06)
+        isDarkTheme ? theme.headerAccent.opacity(0.15) : Color(red: 0.15, green: 0.2, blue: 0.65).opacity(0.1)
+    }
+
+    /// Toggle accent color.
+    private var toggleAccent: Color {
+        isDarkTheme ? theme.headerAccent : Color(red: 0.15, green: 0.2, blue: 0.65)
     }
 
     @ViewBuilder
@@ -262,5 +257,25 @@ struct SettingsTab: View {
 
     private var thinDivider: some View {
         Divider().overlay(theme.borderColor.opacity(0.5))
+    }
+
+    /// Custom pill toggle that matches the theme.
+    @ViewBuilder
+    private func sondeToggle(_ isOn: Binding<Bool>) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { isOn.wrappedValue.toggle() }
+        } label: {
+            ZStack(alignment: isOn.wrappedValue ? .trailing : .leading) {
+                Capsule()
+                    .fill(isOn.wrappedValue ? toggleAccent : (isDarkTheme ? Color(white: 0.3) : Color(white: 0.78)))
+                    .frame(width: 36, height: 20)
+                Circle()
+                    .fill(.white)
+                    .shadow(color: .black.opacity(0.15), radius: 1, y: 1)
+                    .frame(width: 16, height: 16)
+                    .padding(.horizontal, 2)
+            }
+        }
+        .buttonStyle(.borderless)
     }
 }
