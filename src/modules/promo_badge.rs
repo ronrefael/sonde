@@ -13,10 +13,14 @@ fn nerd_icon(emoji: &str) -> &str {
 }
 
 fn format_countdown(minutes: u64) -> String {
-    let hours = minutes / 60;
+    let total_hours = minutes / 60;
     let mins = minutes % 60;
-    if hours > 0 {
-        format!("{hours}h{mins:02}m")
+    if total_hours >= 24 {
+        let days = total_hours / 24;
+        let hours = total_hours % 24;
+        format!("{days}d {hours}h{mins:02}m")
+    } else if total_hours > 0 {
+        format!("{total_hours}h{mins:02}m")
     } else {
         format!("{mins}m")
     }

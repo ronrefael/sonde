@@ -143,8 +143,21 @@ Runs 9 diagnostic checks: Claude Code installed, OAuth token, API connectivity, 
 ## The menu bar app
 
 ```bash
-cd SondeApp && swift build && swift run
+cd SondeApp && make bundle && open build/SondeApp.app
 ```
+
+### First launch: guided onboarding
+
+On first launch, sonde walks you through a 6-step setup wizard:
+
+1. **Welcome** — what sonde does
+2. **Claude Code check** — detects your installation
+3. **Auth check** — validates your OAuth token
+4. **Statusline setup** — one-click enable in `~/.claude/settings.json`
+5. **Theme picker** — choose from 6 themes with a **live preview card** that updates as you browse
+6. **Done** — tips and you're off
+
+No terminal commands needed. Everything configures itself.
 
 ### Dashboard features
 

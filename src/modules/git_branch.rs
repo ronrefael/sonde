@@ -21,7 +21,7 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     }
 
     let gcfg = cfg.git_branch.as_ref();
-    let symbol = gcfg.and_then(|c| c.symbol.as_deref()).unwrap_or(" ");
+    let symbol = gcfg.and_then(|c| c.symbol.as_deref()).unwrap_or("\u{e0a0} ");
     let style = gcfg.and_then(|c| c.style.as_deref());
 
     let text = format!("{symbol}{branch}");

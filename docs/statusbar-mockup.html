@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Sonde Status Bar Mockup</title>
+<style>
+  body {
+    background: #1a1b26;
+    padding: 40px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', monospace;
+    font-size: 14px;
+    color: #c0caf5;
+  }
+  h2 { color: #7aa2f7; margin-top: 40px; font-weight: 400; font-size: 16px; }
+  h3 { color: #565f89; font-weight: 400; font-size: 13px; margin-top: 8px; }
+  .bar { display: inline-flex; align-items: center; margin: 12px 0; line-height: 1; }
+  .seg {
+    padding: 4px 10px;
+    white-space: nowrap;
+    font-size: 13px;
+    position: relative;
+  }
+  .arrow {
+    font-size: 20px;
+    line-height: 1;
+    margin: 0 -1px;
+    position: relative;
+  }
+  .line2 {
+    margin: 2px 0 0 4px;
+    font-size: 13px;
+  }
+  .scenario { margin-bottom: 36px; }
+
+  /* Colors - Tokyo Night inspired */
+  .bg-mauve    { background: #9d7cd8; color: #1a1b26; }
+  .bg-blue     { background: #7aa2f7; color: #1a1b26; }
+  .bg-teal     { background: #73daca; color: #1a1b26; }
+  .bg-green    { background: #a6e3a1; color: #1a1b26; }
+  .bg-surface  { background: #414868; color: #c0caf5; }
+  .bg-overlay  { background: #565f89; color: #c0caf5; }
+  .bg-lavender { background: #b4befe; color: #1a1b26; }
+  .bg-peach    { background: #fab387; color: #1a1b26; }
+  .bg-yellow   { background: #f9e2af; color: #1a1b26; }
+  .bg-red      { background: #f38ba8; color: #1a1b26; }
+  .bg-pink     { background: #f5c2e7; color: #1a1b26; }
+  .bg-sky      { background: #89b4fa; color: #1a1b26; }
+
+  .text-green  { color: #a6e3a1; }
+  .text-yellow { color: #f9e2af; }
+  .text-red    { color: #f38ba8; }
+  .text-pink   { color: #f5c2e7; }
+  .text-muted  { color: #565f89; }
+</style>
+</head>
+<body>
+
+<h2>Sonde Status Bar — Proposed Layout</h2>
+
+<!-- Scenario 1: Low usage, comfortable -->
+<div class="scenario">
+<h3>Low usage — Comfortable pacing</h3>
+<div class="bar">
+  <span class="seg bg-mauve"><b>sonde</b></span><span class="arrow" style="color:#9d7cd8;"><span style="color:#7aa2f7; position:relative;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-blue">Opus 4.6</span><span class="arrow"><span style="color:#7aa2f7; background:#414868;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-surface">5h 3% (3h51m)</span><span class="arrow"><span style="color:#414868; background:#565f89;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-overlay">7d 2% (156h56m)</span><span class="arrow"><span style="color:#565f89; background:#a6e3a1;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-green">&#xf058; Comfortable</span><span class="arrow"><span style="color:#a6e3a1; background:#73daca;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-teal">[━━╌╌╌╌╌╌╌╌] 18%</span><span class="arrow"><span style="color:#73daca; background:#b4befe;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-lavender"> main</span><span class="arrow"><span style="color:#b4befe;">&#xe0b0;</span></span>
+</div>
+<div class="line2 text-pink">✕ Off-peak in 3h01m</div>
+</div>
+
+<!-- Scenario 2: Moderate usage, on track -->
+<div class="scenario">
+<h3>Moderate usage — On Track pacing</h3>
+<div class="bar">
+  <span class="seg bg-mauve"><b>sonde</b></span><span class="arrow"><span style="color:#9d7cd8; background:#7aa2f7;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-blue">Opus 4.6</span><span class="arrow"><span style="color:#7aa2f7; background:#414868;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-surface">5h 38% (2h14m)</span><span class="arrow"><span style="color:#414868; background:#565f89;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-overlay">7d 22% (131h04m)</span><span class="arrow"><span style="color:#565f89; background:#89b4fa;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-sky">&#xf00c; On Track</span><span class="arrow"><span style="color:#89b4fa; background:#73daca;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-teal">[━━━━━╌╌╌╌╌] 52%</span><span class="arrow"><span style="color:#73daca; background:#b4befe;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-lavender"> main</span><span class="arrow"><span style="color:#b4befe;">&#xe0b0;</span></span>
+</div>
+<div class="line2 text-green">⚡ 2X Off-peak limits active · 4h12m left</div>
+</div>
+
+<!-- Scenario 3: High usage, elevated -->
+<div class="scenario">
+<h3>High usage — Elevated pacing</h3>
+<div class="bar">
+  <span class="seg bg-mauve"><b>sonde</b></span><span class="arrow"><span style="color:#9d7cd8; background:#7aa2f7;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-blue">Sonnet 4.6</span><span class="arrow"><span style="color:#7aa2f7; background:#414868;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-surface">5h 68% (1h02m)</span><span class="arrow"><span style="color:#414868; background:#565f89;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-overlay">7d 55% (78h30m)</span><span class="arrow"><span style="color:#565f89; background:#f9e2af;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-yellow">&#xf071; Elevated</span><span class="arrow"><span style="color:#f9e2af; background:#73daca;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-teal">[━━━━━━━━╌╌] 78%</span><span class="arrow"><span style="color:#73daca; background:#b4befe;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-lavender"> feat/auth</span><span class="arrow"><span style="color:#b4befe;">&#xe0b0;</span></span>
+</div>
+<div class="line2 text-pink">✕ Off-peak in 1h30m</div>
+</div>
+
+<!-- Scenario 4: Critical usage -->
+<div class="scenario">
+<h3>Critical usage — near limit</h3>
+<div class="bar">
+  <span class="seg bg-mauve"><b>sonde</b></span><span class="arrow"><span style="color:#9d7cd8; background:#7aa2f7;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-blue">Opus 4.6</span><span class="arrow"><span style="color:#7aa2f7; background:#414868;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-surface">5h 91% (0h18m)</span><span class="arrow"><span style="color:#414868; background:#565f89;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-overlay">7d 84% (26h42m)</span><span class="arrow"><span style="color:#565f89; background:#f38ba8;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-red">&#xf05e; Runaway</span><span class="arrow"><span style="color:#f38ba8; background:#73daca;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-teal">[━━━━━━━━━━] 97%</span><span class="arrow"><span style="color:#73daca; background:#b4befe;">&#xe0b0;</span></span><!--
+  --><span class="seg bg-lavender"> main</span><span class="arrow"><span style="color:#b4befe;">&#xe0b0;</span></span>
+</div>
+<div class="line2 text-pink">✕ Off-peak in 5h12m</div>
+</div>
+
+<h2 style="margin-top: 50px;">Segment Order (left → right)</h2>
+<table style="border-collapse:collapse; font-size:13px; margin-top:12px;">
+<tr style="color:#565f89;"><td style="padding:4px 16px 4px 0;">1</td><td style="padding:4px 16px;">Project name</td><td style="color:#9d7cd8;">sonde</td></tr>
+<tr style="color:#565f89;"><td style="padding:4px 16px 4px 0;">2</td><td style="padding:4px 16px;">Model</td><td style="color:#7aa2f7;">Opus 4.6</td></tr>
+<tr style="color:#565f89;"><td style="padding:4px 16px 4px 0;">3</td><td style="padding:4px 16px;">5h window</td><td style="color:#c0caf5;">5h 3% (3h51m)</td></tr>
+<tr style="color:#565f89;"><td style="padding:4px 16px 4px 0;">4</td><td style="padding:4px 16px;">7d window</td><td style="color:#c0caf5;">7d 2% (156h56m)</td></tr>
+<tr style="color:#565f89;"><td style="padding:4px 16px 4px 0;">5</td><td style="padding:4px 16px;">Pace tier</td><td style="color:#a6e3a1;">✓ Comfortable</td></tr>
+<tr style="color:#565f89;"><td style="padding:4px 16px 4px 0;">6</td><td style="padding:4px 16px;">Context bar + %</td><td style="color:#73daca;">[━━╌╌╌╌╌╌╌╌] 18%</td></tr>
+<tr style="color:#565f89;"><td style="padding:4px 16px 4px 0;">7</td><td style="padding:4px 16px;">Git branch</td><td style="color:#b4befe;"> main</td></tr>
+</table>
+
+<h3 style="margin-top: 20px;">Line 2: Promo badge (unchanged)</h3>
+
+</body>
+</html>

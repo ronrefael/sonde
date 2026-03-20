@@ -8,8 +8,11 @@ pub mod mascot;
 pub mod model;
 pub mod model_suggestion;
 pub mod pacing;
+pub mod project;
 pub mod promo_badge;
 pub mod session_clock;
+pub mod usage_5h;
+pub mod usage_7d;
 pub mod usage_limits;
 pub mod worktree;
 
@@ -31,6 +34,9 @@ pub fn render_module(name: &str, ctx: &Context, cfg: &SondeConfig) -> Option<Str
         "sonde.mascot_icon" => mascot::render_icon(ctx, cfg),
         "sonde.agent" => agent_badge::render(ctx, cfg),
         "sonde.worktree" => worktree::render(ctx, cfg),
+        "sonde.project" => project::render(ctx, cfg),
+        "sonde.usage_5h" => usage_5h::render(ctx, cfg),
+        "sonde.usage_7d" => usage_7d::render(ctx, cfg),
         other if other.starts_with("sonde.custom.") => {
             let key = &other["sonde.custom.".len()..];
             custom::render(key, ctx, cfg)

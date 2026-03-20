@@ -173,11 +173,11 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
         }
     }
 
-    let (tier, remaining) = current_pacing(cfg)?;
+    let (tier, _remaining) = current_pacing(cfg)?;
 
     let show_prediction = pcfg.and_then(|c| c.show_prediction).unwrap_or(true);
 
-    let mut text = format!("{} {:.0}%", tier.icon(), remaining);
+    let mut text = format!("{} {}", tier.icon(), tier.label());
 
     if show_prediction {
         let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);

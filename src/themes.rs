@@ -314,6 +314,166 @@ static SOLARIZED_DARK: Palette = Palette {
     modules: SOLARIZED_DARK_MODULES,
 };
 
+// -- Sonde Dark (Catppuccin Mocha-inspired) --
+static SONDE_DARK_MODULES: &[(&str, (Color, Color))] = &[
+    (
+        "sonde.project",
+        (Color::Rgb(205, 214, 244), Color::Rgb(35, 25, 55)),
+    ), // deep purple - dark and striking
+    (
+        "sonde.git_branch",
+        (Color::Rgb(205, 214, 244), Color::Rgb(69, 71, 90)),
+    ), // surface1 - light text
+    (
+        "sonde.model",
+        (Color::Rgb(30, 30, 46), Color::Rgb(203, 166, 247)),
+    ), // mauve
+    (
+        "sonde.usage_5h",
+        (Color::Rgb(30, 30, 46), Color::Rgb(148, 226, 213)),
+    ), // teal
+    (
+        "sonde.usage_7d",
+        (Color::Rgb(30, 30, 46), Color::Rgb(137, 220, 235)),
+    ), // sky
+    (
+        "sonde.pacing",
+        (Color::Rgb(30, 30, 46), Color::Rgb(166, 227, 161)),
+    ), // green (default/comfortable)
+    (
+        "sonde.context_bar",
+        (Color::Rgb(30, 30, 46), Color::Rgb(116, 199, 236)),
+    ), // sapphire
+    (
+        "sonde.promo_badge",
+        (Color::Rgb(30, 30, 46), Color::Rgb(250, 179, 135)),
+    ), // peach
+    (
+        "sonde.usage_limits",
+        (Color::Rgb(30, 30, 46), Color::Rgb(148, 226, 213)),
+    ), // teal (backward compat)
+    (
+        "sonde.session_clock",
+        (Color::Rgb(205, 214, 244), Color::Rgb(69, 71, 90)),
+    ), // surface1
+    (
+        "sonde.active_sessions",
+        (Color::Rgb(205, 214, 244), Color::Rgb(69, 71, 90)),
+    ), // surface1
+    (
+        "sonde.context_window",
+        (Color::Rgb(30, 30, 46), Color::Rgb(116, 199, 236)),
+    ), // sapphire
+    (
+        "sonde.model_suggestion",
+        (Color::Rgb(30, 30, 46), Color::Rgb(249, 226, 175)),
+    ), // yellow
+];
+
+static SONDE_DARK: Palette = Palette {
+    base: Color::Rgb(30, 30, 46),
+    text: Color::Rgb(205, 214, 244),
+    surface: Color::Rgb(69, 71, 90),
+    modules: SONDE_DARK_MODULES,
+};
+
+// -- Sonde Light (Catppuccin Latte-inspired) --
+static SONDE_LIGHT_MODULES: &[(&str, (Color, Color))] = &[
+    (
+        "sonde.project",
+        (Color::Rgb(76, 79, 105), Color::Rgb(220, 224, 232)),
+    ), // surface0 - dark text
+    (
+        "sonde.git_branch",
+        (Color::Rgb(76, 79, 105), Color::Rgb(188, 192, 204)),
+    ), // surface1 - dark text
+    (
+        "sonde.model",
+        (Color::Rgb(239, 241, 245), Color::Rgb(136, 57, 239)),
+    ), // mauve
+    (
+        "sonde.usage_5h",
+        (Color::Rgb(239, 241, 245), Color::Rgb(23, 146, 153)),
+    ), // teal
+    (
+        "sonde.usage_7d",
+        (Color::Rgb(239, 241, 245), Color::Rgb(4, 165, 229)),
+    ), // sky
+    (
+        "sonde.pacing",
+        (Color::Rgb(239, 241, 245), Color::Rgb(64, 160, 43)),
+    ), // green
+    (
+        "sonde.context_bar",
+        (Color::Rgb(239, 241, 245), Color::Rgb(32, 159, 181)),
+    ), // sapphire
+    (
+        "sonde.promo_badge",
+        (Color::Rgb(239, 241, 245), Color::Rgb(254, 100, 11)),
+    ), // peach
+    (
+        "sonde.usage_limits",
+        (Color::Rgb(239, 241, 245), Color::Rgb(23, 146, 153)),
+    ), // teal
+    (
+        "sonde.session_clock",
+        (Color::Rgb(76, 79, 105), Color::Rgb(188, 192, 204)),
+    ), // surface1
+    (
+        "sonde.active_sessions",
+        (Color::Rgb(76, 79, 105), Color::Rgb(188, 192, 204)),
+    ), // surface1
+    (
+        "sonde.context_window",
+        (Color::Rgb(239, 241, 245), Color::Rgb(32, 159, 181)),
+    ), // sapphire
+    (
+        "sonde.model_suggestion",
+        (Color::Rgb(239, 241, 245), Color::Rgb(223, 142, 29)),
+    ), // yellow
+];
+
+static SONDE_LIGHT: Palette = Palette {
+    base: Color::Rgb(239, 241, 245),
+    text: Color::Rgb(76, 79, 105),
+    surface: Color::Rgb(188, 192, 204),
+    modules: SONDE_LIGHT_MODULES,
+};
+
+pub fn is_light_terminal() -> bool {
+    if let Ok(val) = std::env::var("COLORFGBG") {
+        if let Some(bg_str) = val.rsplit(';').next() {
+            if let Ok(bg) = bg_str.parse::<u8>() {
+                return bg > 6;
+            }
+        }
+    }
+    false
+}
+
+pub fn sonde_model_color(model_name: &str, is_light: bool) -> Color {
+    let lower = model_name.to_lowercase();
+    if lower.contains("opus") {
+        if is_light { Color::Rgb(136, 57, 239) } else { Color::Rgb(203, 166, 247) }
+    } else if lower.contains("haiku") {
+        if is_light { Color::Rgb(156, 160, 176) } else { Color::Rgb(24, 24, 37) }
+    } else {
+        // Sonnet (default)
+        if is_light { Color::Rgb(180, 135, 35) } else { Color::Rgb(235, 190, 100) }
+    }
+}
+
+pub fn sonde_pace_color(tier_name: &str, is_light: bool) -> Color {
+    match tier_name {
+        "Comfortable" => if is_light { Color::Rgb(64, 160, 43) } else { Color::Rgb(166, 227, 161) },
+        "On Track" => if is_light { Color::Rgb(114, 135, 253) } else { Color::Rgb(180, 190, 254) },
+        "Elevated" => if is_light { Color::Rgb(223, 142, 29) } else { Color::Rgb(249, 226, 175) },
+        "Hot" => if is_light { Color::Rgb(230, 69, 83) } else { Color::Rgb(235, 160, 172) },
+        "Runaway" | "Critical" => if is_light { Color::Rgb(210, 15, 57) } else { Color::Rgb(150, 60, 85) },
+        _ => if is_light { Color::Rgb(64, 160, 43) } else { Color::Rgb(166, 227, 161) },
+    }
+}
+
 pub const ALL_THEME_NAMES: &[&str] = &[
     "catppuccin-mocha",
     "dracula",
@@ -321,6 +481,7 @@ pub const ALL_THEME_NAMES: &[&str] = &[
     "nord",
     "gruvbox",
     "solarized-dark",
+    "sonde",
 ];
 
 pub fn get_palette(name: &str) -> &'static Palette {
@@ -330,6 +491,13 @@ pub fn get_palette(name: &str) -> &'static Palette {
         "nord" => &NORD,
         "gruvbox" => &GRUVBOX,
         "solarized-dark" => &SOLARIZED_DARK,
+        "sonde" => {
+            if is_light_terminal() {
+                &SONDE_LIGHT
+            } else {
+                &SONDE_DARK
+            }
+        }
         _ => &CATPPUCCIN_MOCHA, // default fallback
     }
 }

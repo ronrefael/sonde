@@ -1,3 +1,4 @@
 - [project_sonde_phase1.md](project_sonde_phase1.md) — Full project status: 34 commits, Rust statusline + Swift menu bar app, all features complete
 - [feedback_swift_keychain_cache.md](feedback_swift_keychain_cache.md) — Use `security` CLI not Security.framework for SPM builds; allow stale cache reads cross-process
 - [feedback_all_breaks.md](feedback_all_breaks.md) — All 8 bugs hit during build: ureq API, nu-ansi-term, Serialize derives, Keychain entitlements, cache TTL, rate limiting, UNUserNotificationCenter crash, duplicate instances
+- [feedback_sandbox_container_cache.md](feedback_sandbox_container_cache.md) — CRITICAL: After changing entitlements, must delete ~/Library/Containers/dev.sonde.app or app freezes

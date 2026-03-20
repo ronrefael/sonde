@@ -133,6 +133,7 @@ Source: The Register (Jan 2026), Slashdot (Jul 2025), Reddit r/ClaudeAI
 | Auto-compact powerline | ccstatusline (powerline) | We intelligently drop segments; they truncate |
 | Intelligent model suggestions | Nobody | "Switch to Haiku" at high usage |
 | iOS companion + widgets | CodexBar (widgets) | Full iOS app, not just widgets |
+| Guided onboarding with live preview | Nobody | 6-step wizard: detects Claude, validates OAuth, configures statusline, live theme preview |
 
 ### What Competitors Have That We Don't
 
@@ -145,7 +146,7 @@ Source: The Register (Jan 2026), Slashdot (Jul 2025), Reddit r/ClaudeAI
 | Zero-install (`npx`) | ccusage, ccstatusline | Critical | Small |
 | Windows support | ccstatusline | Medium | Medium |
 | Named theme presets | Nobody (gap!) | High | Small |
-| Setup wizard | Nobody (gap!) | Critical | Small |
+| ~~Setup wizard~~ | ~~Nobody (gap!)~~ | ~~Critical~~ | ~~Small~~ | **DONE** — 6-step onboarding with live theme preview |
 
 ### Our 17 Modules vs. Competition
 
@@ -230,27 +231,32 @@ theme = "catppuccin-mocha"  # or "dracula", "tokyo-night", "nord", "gruvbox"
 
 ## PART 6: STRATEGIC ROADMAP (Revised for Competition)
 
-### Phase 0: Competitive Parity (THIS WEEK)
+### Phase 0: Competitive Parity — MOSTLY COMPLETE
 These are things competitors already have that we must match to even enter the conversation.
 
-| Item | Why | Competitor Reference |
-|------|-----|---------------------|
-| Hero README with GIF | ccusage, CodexBar, ccstatusline all have beautiful READMEs | All top competitors |
-| `sonde --setup` wizard | ccstatusline has TUI configurator | ccstatusline |
-| Named theme presets | Nobody has this in CLI — first mover advantage | Gap in market |
-| Demo/preview command | Oh My Posh has visual configurator | Oh My Posh |
-| Zero-friction install | `npx ccusage` has zero-install | ccusage |
+| Item | Why | Status |
+|------|-----|--------|
+| ~~Hero README~~ | All top competitors have beautiful READMEs | **DONE** (5b2d93e) — hero section, badges, feature tables, comparison matrix |
+| ~~`sonde setup` wizard~~ | ccstatusline has TUI configurator | **DONE** — CLI setup wizard + 6-step macOS onboarding with live theme preview |
+| ~~Named theme presets~~ | First mover advantage in CLI | **DONE** — 6 presets: catppuccin-mocha, dracula, tokyo-night, nord, gruvbox, solarized-dark |
+| ~~`sonde themes` preview~~ | Oh My Posh has visual configurator | **DONE** — renders all 6 palettes with mock data |
+| ~~Zero-friction install~~ | `npx ccusage` has zero-install | **DONE** — `brew install ronrefael/tap/sonde` + `curl \| bash` script |
+| Animated demo GIF | Nobody installs what they can't see | **TODO** — highest-impact remaining item |
 
 ### Phase 1: Differentiation (Weeks 1-2)
 Features that make sonde the CLEAR choice over competitors.
 
-| Item | Why | Competitive Edge |
-|------|-----|-----------------|
-| Predictive rate limit alerts | "You'll hit your limit in ~45 min" | Claude-Code-Usage-Monitor has ML; we can do simpler linear extrapolation |
-| More provider support (5-8 providers) | CodexBar has 15+, ClaudeBar has 9+ | Start with: Windsurf, Copilot, Gemini Code Assist |
-| Historical cost trends in TUI | ccusage does retrospective analysis | We do it real-time + historical |
-| `sonde --themes` gallery | Nobody has this | First mover |
-| Multi-account support | Claude-Usage-Tracker has it | Power users need this |
+| Item | Why | Status |
+|------|-----|--------|
+| ~~`sonde themes` gallery~~ | Nobody has this | **DONE** — 6 named palettes rendered in terminal |
+| ~~`sonde doctor` diagnostics~~ | Trust and debugging | **DONE** — 9 diagnostic checks |
+| ~~`sonde configure` TUI~~ | Interactive config | **DONE** — TUI configurator |
+| ~~`sonde tui` dashboard~~ | Full-screen monitoring | **DONE** — ratatui live dashboard |
+| ~~Error banners~~ | User trust | **DONE** — Claude not installed, auth missing, data stale, rate limited |
+| ~~Messages API fallback~~ | Reliability | **DONE** (a15c8f2) — fixes 429 rate limiting |
+| Predictive rate limit alerts | "You'll hit your limit in ~45 min" | TODO |
+| More provider support (5-8 providers) | CodexBar has 15+, ClaudeBar has 9+ | TODO — Start with: Windsurf, Copilot, Gemini |
+| Multi-account support | Claude-Usage-Tracker has it | TODO |
 
 ### Phase 2: Market Leadership (Weeks 3-6)
 Features that establish sonde as the market standard.
@@ -277,20 +283,31 @@ Features that establish sonde as the market standard.
 
 ## PART 7: PRIORITY STACK (Impact × Feasibility)
 
+### Completed
+| Item | Status |
+|------|--------|
+| ~~Hero README~~ | **DONE** — badges, feature tables, comparison matrix |
+| ~~`sonde setup` wizard~~ | **DONE** — CLI + macOS 6-step onboarding with live theme preview |
+| ~~Named theme presets~~ | **DONE** — 6 palettes (catppuccin-mocha, dracula, tokyo-night, nord, gruvbox, solarized-dark) |
+| ~~`sonde themes` preview~~ | **DONE** — renders all palettes in terminal |
+| ~~`sonde doctor`~~ | **DONE** — 9 diagnostic checks |
+| ~~`sonde configure`~~ | **DONE** — interactive TUI configurator |
+| ~~`sonde tui`~~ | **DONE** — full-screen ratatui dashboard |
+| ~~Error banners + toast notifications~~ | **DONE** — 4 banner types + Dynamic Island toasts |
+
+### Remaining (by priority)
 | Rank | Item | Impact | Effort | Why This Order |
 |------|------|--------|--------|----------------|
-| **1** | **Hero README + animated GIF** | 10 | XS | Nobody installs what they can't see |
-| **2** | **`sonde --setup` wizard** | 10 | S | #1 churn reason is setup friction |
-| **3** | **Named theme presets** | 8 | S | Nobody else has this in CLI — first mover |
-| **4** | **`sonde --themes` preview** | 8 | S | Drives engagement, shareable screenshots |
-| **5** | **Predictive alert** ("limit in ~45m") | 9 | M | Killer feature nobody else has cleanly |
-| **6** | **3 more providers** (Windsurf, Copilot, Gemini) | 9 | M | Must close gap with CodexBar |
-| **7** | **Historical cost chart in TUI** | 7 | M | Makes TUI a daily destination |
-| **8** | **Multi-account support** | 6 | M | Power user retention |
-| **9** | **VS Code extension** | 10 | L | Massive market expansion |
-| **10** | **Interactive TUI configurator** | 7 | M | Match ccstatusline's killer feature |
-| **11** | **Windows support** | 6 | M | Market reach |
-| **12** | **Landing page** | 7 | M | SEO, credibility |
+| **1** | **Animated demo GIF** | 10 | XS | The single highest-impact item still missing |
+| **2** | **README screenshots** | 9 | XS | Show dashboard, themes, onboarding, statusline |
+| **3** | **Predictive alert** ("limit in ~45m") | 9 | M | Killer feature nobody else has cleanly |
+| **4** | **3 more providers** (Windsurf, Copilot, Gemini) | 9 | M | Must close gap with CodexBar |
+| **5** | **Multi-account support** | 6 | M | Power user retention |
+| **6** | **VS Code extension** | 10 | L | Massive market expansion |
+| **7** | **Windows support** | 6 | M | Market reach |
+| **8** | **Landing page** | 7 | M | SEO, credibility |
+| **9** | **Code signing + notarization** | 6 | M | Required for non-scary DMG installs |
+| **10** | **App icon** | 5 | S | Currently SF Symbol — needs custom icon |
 
 ---
 
@@ -345,6 +362,7 @@ Features that establish sonde as the market standard.
 | iOS companion | Yes | — | — | — |
 | Animated state icon | 8 states | — | — | — |
 | Model suggestions | Yes | — | — | — |
+| Guided onboarding | 6-step wizard | — | — | — |
 | Setup time | 30 seconds | ~2 min | ~1 min | ~1 min |
 
 ### Release Notes (v1.0.0)
@@ -365,6 +383,7 @@ Real-time AI usage intelligence for your terminal and menu bar.
 - TUI dashboard (`sonde tui`) with live session monitoring
 
 **macOS menu bar app** (Swift)
+- 6-step guided onboarding with live theme preview
 - 6 themes: Liquid Glass, Terminal, Cyberpunk, Synthwave, Solar Flare, System
 - Usage bars, pacing tier, daily spend, sparkline charts
 - Threshold notifications at 60%, 80%, 90%
@@ -492,22 +511,38 @@ Sonde monitors your Claude Code, Codex, and Cursor usage in real-time from your 
 
 ---
 
-## PART 10: IMMEDIATE ACTION ITEMS
+## PART 10: ACTION ITEMS
+
+### Completed (as of 2026-03-20)
+
+- [x] **Hero README rewrite** — badges, feature tables, comparison matrix, install instructions (5b2d93e)
+- [x] **Guided onboarding wizard** — 6-step macOS onboarding: Claude check, OAuth check, one-click statusline config, live theme preview with animated card
+- [x] **`sonde setup` CLI wizard** — auto-detect Claude Code, configure statusline, validate OAuth
+- [x] **`sonde themes` gallery** — renders all 6 palettes with mock data in terminal
+- [x] **6 named theme presets** — catppuccin-mocha, dracula, tokyo-night, nord, gruvbox, solarized-dark
+- [x] **`sonde doctor`** — 9 diagnostic checks
+- [x] **`sonde configure`** — interactive TUI configurator
+- [x] **`sonde tui`** — full-screen ratatui dashboard
+- [x] **Error banners** — Claude not installed, auth missing, data stale, rate limited
+- [x] **Toast notifications** — Dynamic Island-style toasts
+- [x] **Messages API fallback** — fixes 429 rate limiting
+- [x] **Homebrew tap** — `brew install ronrefael/tap/sonde`
+- [x] **Install script** — `curl | bash`
+- [x] **Social media plan** — Reddit (4 posts), Threads (2 sequences), post templates ready
+- [x] **Cost features removed** — estimated data was unreliable, cleaner UX without them
 
 ### This Week (Before Public Launch)
 
-- [ ] **Create animated demo GIF** — Show powerline theme with live data flowing. This is the single highest-impact item.
-- [ ] **Rewrite README hero section** — Use the template from Part 8. Add badges, feature table, comparison matrix.
-- [ ] **Implement `sonde --setup`** — Auto-detect Claude Code, configure statusline, validate OAuth, print success message.
-- [ ] **Implement `sonde --themes`** — Show all themes with mock data in terminal. One command, instant visual payoff.
-- [ ] **Add 5 named theme presets** — Catppuccin Mocha (default), Dracula, Tokyo Night, Nord, Gruvbox. First mover advantage.
+- [ ] **Create animated demo GIF** — Show statusline + dashboard + theme switching. Single highest-impact remaining item.
+- [ ] **Capture screenshots** — 13 screenshots listed in SOCIAL_MEDIA_PLAN.md (dashboard, themes, onboarding, doctor, etc.)
 - [ ] **Test fresh install** — Clean macOS and Linux machines. Time it. Fix any friction.
 - [ ] **Write v1.0.0 release notes** — Use template from Part 8.
-- [ ] **Prepare social posts** — Twitter, HN Show, Reddit r/ClaudeAI, r/ChatGPTCoding.
+- [ ] **Code signing + notarization** — DMG currently unsigned, triggers Gatekeeper warning.
+- [ ] **Custom app icon** — Currently SF Symbol, needs a real icon.
 
 ### Week 1 After Launch
 
-- [ ] Post to r/ClaudeAI, r/ChatGPTCoding, Hacker News simultaneously
+- [ ] Post to r/ClaudeAI, r/MacApps, r/commandline, Hacker News (staggered per SOCIAL_MEDIA_PLAN.md)
 - [ ] Monitor and respond to every GitHub issue within 24 hours
 - [ ] Ship predictive rate limit alert ("you'll hit your limit in ~45 min")
 - [ ] Fix any first-day bugs as P0
@@ -515,9 +550,10 @@ Sonde monitors your Claude Code, Codex, and Cursor usage in real-time from your 
 ### Month 1
 
 - [ ] Add 3 more providers (Windsurf, Copilot, Gemini Code Assist)
-- [ ] Ship historical cost trends in TUI
+- [ ] Multi-account support
 - [ ] Start VS Code extension (MVP: status bar item)
 - [ ] Build landing page
+- [ ] Publish to crates.io
 - [ ] Engage with community contributions
 
 ---

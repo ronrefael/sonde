@@ -71,9 +71,12 @@ fn extract_module_names(line: &str) -> Vec<String> {
 
 fn module_priority(name: &str) -> u8 {
     match name {
+        "sonde.project" => 1,
         "sonde.model" => 1,
         "sonde.context_bar" => 2,
         "sonde.usage_limits" => 2,
+        "sonde.usage_5h" => 2,
+        "sonde.usage_7d" => 3,
         "sonde.promo_badge" => 3,
         "sonde.pacing" => 3,
         "sonde.git_branch" => 4,
@@ -115,6 +118,7 @@ fn abbreviate(text: &str) -> String {
         .replace("Critical", "Crit")
         .replace("Runaway", "Over")
         .replace("Off-peak limits active", "2X")
+        .replace("Off-peak", "2X")
 }
 
 struct Candidate {
@@ -177,17 +181,57 @@ fn usable_width() -> usize {
 fn build_powerline_segments(
     candidates: &[Candidate],
     cfg: &SondeConfig,
+    ctx: &Context,
     theme: &str,
 ) -> Vec<ansi::PowerlineSegment> {
+    let is_sonde = theme == "sonde";
+    let is_light = if is_sonde {
+        crate::themes::is_light_terminal()
+    } else {
+        false
+    };
+
     candidates
         .iter()
         .map(|c| {
             let (fg, bg) = if c.name == "sonde.pacing" {
-                let palette = crate::themes::get_palette(theme);
-                match modules::pacing::current_pacing(cfg) {
-                    Some((tier, _)) => (palette.base, tier.powerline_bg()),
-                    None => ansi::powerline_colors_for_theme(theme, &c.name),
+                if is_sonde {
+                    // Use sonde-specific pace colors
+                    let palette = crate::themes::get_palette(theme);
+                    match modules::pacing::current_pacing(cfg) {
+                        Some((tier, _)) => {
+                            let bg = crate::themes::sonde_pace_color(tier.label(), is_light);
+                            (palette.base, bg)
+                        }
+                        None => ansi::powerline_colors_for_theme(theme, &c.name),
+                    }
+                } else {
+                    let palette = crate::themes::get_palette(theme);
+                    match modules::pacing::current_pacing(cfg) {
+                        Some((tier, _)) => (palette.base, tier.powerline_bg()),
+                        None => ansi::powerline_colors_for_theme(theme, &c.name),
+                    }
                 }
+            } else if c.name == "sonde.model" && is_sonde {
+                // Per-model colors for sonde theme
+                let palette = crate::themes::get_palette(theme);
+                let model_name = ctx
+                    .model
+                    .as_ref()
+                    .and_then(|m| m.display_name.as_deref().or(m.id.as_deref()))
+                    .unwrap_or("");
+                let bg = crate::themes::sonde_model_color(model_name, is_light);
+                // Dark models (haiku) need light text
+                let lower = model_name.to_lowercase();
+                let fg = if !is_light && lower.contains("haiku") {
+                    palette.text
+                } else if is_light && (lower.contains("opus") || lower.contains("sonnet")) {
+                    // Saturated bg in light mode needs white text
+                    nu_ansi_term::Color::Rgb(239, 241, 245)
+                } else {
+                    palette.base
+                };
+                (fg, bg)
             } else {
                 ansi::powerline_colors_for_theme(theme, &c.name)
             };
@@ -224,7 +268,7 @@ fn render_line_powerline(line: &str, ctx: &Context, cfg: &SondeConfig, theme: &s
     }
 
     let term_width = usable_width();
-    let segments = build_powerline_segments(&candidates, cfg, theme);
+    let segments = build_powerline_segments(&candidates, cfg, ctx, theme);
     let current_width = ansi::powerline_width(&segments);
 
     if current_width <= term_width {
@@ -236,21 +280,21 @@ fn render_line_powerline(line: &str, ctx: &Context, cfg: &SondeConfig, theme: &s
         c.text = abbreviate(&c.text);
     }
 
-    let segments = build_powerline_segments(&candidates, cfg, theme);
+    let segments = build_powerline_segments(&candidates, cfg, ctx, theme);
     if ansi::powerline_width(&segments) <= term_width {
         return ansi::render_powerline(&segments);
     }
 
     // Phase 2: Drop lowest-priority segments until it fits
     loop {
-        let segments = build_powerline_segments(&candidates, cfg, theme);
+        let segments = build_powerline_segments(&candidates, cfg, ctx, theme);
         if ansi::powerline_width(&segments) <= term_width || candidates.len() <= 1 {
             return ansi::render_powerline(&segments);
         }
 
         // Find the highest priority number (= lowest importance) and remove last such entry
         let Some(max_pri) = candidates.iter().map(|c| c.priority).max() else {
-            return ansi::render_powerline(&build_powerline_segments(&candidates, cfg, theme));
+            return ansi::render_powerline(&build_powerline_segments(&candidates, cfg, ctx, theme));
         };
         if let Some(pos) = candidates.iter().rposition(|c| c.priority == max_pri) {
             candidates.remove(pos);
@@ -263,7 +307,9 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> String {
     let is_powerline = theme != "plain";
 
     let lines = cfg.lines.as_ref().cloned().unwrap_or_else(|| {
-        if is_powerline {
+        if theme == "sonde" {
+            config::default_sonde_lines()
+        } else if is_powerline {
             config::default_powerline_lines()
         } else {
             config::default_lines()

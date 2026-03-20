@@ -13,10 +13,11 @@ private func hex(_ hex: UInt) -> Color {
 enum PopoverTheme: String, CaseIterable {
     case liquidGlass = "Liquid Glass"
     case system = "System"
+    case sonde = "Sonde"
     case terminal = "Terminal"
     case cyberpunk = "Cyberpunk"
     case synthwave = "Synthwave"
-    case solarFlare = "Solar Flare"
+    case solarFlare = "Solarflare"
 
     private static let phosphor = Color(red: 0.2, green: 1.0, blue: 0.2)
     private static let phosphorDim = Color(red: 0.15, green: 0.6, blue: 0.15)
@@ -53,6 +54,7 @@ enum PopoverTheme: String, CaseIterable {
         case .synthwave: hex(0x2D1B4E)
         case .solarFlare: hex(0x1A0A12)
         case .system: isDark ? hex(0x2C2C2E) : .white
+        case .sonde: hex(0x313244)
         }
     }
 
@@ -63,7 +65,8 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x18E0FF)
         case .synthwave: hex(0xFF2975)
         case .solarFlare: hex(0xFF6B2B)
-        case .system: isDark ? hex(0x0A84FF) : hex(0x007AFF) // Apple system blue
+        case .system: isDark ? hex(0x0A84FF) : hex(0x007AFF)
+        case .sonde: hex(0x74C7EC)
         }
     }
 
@@ -75,6 +78,7 @@ enum PopoverTheme: String, CaseIterable {
         case .synthwave: hex(0xF0E6FF)
         case .solarFlare: hex(0xFFE0C8)
         case .system: isDark ? Color(white: 0.95) : Color(white: 0.0)
+        case .sonde: hex(0xCDD6F4)
         }
     }
 
@@ -85,7 +89,8 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x6B7B8D)
         case .synthwave: hex(0x9B7EC8)
         case .solarFlare: hex(0x8B5A3A)
-        case .system: isDark ? hex(0x98989D) : hex(0x3C3C43).opacity(0.6) // Apple secondary label
+        case .system: isDark ? hex(0x98989D) : hex(0x3C3C43).opacity(0.6)
+        case .sonde: hex(0xA6ADC8)
         }
     }
 
@@ -93,6 +98,7 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Color(red: 1.0, green: 0.15, blue: 0.15)
         case .system: isDark ? hex(0xFF6961) : hex(0xE5484D)
+        case .sonde: hex(0xF38BA8)
         default: .red
         }
     }
@@ -101,6 +107,7 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Self.amber
         case .system: isDark ? hex(0xF5A623) : hex(0xD97706)
+        case .sonde: hex(0xFAB387)
         default: .orange
         }
     }
@@ -113,6 +120,7 @@ enum PopoverTheme: String, CaseIterable {
         case .synthwave: hex(0xFF2975).opacity(0.2)
         case .solarFlare: hex(0xFF6B2B).opacity(0.2)
         case .system: isDark ? Color.white.opacity(0.12) : hex(0xC6C6C8).opacity(0.8)
+        case .sonde: hex(0x45475A).opacity(0.5)
         }
     }
 
@@ -123,7 +131,8 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x0B0C10)
         case .synthwave: hex(0x1A1025)
         case .solarFlare: hex(0x0D0208)
-        case .system: isDark ? hex(0x1C1C1E) : hex(0xF2F2F7) // Apple grouped bg
+        case .system: isDark ? hex(0x1C1C1E) : hex(0xF2F2F7)
+        case .sonde: hex(0x1E1E2E)
         }
     }
 
@@ -132,6 +141,7 @@ enum PopoverTheme: String, CaseIterable {
         case .liquidGlass: Color.primary.opacity(0.1)
         case .terminal: Self.phosphor.opacity(0.12)
         case .system: isDark ? Color.white.opacity(0.08) : hex(0xC6C6C8).opacity(0.6)
+        case .sonde: hex(0x45475A).opacity(0.3)
         default: borderColor
         }
     }
@@ -141,6 +151,7 @@ enum PopoverTheme: String, CaseIterable {
         case .liquidGlass: .secondary
         case .terminal: Self.phosphorFaint
         case .system: isDark ? hex(0x98989D) : hex(0x3C3C43).opacity(0.6)
+        case .sonde: hex(0x6C7086)
         default: textSecondary.opacity(0.7)
         }
     }
@@ -149,7 +160,8 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .terminal: Self.phosphor.opacity(0.6)
         case .cyberpunk: hex(0x18E0FF).opacity(0.5)
-        case .solarFlare: hex(0xFF6B2B).opacity(0.4)
+        case .synthwave: hex(0xFF2975).opacity(0.5)
+        case .solarFlare: hex(0xFF6B2B).opacity(0.5)
         default: nil
         }
     }
@@ -174,53 +186,60 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x18E0FF).opacity(0.1)
         case .synthwave: hex(0xFF2975).opacity(0.08)
         case .solarFlare: hex(0xFF6B2B).opacity(0.1)
+        case .sonde: hex(0xCBA6F7).opacity(0.06)
         default: nil
         }
     }
 
-    /// Highlight color for interactive/standout stats (lines/hr, context %, promo)
     var highlightAccent: Color {
         switch self {
         case .terminal: Self.cyan
-        case .system: isDark ? hex(0x64D2FF) : hex(0x5B8DEF) // soft periwinkle blue
+        case .system: isDark ? hex(0x64D2FF) : hex(0x5B8DEF)
+        case .sonde: hex(0x89DCEB)
         default: headerAccent
         }
     }
 
-    /// Low-utilization color — healthy / good
     var lowUtilColor: Color {
         switch self {
         case .terminal: Self.phosphor
         case .system: isDark ? hex(0x30D158) : hex(0x2DB87B)
+        case .sonde: hex(0xA6E3A1)
         default: .green
         }
     }
 
-    /// Medium-utilization color — caution / warming up
     var medUtilColor: Color {
         switch self {
         case .terminal: Self.amber
         case .system: isDark ? hex(0x64D2FF) : hex(0x5B8DEF)
+        case .sonde: hex(0xF9E2AF)
         default: .orange
         }
     }
 
-    /// High-utilization color — danger / critical
     var highUtilColor: Color {
         switch self {
         case .terminal: Color(red: 1.0, green: 0.15, blue: 0.15)
         case .system: isDark ? hex(0xFF6961) : hex(0xE5484D)
+        case .sonde: hex(0xF38BA8)
         default: .red
         }
     }
 
-    var swatchColor: Color { headerAccent }
+    var swatchColor: Color {
+        switch self {
+        case .sonde: hex(0xCBA6F7)
+        default: headerAccent
+        }
+    }
 
     // Model pill colors
     var modelOpusColor: Color {
         switch self {
         case .terminal: Self.amber
-        case .system: isDark ? hex(0xBF5AF2) : hex(0xAF52DE) // Apple system purple
+        case .system: isDark ? hex(0xBF5AF2) : hex(0xAF52DE)
+        case .sonde: hex(0xCBA6F7)
         default: Color(red: 0.55, green: 0.25, blue: 0.85)
         }
     }
@@ -228,7 +247,8 @@ enum PopoverTheme: String, CaseIterable {
     var modelSonnetColor: Color {
         switch self {
         case .terminal: Self.cyan
-        case .system: isDark ? hex(0x0A84FF) : hex(0x007AFF) // Apple system blue
+        case .system: isDark ? hex(0x0A84FF) : hex(0x007AFF)
+        case .sonde: hex(0xEBBE64)
         default: Color(red: 0.2, green: 0.45, blue: 0.9)
         }
     }
@@ -236,6 +256,7 @@ enum PopoverTheme: String, CaseIterable {
     var modelHaikuColor: Color {
         switch self {
         case .terminal: Self.phosphorDim
+        case .sonde: hex(0x181825)
         default: Color(red: 0.0, green: 0.65, blue: 0.55)
         }
     }
@@ -243,6 +264,7 @@ enum PopoverTheme: String, CaseIterable {
     var modelPillText: Color {
         switch self {
         case .terminal: Color(red: 0.08, green: 0.08, blue: 0.06)
+        case .sonde: hex(0x1E1E2E)
         default: .white
         }
     }
@@ -252,6 +274,24 @@ enum PopoverTheme: String, CaseIterable {
         if lower.contains("opus") { return modelOpusColor }
         if lower.contains("haiku") { return modelHaikuColor }
         return modelSonnetColor
+    }
+}
+
+// MARK: - Card Edge Modifier
+
+private struct CardEdgeModifier: ViewModifier {
+    let theme: PopoverTheme
+    func body(content: Content) -> some View {
+        switch theme {
+        case .system, .sonde:
+            content.shadow(color: Color.black.opacity(0.15), radius: 8, y: 3)
+        case .liquidGlass:
+            content.overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 0.5))
+        default:
+            content
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.borderColor, lineWidth: 1))
+                .shadow(color: theme.cardGlow ?? .clear, radius: 4)
+        }
     }
 }
 
@@ -992,8 +1032,7 @@ private struct MainCard: View {
             }
             .padding(12)
             .background(theme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.borderColor, lineWidth: 1))
-            .shadow(color: theme.cardGlow ?? .clear, radius: 4)
+            .modifier(CardEdgeModifier(theme: theme))
             .scaleEffect(isHovered ? 1.005 : 1.0)
             .animation(.easeInOut(duration: 0.15), value: isHovered)
         }
@@ -1101,12 +1140,24 @@ private struct CircleGauge: View {
         return theme.lowUtilColor
     }
 
+    private var hasGlow: Bool { theme.textGlow != nil }
+
     var body: some View {
         VStack(spacing: 4) {
             ZStack {
                 // Track
                 Circle()
-                    .stroke(theme.borderColor, lineWidth: lineWidth)
+                    .stroke(theme.borderColor.opacity(hasGlow ? 0.5 : 1.0), lineWidth: lineWidth)
+
+                // Backlit glow behind fill for themed views
+                if hasGlow {
+                    Circle()
+                        .trim(from: 0, to: min(util, 100) / 100)
+                        .stroke(gaugeColor.opacity(0.4), style: StrokeStyle(lineWidth: lineWidth + 6, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .blur(radius: 4)
+                        .animation(.easeOut(duration: 1.0), value: util)
+                }
 
                 // Fill
                 Circle()
@@ -1121,10 +1172,11 @@ private struct CircleGauge: View {
                         .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundStyle(gaugeColor)
                         .contentTransition(.numericText())
-                        .shadow(color: theme.textGlow ?? .clear, radius: 3)
+                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 6 : 0)
                     Text(label)
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(theme.textSecondary.opacity(0.6))
+                        .foregroundStyle(theme.textSecondary.opacity(hasGlow ? 0.8 : 0.6))
+                        .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 3 : 0)
                 }
             }
             .frame(width: gaugeSize, height: gaugeSize)
@@ -1133,7 +1185,8 @@ private struct CircleGauge: View {
             if let reset {
                 Text(TimeFormatting.formatResetCountdown(from: reset))
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(theme.textSecondary.opacity(0.5))
+                    .foregroundStyle(theme.textSecondary.opacity(hasGlow ? 0.7 : 0.5))
+                    .shadow(color: theme.textGlow ?? .clear, radius: hasGlow ? 2 : 0)
             }
         }
     }
@@ -1269,8 +1322,7 @@ private struct SessionActivityCard: View {
             }
             .padding(10)
             .background(theme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.borderColor, lineWidth: 1))
-            .shadow(color: theme.cardGlow ?? .clear, radius: 4)
+            .modifier(CardEdgeModifier(theme: theme))
         }
     }
 

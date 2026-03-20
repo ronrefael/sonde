@@ -1,6 +1,6 @@
 [sonde]
-theme = "catppuccin-mocha"
+theme = "sonde"
 lines = [
-  "$sonde.model $sonde.session_clock $sonde.context_bar $sonde.usage_limits $sonde.pacing $sonde.agent $sonde.worktree $sonde.git_branch $sonde.active_sessions $sonde.mascot_icon",
+  "$sonde.project $sonde.git_branch $sonde.model $sonde.usage_5h $sonde.usage_7d $sonde.pacing $sonde.context_bar",
   "$sonde.promo_badge",
 ]

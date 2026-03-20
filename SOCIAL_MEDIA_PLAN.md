@@ -67,11 +67,12 @@ Would love feedback — what else would you want to see in the dashboard?
 I made a native SwiftUI menu bar app for monitoring Claude Code usage. Open source, no account needed — it reads from your existing Claude Code OAuth.
 
 Features:
+- Guided 6-step onboarding — detects Claude Code, validates OAuth, configures statusline, picks your theme with a live preview
 - Menu bar shows: pace icon | promo status | remaining % | timer countdown
 - Dashboard with 5h and 7d usage gauges
 - 7-day usage history chart
 - Active session tracking across multiple projects
-- 6 themes including a gorgeous Liquid Glass mode
+- 6 themes including a gorgeous Liquid Glass mode (live preview in onboarding)
 - Pacing prediction ("you'll hit your limit in ~2h 15m")
 - Promo awareness (2X off-peak detection)
 - Settings tab with custom chip pickers (pretty proud of these)
@@ -219,12 +220,15 @@ brew install ronrefael/tap/sonde
 ```
 The most satisfying part of building sonde:
 
-The settings screen.
+The onboarding.
 
-Custom chip pickers that match every theme. Hover animations. No stock macOS dropdowns.
+6-step guided setup. One-click statusline config. And a live theme preview that updates as you tap each option — you see the dashboard colors change in real-time before you commit.
+
+Then the settings screen. Custom chip pickers that match every theme. Hover animations. No stock macOS dropdowns.
 
 6 themes and every single UI element adapts.
 
+[Screenshot of onboarding theme picker with live preview]
 [Screenshot of settings in Synthwave theme]
 [Screenshot of settings in System light theme]
 ```
@@ -270,6 +274,9 @@ Take these screenshots before posting:
 8. **Usage chart** — 7-day bar chart with varied data
 9. **Multi-session** — Activity card showing 3+ projects
 10. **sonde doctor** — All 9 checks passing
+11. **Onboarding welcome** — First-launch welcome screen with sonde logo
+12. **Onboarding theme picker** — Theme selection step with live preview card showing selected theme colors
+13. **Onboarding statusline** — One-click statusline enable with powerline preview
 
 ## Timing Strategy
 

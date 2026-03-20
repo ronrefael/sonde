@@ -23,6 +23,7 @@ pub struct SondeConfig {
     pub git_branch: Option<ModuleConfig>,
     pub active_sessions: Option<ModuleConfig>,
     pub model_suggestion: Option<ModuleConfig>,
+    pub project: Option<ModuleConfig>,
     pub mascot: Option<MascotConfig>,
     pub notifications: Option<NotificationsConfig>,
     pub custom: Option<HashMap<String, CustomModuleConfig>>,
@@ -124,6 +125,13 @@ pub fn default_powerline_lines() -> Vec<String> {
     ]
 }
 
+pub fn default_sonde_lines() -> Vec<String> {
+    vec![
+        "$sonde.project $sonde.git_branch $sonde.model $sonde.usage_5h $sonde.usage_7d $sonde.pacing $sonde.context_bar".to_string(),
+        "$sonde.promo_badge".to_string(),
+    ]
+}
+
 /// Expand a leading `~` to the user's home directory.
 #[allow(dead_code)]
 pub fn expand_tilde(path: &str) -> PathBuf {
@@ -215,7 +223,7 @@ mod tests {
         let file: ConfigFile = toml::from_str(toml_str).unwrap();
         let cfg = file.sonde.unwrap();
         assert_eq!(cfg.lines.as_ref().unwrap().len(), 2);
-        assert_eq!(cfg.theme.as_deref(), Some("catppuccin-mocha"));
+        assert_eq!(cfg.theme.as_deref(), Some("sonde"));
     }
 
     #[test]
