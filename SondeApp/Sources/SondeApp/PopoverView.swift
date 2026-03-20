@@ -10,6 +10,13 @@ private func hex(_ hex: UInt) -> Color {
     Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
 }
 
+// Shared color constants — single source of truth
+enum SondeColors {
+    static let brandGreen = Color(red: 0.114, green: 0.620, blue: 0.459)
+    static let settingsLightBlue = Color(red: 0.15, green: 0.2, blue: 0.65)
+    static let chipGridDarkBg = Color(white: 0.12)
+}
+
 enum PopoverTheme: String, CaseIterable {
     case liquidGlass = "Liquid Glass"
     case system = "System"
@@ -95,9 +102,9 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .liquidGlass: .secondary
         case .terminal: Self.amberDim
-        case .cyberpunk: hex(0x6B7B8D)
-        case .synthwave: hex(0x9B7EC8)
-        case .solarFlare: hex(0x8B5A3A)
+        case .cyberpunk: hex(0x8FA4B8)
+        case .synthwave: hex(0xC4A0E8)
+        case .solarFlare: hex(0xC08050)
         case .system: isDark ? hex(0x98989D) : hex(0x3C3C43).opacity(0.6)
         case .sonde: hex(0xA6ADC8)
         }
@@ -731,10 +738,10 @@ private struct HeaderBar: View {
                 HStack(spacing: 0) {
                     Text("sond")
                         .font(.system(size: 16, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Color(red: 0.114, green: 0.620, blue: 0.459))
+                        .foregroundStyle(SondeColors.brandGreen)
                     Text("e")
                         .font(.system(size: 16, weight: .semibold, design: .default))
-                        .foregroundStyle(Color(red: 0.114, green: 0.620, blue: 0.459))
+                        .foregroundStyle(SondeColors.brandGreen)
                 }
             }
             .help(lastUpdatedText)

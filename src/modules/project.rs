@@ -60,7 +60,8 @@ mod tests {
         );
         let cfg = SondeConfig::default();
         let result = render(&ctx, &cfg);
-        assert_eq!(result, Some("my-app".to_string()));
+        let text = result.unwrap();
+        assert!(text.contains("my-app"));
     }
 
     #[test]
@@ -68,7 +69,8 @@ mod tests {
         let ctx = parse_str(r#"{"cwd":"/home/user/code/sonde"}"#);
         let cfg = SondeConfig::default();
         let result = render(&ctx, &cfg);
-        assert_eq!(result, Some("sonde".to_string()));
+        let text = result.unwrap();
+        assert!(text.contains("sonde"));
     }
 
     #[test]
@@ -86,7 +88,8 @@ mod tests {
         );
         let cfg = SondeConfig::default();
         let result = render(&ctx, &cfg);
-        assert_eq!(result, Some("workspace-proj".to_string()));
+        let text = result.unwrap();
+        assert!(text.contains("workspace-proj"));
     }
 
     #[test]

@@ -45,20 +45,18 @@ struct OnboardingView: View {
                 Divider().overlay(theme.dividerColor)
 
                 HStack {
-                    if currentStep > 0 {
-                        Button {
-                            withAnimation { currentStep = max(0, currentStep - 1) }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 10, weight: .semibold))
-                                Text("Back")
-                                    .font(.system(size: 12, weight: .medium))
-                            }
-                            .foregroundStyle(theme.headerAccent)
+                    Button {
+                        withAnimation { currentStep = max(0, currentStep - 1) }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 10, weight: .semibold))
+                            Text("Back")
+                                .font(.system(size: 12, weight: .medium))
                         }
-                        .buttonStyle(.borderless)
+                        .foregroundStyle(theme.headerAccent)
                     }
+                    .buttonStyle(.borderless)
 
                     Spacer()
 
@@ -118,10 +116,10 @@ private struct WelcomeStep: View {
                         .foregroundStyle(theme.textPrimary)
                     Text("sond")
                         .font(.system(size: 20, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Color(red: 0.114, green: 0.620, blue: 0.459))
+                        .foregroundStyle(SondeColors.brandGreen)
                     Text("e")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(Color(red: 0.114, green: 0.620, blue: 0.459))
+                        .foregroundStyle(SondeColors.brandGreen)
                 }
 
                 Text("Precision instrumentation for your AI usage.\nMonitor rate limits, sessions, and pacing in real-time.")
@@ -139,7 +137,7 @@ private struct WelcomeStep: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 10)
-                    .background(Color(red: 0.114, green: 0.620, blue: 0.459), in: RoundedRectangle(cornerRadius: 8))
+                    .background(SondeColors.brandGreen, in: RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.borderless)
 
@@ -589,7 +587,7 @@ private struct DoneStep: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 10)
-                    .background(Color(red: 0.114, green: 0.620, blue: 0.459), in: RoundedRectangle(cornerRadius: 8))
+                    .background(SondeColors.brandGreen, in: RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.borderless)
 

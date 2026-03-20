@@ -192,19 +192,9 @@ struct SettingsTab: View {
         return isDarkTheme ? Color(white: 0.95) : Color(white: 0.08)
     }
 
-    /// Accent color for dropdown buttons.
-    private var dropdownTextColor: Color {
-        isDarkTheme ? theme.headerAccent : Color(red: 0.15, green: 0.2, blue: 0.65)
-    }
-
-    /// Background for dropdown pills.
-    private var dropdownBgColor: Color {
-        isDarkTheme ? theme.headerAccent.opacity(0.15) : Color(red: 0.15, green: 0.2, blue: 0.65).opacity(0.1)
-    }
-
     /// Toggle accent color.
     private var toggleAccent: Color {
-        isDarkTheme ? theme.headerAccent : Color(red: 0.15, green: 0.2, blue: 0.65)
+        isDarkTheme ? theme.headerAccent : SondeColors.settingsLightBlue
     }
 
     @ViewBuilder
@@ -370,7 +360,7 @@ private struct ChipPickerButton<T: Equatable>: View {
         }
         .padding(8)
         .frame(minWidth: 180)
-        .background(isDark ? Color(white: 0.12) : .white)
+        .background(isDark ? SondeColors.chipGridDarkBg : .white)
     }
 }
 
@@ -463,7 +453,7 @@ private struct ThemeChipPicker: View {
             }
             .padding(8)
             .frame(minWidth: 180)
-            .background(isDark ? Color(white: 0.12) : .white)
+            .background(isDark ? SondeColors.chipGridDarkBg : .white)
         }
     }
 }
