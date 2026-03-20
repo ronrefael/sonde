@@ -451,9 +451,11 @@ struct PopoverView: View {
     @ObservedObject var viewModel: SondeViewModel
     @AppStorage("popoverTheme") private var themeName: String = PopoverTheme.system.rawValue
     @AppStorage("appearanceMode") private var appearanceMode: String = "auto"
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var showProjects = false
     @State private var showSettings = false
+    @State private var dismissedBanners: Set<String> = []
 
     private var theme: PopoverTheme {
         PopoverTheme(rawValue: themeName) ?? .system
@@ -483,81 +485,148 @@ struct PopoverView: View {
         }
     }
 
+    /// Compute active status banner conditions (reappear on refresh if not dismissed).
+    private var activeBannerConditions: [StatusBannerCondition] {
+        var conditions: [StatusBannerCondition] = []
+
+        // Check Claude Code installed
+        let homeDir: URL = {
+            if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir {
+                return URL(fileURLWithPath: String(cString: dir))
+            }
+            return FileManager.default.homeDirectoryForCurrentUser
+        }()
+        if !FileManager.default.fileExists(atPath: homeDir.appendingPathComponent(".claude").path) {
+            conditions.append(.claudeNotInstalled)
+        }
+
+        // Check OAuth token
+        if CredentialProvider.getOAuthToken() == nil {
+            conditions.append(.authMissing)
+        }
+
+        // Check data staleness (>10 min old)
+        if let lastUpdated = viewModel.lastUpdated,
+           Date().timeIntervalSince(lastUpdated) > 600 {
+            conditions.append(.dataStale)
+        }
+
+        // Check loading state (rate limited / refreshing)
+        if viewModel.isLoading && viewModel.lastUpdated != nil {
+            conditions.append(.rateLimited)
+        }
+
+        return conditions.filter { !dismissedBanners.contains($0.id) }
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            HeaderBar(
-                theme: theme,
-                lastUpdated: viewModel.lastUpdated,
-                updateAvailable: viewModel.updateAvailable,
-                promoActive: viewModel.promoActive,
-                promoCountdown: viewModel.promoCountdown,
-                promoShortLabel: viewModel.promoShortLabel,
-                promoDescription: viewModel.promoDescription,
-                promoUrl: viewModel.promoUrl,
-                agentName: viewModel.session.agentName
-            )
-
-            Divider().overlay(theme.dividerColor)
-
-            // Live Session Strip (between header and scroll, fixed)
-            if hasActiveSession {
-                LiveSessionStrip(
+        if !hasCompletedOnboarding {
+            OnboardingView(theme: theme, onComplete: { hasCompletedOnboarding = true })
+                .frame(width: 380, height: 595)
+                .background(theme.popoverBackground)
+                .overlay {
+                    if theme.hasScanlines { ScanlineOverlay() }
+                }
+                .preferredColorScheme(colorScheme)
+        } else {
+            VStack(spacing: 0) {
+                HeaderBar(
                     theme: theme,
-                    session: viewModel.session,
-                    liveTimer: viewModel.liveSessionDuration
+                    lastUpdated: viewModel.lastUpdated,
+                    updateAvailable: viewModel.updateAvailable,
+                    promoActive: viewModel.promoActive,
+                    promoCountdown: viewModel.promoCountdown,
+                    promoShortLabel: viewModel.promoShortLabel,
+                    promoDescription: viewModel.promoDescription,
+                    promoUrl: viewModel.promoUrl,
+                    agentName: viewModel.session.agentName
                 )
-                .animation(.easeInOut(duration: 0.3), value: hasActiveSession)
 
                 Divider().overlay(theme.dividerColor)
-            }
 
-            if showSettings {
-                SettingsTab(
+                // Status banners (between header and session strip)
+                let banners = activeBannerConditions
+                if !banners.isEmpty {
+                    StatusBannerView(
+                        conditions: banners,
+                        theme: theme,
+                        onDismiss: { condition in
+                            dismissedBanners.insert(condition.id)
+                        }
+                    )
+                }
+
+                // Live Session Strip (between header and scroll, fixed)
+                if hasActiveSession {
+                    LiveSessionStrip(
+                        theme: theme,
+                        session: viewModel.session,
+                        liveTimer: viewModel.liveSessionDuration
+                    )
+                    .animation(.easeInOut(duration: 0.3), value: hasActiveSession)
+
+                    Divider().overlay(theme.dividerColor)
+                }
+
+                if showSettings {
+                    SettingsTab(
+                        theme: theme,
+                        themeName: $themeName,
+                        showSettings: $showSettings
+                    )
+                } else if showProjects {
+                    ProjectsView(
+                        projects: viewModel.allProjects,
+                        showProjects: $showProjects,
+                        theme: theme
+                    )
+                } else if viewModel.isLoading {
+                    LoadingPlaceholder(theme: theme)
+                } else {
+                    DashboardContent(
+                        theme: theme,
+                        viewModel: viewModel,
+                        showProjects: $showProjects
+                    )
+                }
+
+                Divider().overlay(theme.dividerColor)
+
+                FooterBar(
                     theme: theme,
-                    themeName: $themeName,
+                    onRefresh: {
+                        // Reset dismissed banners on manual refresh so persistent conditions reappear
+                        dismissedBanners.removeAll()
+                        Task {
+                            await viewModel.refresh()
+                            ToastManager.shared.show(message: "Data refreshed", icon: nil)
+                        }
+                    },
+                    onExport: { exportUsageData() },
+                    onCopySummary: { copySummary() },
+                    onToggleWatcher: {
+                        viewModel.showWatcher.toggle()
+                        if viewModel.showWatcher {
+                            FloatingWatcherPanel.shared.show(viewModel: viewModel)
+                        } else {
+                            FloatingWatcherPanel.shared.close()
+                        }
+                    },
                     showSettings: $showSettings
                 )
-            } else if showProjects {
-                ProjectsView(
-                    projects: viewModel.allProjects,
-                    showProjects: $showProjects,
-                    theme: theme
-                )
-            } else if viewModel.isLoading {
-                LoadingPlaceholder(theme: theme)
-            } else {
-                DashboardContent(
-                    theme: theme,
-                    viewModel: viewModel,
-                    showProjects: $showProjects
-                )
             }
-
-            Divider().overlay(theme.dividerColor)
-
-            FooterBar(
-                theme: theme,
-                onRefresh: { Task { await viewModel.refresh() } },
-                onExport: { exportUsageData() },
-                onCopySummary: { copySummary() },
-                onToggleWatcher: {
-                    viewModel.showWatcher.toggle()
-                    if viewModel.showWatcher {
-                        FloatingWatcherPanel.shared.show(viewModel: viewModel)
-                    } else {
-                        FloatingWatcherPanel.shared.close()
-                    }
-                },
-                showSettings: $showSettings
-            )
+            .frame(width: 380, height: 595)
+            .background(theme.popoverBackground)
+            .overlay {
+                if theme.hasScanlines { ScanlineOverlay() }
+            }
+            .preferredColorScheme(colorScheme)
+            .onAppear {
+                // Reset dismissed banners each time popover appears
+                dismissedBanners.removeAll()
+                Task { await viewModel.refresh() }
+            }
         }
-        .frame(width: 380, height: 595)
-        .background(theme.popoverBackground)
-        .overlay {
-            if theme.hasScanlines { ScanlineOverlay() }
-        }
-        .preferredColorScheme(colorScheme)
-        .onAppear { Task { await viewModel.refresh() } }
     }
 
     private func copySummary() {

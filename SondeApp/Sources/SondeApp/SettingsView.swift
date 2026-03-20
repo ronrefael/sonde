@@ -120,6 +120,25 @@ struct SettingsTab: View {
                             options: intervalOptions,
                         )
                     }
+                    thinDivider
+                    settingsRow("Run setup again") {
+                        Button {
+                            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+                            withAnimation(.easeInOut(duration: 0.2)) { showSettings = false }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 10))
+                                Text("Reset")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .foregroundStyle(theme.headerAccent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(theme.headerAccent.opacity(0.12), in: Capsule())
+                        }
+                        .buttonStyle(.borderless)
+                    }
                 }
             }
             .padding(.horizontal, 14)

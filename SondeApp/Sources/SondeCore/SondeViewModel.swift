@@ -264,10 +264,15 @@ public final class SondeViewModel: ObservableObject {
             }
             return nil
         }
-        guard let (usage, _, sessions, newSession, newCodexCost) = result else {
+        guard let (usage, usageTimestamp, sessions, newSession, newCodexCost) = result else {
             logger.warning("refresh() timed out after 10s")
             if isLoading { isLoading = false }
             return
+        }
+
+        // Detect stale/cached data — if usage timestamp is >2 min old, data came from cache
+        if usage != nil, let ts = usageTimestamp, Date().timeIntervalSince(ts) > 120 {
+            NotificationManager.shared.toastHandler?("Using cached data", "\u{1F4BE}")
         }
 
         // Last updated — use current time whenever we complete a refresh
