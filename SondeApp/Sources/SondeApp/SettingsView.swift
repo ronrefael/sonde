@@ -108,8 +108,8 @@ struct SettingsTab: View {
                         )
                     }
                     .padding(.vertical, 3)
-                    .opacity(theme == .system ? 1.0 : 0.3)
-                    .allowsHitTesting(theme == .system)
+                    .opacity(theme == .system || theme == .sonde ? 1.0 : 0.3)
+                    .allowsHitTesting(theme == .system || theme == .sonde)
                 }
 
                 // DATA (bottom)
@@ -148,6 +148,10 @@ struct SettingsTab: View {
 
     // MARK: - Components
 
+    private var useSoftCards: Bool {
+        theme == .system || theme == .sonde
+    }
+
     @ViewBuilder
     private func sectionCard(_ title: String, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -157,25 +161,35 @@ struct SettingsTab: View {
                 .tracking(0.8)
                 .padding(.bottom, 6)
 
-            VStack(spacing: 0) {
+            let card = VStack(spacing: 0) {
                 content()
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(theme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(theme.borderColor, lineWidth: 1)
-            )
+            .background(theme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+
+            if useSoftCards {
+                card.shadow(color: Color.black.opacity(0.15), radius: 8, y: 2)
+            } else {
+                card.overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(theme.borderColor, lineWidth: 1)
+                )
+            }
         }
     }
 
     /// Whether the current theme has a dark card background.
-    private var isDarkTheme: Bool { theme.isDark }
+    /// Liquid Glass is translucent — needs dark text despite isDark=true.
+    private var isDarkTheme: Bool {
+        if theme == .liquidGlass { return false }
+        return theme.isDark
+    }
 
     /// Text color for row labels.
     private var rowTextColor: Color {
-        isDarkTheme ? Color(white: 0.95) : Color(white: 0.08)
+        if theme == .liquidGlass { return Color(white: 0.15) }
+        return isDarkTheme ? Color(white: 0.95) : Color(white: 0.08)
     }
 
     /// Accent color for dropdown buttons.
