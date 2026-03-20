@@ -16,6 +16,26 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Sonde branding header — visible on steps 1+ (not welcome)
+            if currentStep > 0 {
+                HStack(spacing: 6) {
+                    SondeLogoMascot()
+                        .frame(width: 18, height: 18)
+                    HStack(spacing: 0) {
+                        Text("sond")
+                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            .foregroundStyle(SondeColors.brandGreen)
+                        Text("e")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(SondeColors.brandGreen)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 4)
+            }
+
             TabView(selection: $currentStep) {
                 WelcomeStep(theme: theme) {
                     withAnimation { currentStep = 1 }
