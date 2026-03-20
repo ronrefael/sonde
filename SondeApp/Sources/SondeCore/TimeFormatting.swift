@@ -19,11 +19,16 @@ public enum TimeFormatting {
         if diff <= 0 { return "" }
 
         let totalSeconds = Int(diff)
-        let hours = totalSeconds / 3600
+        let totalHours = totalSeconds / 3600
         let mins = (totalSeconds % 3600) / 60
 
-        if hours > 0 {
-            return "\(hours)h\(String(format: "%02d", mins))m"
+        if totalHours >= 24 {
+            let days = totalHours / 24
+            let hours = totalHours % 24
+            return "\(days)d \(hours)h\(String(format: "%02d", mins))m"
+        }
+        if totalHours > 0 {
+            return "\(totalHours)h\(String(format: "%02d", mins))m"
         }
         return "\(mins)m"
     }
