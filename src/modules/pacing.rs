@@ -138,6 +138,27 @@ const RATE_WINDOW_SECS: u64 = 900;
 /// unlikely to care about hitting the limit.
 const MIN_UTILIZATION: f64 = 15.0;
 
+/// Checks if the user has been in a heavy usage pattern (peak 5h util >= 80% on 3+ of last 5 days).
+/// If so, returns a lower threshold to show predictions earlier as a proactive warning.
+fn heavy_week_threshold(entries: &[history::HistoryEntry]) -> f64 {
+    let now_epoch = chrono::Utc::now().timestamp() as u64;
+    let five_days_ago = now_epoch.saturating_sub(5 * 86400);
+
+    // Group entries by day and find peak utilization per day
+    let mut daily_peaks: std::collections::HashMap<u64, f64> = std::collections::HashMap::new();
+    for e in entries {
+        if e.timestamp < five_days_ago { continue; }
+        if let Some(util) = e.five_hour_util {
+            let day = e.timestamp / 86400;
+            let peak = daily_peaks.entry(day).or_insert(0.0);
+            if util > *peak { *peak = util; }
+        }
+    }
+
+    let heavy_days = daily_peaks.values().filter(|&&p| p >= 80.0).count();
+    if heavy_days >= 3 { 10.0 } else { MIN_UTILIZATION }
+}
+
 /// Predicts time until utilization hits 100% using recent differential rates
 /// from persisted history, EWMA smoothing, and confidence gating.
 ///
@@ -145,18 +166,29 @@ const MIN_UTILIZATION: f64 = 15.0;
 /// or the user is not projected to hit the limit.
 pub fn predict_time_to_limit(utilization: f64, resets_at: Option<&str>) -> Option<String> {
     let entries = history::read_history();
-    predict_time_to_limit_with_history(utilization, resets_at, &entries, chrono::Utc::now())
+    let threshold = heavy_week_threshold(&entries);
+    predict_time_to_limit_with_history_threshold(utilization, resets_at, &entries, chrono::Utc::now(), threshold)
 }
 
-/// Inner implementation that accepts history and clock for testability.
+/// Inner implementation that accepts history, clock, and threshold for testability.
 pub fn predict_time_to_limit_with_history(
     utilization: f64,
     resets_at: Option<&str>,
     history: &[history::HistoryEntry],
     now: chrono::DateTime<chrono::Utc>,
 ) -> Option<String> {
-    // --- Gate 1: minimum utilization ---
-    if utilization <= MIN_UTILIZATION {
+    predict_time_to_limit_with_history_threshold(utilization, resets_at, history, now, MIN_UTILIZATION)
+}
+
+fn predict_time_to_limit_with_history_threshold(
+    utilization: f64,
+    resets_at: Option<&str>,
+    history: &[history::HistoryEntry],
+    now: chrono::DateTime<chrono::Utc>,
+    threshold: f64,
+) -> Option<String> {
+    // --- Gate 1: minimum utilization (may be lowered during heavy weeks) ---
+    if utilization <= threshold {
         return None;
     }
 
@@ -183,15 +215,13 @@ pub fn predict_time_to_limit_with_history(
     let now_epoch = now.timestamp() as u64;
     let rate_cutoff = now_epoch.saturating_sub(RATE_WINDOW_SECS);
 
-    // --- Filter history to current 5h window AND recent rate window ---
-    // We need entries that are:
-    //   1. Within the current 5h window (after window_start_epoch)
-    //   2. Within the recent rate window (after rate_cutoff)
-    // Condition 2 is stricter, so it's the only one we need, but we also
-    // check condition 1 to handle window resets correctly.
+    // --- Filter history to recent rate window only ---
+    // We intentionally do NOT filter by window_start_epoch so that the user's
+    // rate carries across 5h window resets. A user working through a reset
+    // should see continuous prediction rather than a 3-5 minute blank gap.
     let relevant: Vec<&history::HistoryEntry> = history
         .iter()
-        .filter(|e| e.timestamp >= window_start_epoch && e.timestamp >= rate_cutoff)
+        .filter(|e| e.timestamp >= rate_cutoff)
         .filter(|e| e.five_hour_util.is_some())
         .collect();
 
@@ -207,17 +237,30 @@ pub fn predict_time_to_limit_with_history(
 
     // --- Compute differential rates ---
     // Build the sample series: history entries + current live reading.
-    // Each entry gives (timestamp, utilization).
     let mut samples: Vec<(f64, f64)> = relevant
         .iter()
         .map(|e| (e.timestamp as f64, e.five_hour_util.unwrap()))
         .collect();
     samples.push((now_epoch as f64, utilization));
-
-    // Sort by timestamp (should already be sorted, but be safe)
     samples.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
+    // Session idle timeout: if there's a 30+ minute gap with near-zero
+    // utilization change, only use samples after the gap (new session).
+    let idle_timeout_secs: f64 = 30.0 * 60.0;
+    let mut session_start_idx = 0;
+    for i in 1..samples.len() {
+        let dt = samples[i].0 - samples[i - 1].0;
+        let du = (samples[i].1 - samples[i - 1].1).abs();
+        if dt >= idle_timeout_secs && du < 5.0 {
+            session_start_idx = i;
+        }
+    }
+    if session_start_idx > 0 {
+        samples = samples[session_start_idx..].to_vec();
+    }
+
     // Compute pairwise differential rates (%/s)
+    // Skip window reset spikes (utilization drops > 30% between samples)
     let mut diff_rates: Vec<(f64, f64)> = Vec::with_capacity(samples.len() - 1); // (dt, rate)
     for i in 1..samples.len() {
         let dt = samples[i].0 - samples[i - 1].0;
@@ -225,7 +268,11 @@ pub fn predict_time_to_limit_with_history(
             continue; // skip duplicate timestamps
         }
         let du = samples[i].1 - samples[i - 1].1;
-        let rate = du / dt; // can be negative if utilization dropped (window sliding)
+        // A sharp drop (> 30%) indicates a window reset — skip this rate
+        if du < -30.0 {
+            continue;
+        }
+        let rate = du / dt;
         diff_rates.push((dt, rate));
     }
 
