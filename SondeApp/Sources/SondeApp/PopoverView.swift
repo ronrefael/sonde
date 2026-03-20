@@ -593,11 +593,8 @@ struct PopoverView: View {
         if !hasCompletedOnboarding {
             OnboardingView(theme: theme, onComplete: { hasCompletedOnboarding = true })
                 .frame(width: 380, height: 595)
-                .background(theme.popoverBackground)
-                .overlay {
-                    if theme.hasScanlines { ScanlineOverlay() }
-                }
-                .preferredColorScheme(colorScheme)
+                .background(Color(white: 0.97))
+                .preferredColorScheme(.light)
         } else {
             VStack(spacing: 0) {
                 HeaderBar(

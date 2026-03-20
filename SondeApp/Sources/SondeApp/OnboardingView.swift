@@ -42,7 +42,7 @@ struct OnboardingView: View {
 
             // Navigation controls
             if currentStep > 0 {
-                Divider().overlay(theme.dividerColor)
+                Divider().overlay(Color(white: 0.85))
 
                 HStack {
                     Button {
@@ -54,7 +54,7 @@ struct OnboardingView: View {
                             Text("Back")
                                 .font(.system(size: 12, weight: .medium))
                         }
-                        .foregroundStyle(theme.headerAccent)
+                        .foregroundStyle(SondeColors.brandGreen)
                     }
                     .buttonStyle(.borderless)
 
@@ -64,7 +64,7 @@ struct OnboardingView: View {
                     HStack(spacing: 6) {
                         ForEach(0..<totalSteps, id: \.self) { step in
                             Circle()
-                                .fill(step == currentStep ? theme.headerAccent : theme.borderColor)
+                                .fill(step == currentStep ? SondeColors.brandGreen : Color(white: 0.85))
                                 .frame(width: 6, height: 6)
                         }
                     }
@@ -81,7 +81,7 @@ struct OnboardingView: View {
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 10, weight: .semibold))
                             }
-                            .foregroundStyle(theme.headerAccent)
+                            .foregroundStyle(SondeColors.brandGreen)
                         }
                         .buttonStyle(.borderless)
                     } else {
@@ -98,7 +98,7 @@ struct OnboardingView: View {
                         onComplete()
                     }
                     .font(.system(size: 10))
-                    .foregroundStyle(theme.textSecondary.opacity(0.5))
+                    .foregroundStyle(Color(white: 0.4).opacity(0.5))
                     .buttonStyle(.borderless)
                     .padding(.bottom, 4)
                 }
@@ -124,7 +124,7 @@ private struct WelcomeStep: View {
                 HStack(spacing: 0) {
                     Text("Welcome to ")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(theme.textPrimary)
+                        .foregroundStyle(Color(white: 0.1))
                     Text("sond")
                         .font(.system(size: 20, weight: .bold, design: .monospaced))
                         .foregroundStyle(SondeColors.brandGreen)
@@ -135,7 +135,7 @@ private struct WelcomeStep: View {
 
                 Text("Precision instrumentation for your AI usage.\nMonitor rate limits, sessions, and pacing in real-time.")
                     .font(.system(size: 13))
-                    .foregroundStyle(theme.textSecondary)
+                    .foregroundStyle(Color(white: 0.4))
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
             }
@@ -171,27 +171,27 @@ private struct ClaudeCheckStep: View {
 
             Image(systemName: claudeFound ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(claudeFound ? theme.lowUtilColor : theme.highUtilColor)
+                .foregroundStyle(claudeFound ? Color(red: 0.18, green: 0.8, blue: 0.44) : Color(red: 0.9, green: 0.2, blue: 0.2))
 
             VStack(spacing: 8) {
                 Text("Claude Code")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(theme.textPrimary)
+                    .foregroundStyle(Color(white: 0.1))
 
                 if hasChecked {
                     if claudeFound {
                         Text("Claude Code is installed.")
                             .font(.system(size: 13))
-                            .foregroundStyle(theme.lowUtilColor)
+                            .foregroundStyle(Color(red: 0.18, green: 0.8, blue: 0.44))
                     } else {
                         VStack(spacing: 8) {
                             Text("Claude Code was not detected.")
                                 .font(.system(size: 13))
-                                .foregroundStyle(theme.highUtilColor)
+                                .foregroundStyle(Color(red: 0.9, green: 0.2, blue: 0.2))
 
                             Text("Install Claude Code to use sonde.")
                                 .font(.system(size: 12))
-                                .foregroundStyle(theme.textSecondary)
+                                .foregroundStyle(Color(white: 0.4))
 
                             Button {
                                 if let url = URL(string: "https://docs.anthropic.com/en/docs/claude-code/overview") {
@@ -204,10 +204,10 @@ private struct ClaudeCheckStep: View {
                                     Text("Download Claude Code")
                                         .font(.system(size: 12, weight: .medium))
                                 }
-                                .foregroundStyle(theme.headerAccent)
+                                .foregroundStyle(SondeColors.brandGreen)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 6)
-                                .background(theme.headerAccent.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                                .background(SondeColors.brandGreen.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
                             }
                             .buttonStyle(.borderless)
                         }
@@ -215,7 +215,7 @@ private struct ClaudeCheckStep: View {
                 } else {
                     Text("Checking for Claude Code installation...")
                         .font(.system(size: 13))
-                        .foregroundStyle(theme.textSecondary)
+                        .foregroundStyle(Color(white: 0.4))
                 }
             }
 
@@ -224,10 +224,10 @@ private struct ClaudeCheckStep: View {
             } label: {
                 Text("Check Again")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(theme.headerAccent)
+                    .foregroundStyle(SondeColors.brandGreen)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 6)
-                    .background(theme.headerAccent.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                    .background(SondeColors.brandGreen.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
             }
             .buttonStyle(.borderless)
 
@@ -258,27 +258,27 @@ private struct AuthCheckStep: View {
 
             Image(systemName: tokenFound ? "checkmark.shield.fill" : "shield.slash")
                 .font(.system(size: 48))
-                .foregroundStyle(tokenFound ? theme.lowUtilColor : theme.highUtilColor)
+                .foregroundStyle(tokenFound ? Color(red: 0.18, green: 0.8, blue: 0.44) : Color(red: 0.9, green: 0.2, blue: 0.2))
 
             VStack(spacing: 8) {
                 Text("Authentication")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(theme.textPrimary)
+                    .foregroundStyle(Color(white: 0.1))
 
                 if hasChecked {
                     if tokenFound {
                         Text("OAuth token found. You're signed in.")
                             .font(.system(size: 13))
-                            .foregroundStyle(theme.lowUtilColor)
+                            .foregroundStyle(Color(red: 0.18, green: 0.8, blue: 0.44))
                     } else {
                         VStack(spacing: 8) {
                             Text("OAuth token not found.")
                                 .font(.system(size: 13))
-                                .foregroundStyle(theme.highUtilColor)
+                                .foregroundStyle(Color(red: 0.9, green: 0.2, blue: 0.2))
 
                             Text("Sign in to Claude Code in your terminal first,\nthen check again.")
                                 .font(.system(size: 12))
-                                .foregroundStyle(theme.textSecondary)
+                                .foregroundStyle(Color(white: 0.4))
                                 .multilineTextAlignment(.center)
 
                             HStack(spacing: 4) {
@@ -287,17 +287,17 @@ private struct AuthCheckStep: View {
                                 Text("claude")
                                     .font(.system(size: 12, weight: .medium, design: .monospaced))
                             }
-                            .foregroundStyle(theme.textPrimary)
+                            .foregroundStyle(Color(white: 0.1))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(theme.cardBackground, in: RoundedRectangle(cornerRadius: 6))
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(theme.borderColor, lineWidth: 1))
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 6))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(white: 0.85), lineWidth: 1))
                         }
                     }
                 } else {
                     Text("Checking for OAuth credentials...")
                         .font(.system(size: 13))
-                        .foregroundStyle(theme.textSecondary)
+                        .foregroundStyle(Color(white: 0.4))
                 }
             }
 
@@ -306,10 +306,10 @@ private struct AuthCheckStep: View {
             } label: {
                 Text("Check Again")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(theme.headerAccent)
+                    .foregroundStyle(SondeColors.brandGreen)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 6)
-                    .background(theme.headerAccent.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                    .background(SondeColors.brandGreen.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
             }
             .buttonStyle(.borderless)
 
@@ -340,21 +340,21 @@ private struct StatuslineStep: View {
 
             Image(systemName: statuslineConfigured ? "checkmark.rectangle.fill" : "rectangle.bottomhalf.inset.filled")
                 .font(.system(size: 48))
-                .foregroundStyle(statuslineConfigured ? theme.lowUtilColor : theme.headerAccent)
+                .foregroundStyle(statuslineConfigured ? Color(red: 0.18, green: 0.8, blue: 0.44) : SondeColors.brandGreen)
 
             VStack(spacing: 8) {
                 Text("Terminal Statusline")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(theme.textPrimary)
+                    .foregroundStyle(Color(white: 0.1))
 
                 if statuslineConfigured {
                     Text("Statusline is already configured.")
                         .font(.system(size: 13))
-                        .foregroundStyle(theme.lowUtilColor)
+                        .foregroundStyle(Color(red: 0.18, green: 0.8, blue: 0.44))
                 } else {
                     Text("Enable the statusline in Claude Code to\nfeed live data to sonde.")
                         .font(.system(size: 13))
-                        .foregroundStyle(theme.textSecondary)
+                        .foregroundStyle(Color(white: 0.4))
                         .multilineTextAlignment(.center)
                 }
             }
@@ -369,22 +369,22 @@ private struct StatuslineStep: View {
                     .background(Color.purple, in: RoundedRectangle(cornerRadius: 3))
                 Text("|")
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(theme.textSecondary.opacity(0.4))
+                    .foregroundStyle(Color(white: 0.4).opacity(0.4))
                 Text("42% 5h")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(theme.lowUtilColor)
+                    .foregroundStyle(Color(red: 0.18, green: 0.8, blue: 0.44))
                 Text("|")
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(theme.textSecondary.opacity(0.4))
+                    .foregroundStyle(Color(white: 0.4).opacity(0.4))
                 Text("12% 7d")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(theme.lowUtilColor)
+                    .foregroundStyle(Color(red: 0.18, green: 0.8, blue: 0.44))
                 Text("|")
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(theme.textSecondary.opacity(0.4))
+                    .foregroundStyle(Color(white: 0.4).opacity(0.4))
                 Text("2h 14m")
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(theme.textSecondary)
+                    .foregroundStyle(Color(white: 0.4))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
@@ -393,7 +393,7 @@ private struct StatuslineStep: View {
             if let error = configError {
                 Text(error)
                     .font(.system(size: 11))
-                    .foregroundStyle(theme.highUtilColor)
+                    .foregroundStyle(Color(red: 0.9, green: 0.2, blue: 0.2))
             }
 
             if !statuslineConfigured {
@@ -412,14 +412,14 @@ private struct StatuslineStep: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)
-                        .background(theme.headerAccent, in: RoundedRectangle(cornerRadius: 8))
+                        .background(SondeColors.brandGreen, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.borderless)
                     .disabled(isConfiguring)
 
                     Text("Skip")
                         .font(.system(size: 11))
-                        .foregroundStyle(theme.textSecondary)
+                        .foregroundStyle(Color(white: 0.4))
                         .help("You can configure this later")
                 }
             }
@@ -504,11 +504,11 @@ private struct ThemeStep: View {
             VStack(spacing: 8) {
                 Text("Choose a Theme")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(theme.textPrimary)
+                    .foregroundStyle(Color(white: 0.1))
 
                 Text("Pick a look that suits your style.")
                     .font(.system(size: 13))
-                    .foregroundStyle(theme.textSecondary)
+                    .foregroundStyle(Color(white: 0.4))
             }
 
             LazyVGrid(columns: columns, spacing: 10) {
@@ -537,12 +537,12 @@ private struct ThemeStep: View {
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
-                                        .stroke(isSelected ? t.headerAccent : theme.borderColor, lineWidth: isSelected ? 2 : 1)
+                                        .stroke(isSelected ? t.headerAccent : Color(white: 0.85), lineWidth: isSelected ? 2 : 1)
                                 )
 
                             Text(t.rawValue)
                                 .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
-                                .foregroundStyle(isSelected ? theme.headerAccent : theme.textSecondary)
+                                .foregroundStyle(isSelected ? SondeColors.brandGreen : Color(white: 0.4))
                                 .lineLimit(1)
                         }
                     }
@@ -573,11 +573,11 @@ private struct DoneStep: View {
             VStack(spacing: 8) {
                 Text("You're all set!")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(theme.textPrimary)
+                    .foregroundStyle(Color(white: 0.1))
 
                 Text("sonde is ready to monitor your AI usage.")
                     .font(.system(size: 13))
-                    .foregroundStyle(theme.textSecondary)
+                    .foregroundStyle(Color(white: 0.4))
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -587,8 +587,8 @@ private struct DoneStep: View {
                 tipRow(icon: "bell", text: "Get notified when usage gets high")
             }
             .padding(12)
-            .background(theme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.borderColor, lineWidth: 1))
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(white: 0.85), lineWidth: 1))
 
             Spacer()
 
@@ -611,11 +611,11 @@ private struct DoneStep: View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 11))
-                .foregroundStyle(theme.headerAccent)
+                .foregroundStyle(SondeColors.brandGreen)
                 .frame(width: 16)
             Text(text)
                 .font(.system(size: 12))
-                .foregroundStyle(theme.textPrimary)
+                .foregroundStyle(Color(white: 0.1))
         }
     }
 }
