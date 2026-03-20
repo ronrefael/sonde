@@ -69,6 +69,21 @@ public actor UsageService {
 
     /// Returns (data, lastUpdated) — lastUpdated is nil if no data ever fetched.
     public func fetchUsage() async -> (UsageData?, Date?) {
+        // Always check Rust cache first — the Rust binary gets fresh data
+        // on every Claude Code statusline render and writes it here.
+        // This is more reliable than our own API calls which get rate-limited.
+        if let fromRust = readRustCache() {
+            let rustAge = Date().timeIntervalSince(fromRust.timestamp)
+            let inMemoryAge = lastSuccessfulFetch.map { Date().timeIntervalSince($0) } ?? .infinity
+
+            // Use Rust cache if it's fresher than our in-memory data
+            if rustAge < inMemoryAge || rustAge < 120 { // Within 2 min = fresh enough
+                cachedData = fromRust.data
+                lastSuccessfulFetch = fromRust.timestamp
+                return (fromRust.data, fromRust.timestamp)
+            }
+        }
+
         // Return in-memory cached if still fresh
         if let cached = cachedData,
            let lastFetch = lastSuccessfulFetch,
@@ -81,17 +96,11 @@ public actor UsageService {
         if let lastAttempt = lastAPIAttempt, consecutiveFailures > 0 {
             let backoff = min(30.0 * pow(2.0, Double(consecutiveFailures - 1)), 300)
             if Date().timeIntervalSince(lastAttempt) < backoff {
-                // Still in backoff — try Rust cache or return stale
-                if let fromRust = readRustCache() {
-                    cachedData = fromRust.data
-                    lastSuccessfulFetch = fromRust.timestamp
-                    return (fromRust.data, fromRust.timestamp)
-                }
                 return (cachedData, lastSuccessfulFetch)
             }
         }
 
-        // Try direct API call (works without Claude Code running)
+        // Try direct API call
         lastAPIAttempt = Date()
         if let token = CredentialProvider.getOAuthToken() {
             var request = URLRequest(url: Self.apiURL)
@@ -123,13 +132,6 @@ public actor UsageService {
             }
         } else {
             logger.warning("No OAuth token available — skipping API call")
-        }
-
-        // Fallback: try Rust cache
-        if let fromRust = readRustCache() {
-            cachedData = fromRust.data
-            lastSuccessfulFetch = fromRust.timestamp
-            return (fromRust.data, fromRust.timestamp)
         }
 
         // Last resort: return whatever we have
