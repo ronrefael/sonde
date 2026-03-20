@@ -52,7 +52,7 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x141726)
         case .synthwave: hex(0x2D1B4E)
         case .solarFlare: hex(0x1A0A12)
-        case .system: isDark ? hex(0x2C2C2E) : Color.white.opacity(0.6)
+        case .system: isDark ? hex(0x2C2C2E) : Color(white: 0.95)
         }
     }
 
@@ -63,7 +63,7 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x18E0FF)
         case .synthwave: hex(0xFF2975)
         case .solarFlare: hex(0xFF6B2B)
-        case .system: isDark ? hex(0x0A84FF) : hex(0x0071E3)
+        case .system: isDark ? hex(0x0A84FF) : hex(0x007AFF) // Apple system blue
         }
     }
 
@@ -74,7 +74,7 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0xE0E0E0)
         case .synthwave: hex(0xF0E6FF)
         case .solarFlare: hex(0xFFE0C8)
-        case .system: isDark ? hex(0xF5F5F7) : hex(0x1D1D1F)
+        case .system: isDark ? Color(white: 0.95) : Color(white: 0.0)
         }
     }
 
@@ -85,7 +85,7 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x6B7B8D)
         case .synthwave: hex(0x9B7EC8)
         case .solarFlare: hex(0x8B5A3A)
-        case .system: isDark ? hex(0x98989D) : hex(0x86868B)
+        case .system: isDark ? hex(0x98989D) : hex(0x3C3C43).opacity(0.6) // Apple secondary label
         }
     }
 
@@ -110,7 +110,7 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x18E0FF).opacity(0.2)
         case .synthwave: hex(0xFF2975).opacity(0.2)
         case .solarFlare: hex(0xFF6B2B).opacity(0.2)
-        case .system: isDark ? Color.white.opacity(0.1) : Color.primary.opacity(0.08)
+        case .system: isDark ? Color.white.opacity(0.12) : hex(0xC6C6C8).opacity(0.5) // Apple separator
         }
     }
 
@@ -121,7 +121,7 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x0B0C10)
         case .synthwave: hex(0x1A1025)
         case .solarFlare: hex(0x0D0208)
-        case .system: isDark ? hex(0x1C1C1E) : hex(0xF5F5F7)
+        case .system: isDark ? hex(0x1C1C1E) : hex(0xF2F2F7) // Apple grouped bg
         }
     }
 

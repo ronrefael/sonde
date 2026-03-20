@@ -15,7 +15,7 @@ struct SettingsTab: View {
     @AppStorage("pollInterval") var pollInterval: Double = 30
 
     private let appearanceOptions: [(String, String)] = [
-        ("auto", "Auto (System)"),
+        ("auto", "Auto"),
         ("light", "Light"),
         ("dark", "Dark"),
     ]
@@ -94,17 +94,6 @@ struct SettingsTab: View {
 
                 // DISPLAY
                 sectionCard("DISPLAY") {
-                    // Appearance only for System theme (others are fixed dark)
-                    if theme == .system {
-                        settingsRow("Appearance") {
-                            themedMenu(
-                                selection: $appearanceMode,
-                                options: appearanceOptions,
-                                label: { appearanceOptions.first { $0.0 == appearanceMode }?.1 ?? "Auto" }
-                            )
-                        }
-                        thinDivider
-                    }
                     settingsRow("Show costs") {
                         sondeToggle($showCosts)
                     }
@@ -141,9 +130,25 @@ struct SettingsTab: View {
                         }
                         .buttonStyle(.borderless)
                     }
+                    thinDivider
+                    // Light/Dark — always visible, greyed when not System theme
+                    HStack {
+                        Text("Light / Dark")
+                            .font(.system(size: 12))
+                            .foregroundColor(rowTextColor)
+                        Spacer()
+                        themedMenu(
+                            selection: $appearanceMode,
+                            options: appearanceOptions,
+                            label: { appearanceOptions.first { $0.0 == appearanceMode }?.1 ?? "Auto" }
+                        )
+                    }
+                    .padding(.vertical, 3)
+                    .opacity(theme == .system ? 1.0 : 0.3)
+                    .allowsHitTesting(theme == .system)
                 }
 
-                // DATA
+                // DATA (bottom)
                 sectionCard("DATA") {
                     settingsRow("Refresh interval") {
                         themedMenu(
