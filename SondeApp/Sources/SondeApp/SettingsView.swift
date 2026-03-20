@@ -102,7 +102,7 @@ struct SettingsTab: View {
                             options: timerOptions,
                         )
                     }
-                    .padding(.vertical, 3)
+                    .padding(.vertical, 6)
                     .opacity(showMenuBarCountdown ? 1.0 : 0.3)
                     .allowsHitTesting(showMenuBarCountdown)
                 }
@@ -233,7 +233,7 @@ struct SettingsTab: View {
             Spacer()
             trailing()
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 6)
     }
 
     /// Chip-style picker — selected value shows as an accent chip.
