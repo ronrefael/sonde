@@ -821,8 +821,7 @@ private struct PromoBadge: View {
                             .foregroundStyle(theme.textSecondary)
                     }
                 } else {
-                    let endsLabel = promoShortLabel == "⚡" || promoShortLabel.isEmpty ? "Promo" : promoShortLabel.lowercased()
-                    Text("\(endsLabel) ends in \(promoCountdown)")
+                    Text("Off-peak in \(promoCountdown)")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(theme.textPrimary)
                 }
