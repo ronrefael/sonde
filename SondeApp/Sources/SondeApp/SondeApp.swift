@@ -28,11 +28,9 @@ struct SondeMenuBarApp: App {
 }
 
 /// The tiny label shown in the menu bar.
-/// Shows: daily spend | remaining % | reset countdown (optionally 2x prefix).
+/// Shows: remaining % | reset countdown (optionally 2x prefix).
 struct MenuBarLabel: View {
     @ObservedObject var viewModel: SondeViewModel
-    @AppStorage("showCosts") private var showCosts: Bool = false
-    @AppStorage("showMenuBarCost") private var showMenuBarCost: Bool = true
     @AppStorage("showMenuBarPromo") private var showMenuBarPromo: Bool = true
     @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown: Bool = true
     @AppStorage("menuBarTimerMode") private var menuBarTimerMode: String = "5h_left"
@@ -62,14 +60,6 @@ struct MenuBarLabel: View {
     private var labelText: String {
         if viewModel.isLoading { return "sonde" }
         var parts: [String] = []
-
-        // Daily spend total — only show when enabled and there's a real cost
-        if showMenuBarCost && showCosts {
-            let dailyTotal = viewModel.dailyClaudeCost + viewModel.dailyCodexCost
-            if dailyTotal >= 0.01 {
-                parts.append(String(format: "$%.2f", dailyTotal))
-            }
-        }
 
         // Promo multiplier when active (2x, 3x, or ⚡)
         if showMenuBarPromo && viewModel.promoActive {

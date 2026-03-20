@@ -14,24 +14,17 @@ pub struct SondeConfig {
     pub lines: Option<Vec<String>>,
 
     pub model: Option<ModuleConfig>,
-    pub cost: Option<ModuleConfig>,
     pub context_bar: Option<ContextBarConfig>,
     pub context_window: Option<ModuleConfig>,
     pub usage_limits: Option<UsageLimitsConfig>,
     pub promo_badge: Option<PromoBadgeConfig>,
     pub pacing: Option<PacingConfig>,
-    pub codex: Option<CodexConfig>,
     pub session_clock: Option<ModuleConfig>,
     pub git_branch: Option<ModuleConfig>,
     pub active_sessions: Option<ModuleConfig>,
     pub model_suggestion: Option<ModuleConfig>,
-    pub combined_spend: Option<ModuleConfig>,
-    pub cursor: Option<CursorConfig>,
     pub mascot: Option<MascotConfig>,
-    pub windsurf: Option<WindsurfConfig>,
     pub notifications: Option<NotificationsConfig>,
-    pub copilot: Option<CopilotConfig>,
-    pub gemini: Option<GeminiConfig>,
     pub custom: Option<HashMap<String, CustomModuleConfig>>,
 
     #[serde(flatten)]
@@ -97,37 +90,9 @@ pub struct PacingConfig {
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
-pub struct CodexConfig {
-    pub enabled: Option<bool>,
-    pub sessions_dir: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Default, Clone)]
-pub struct CursorConfig {
-    pub enabled: Option<bool>,
-    pub sessions_dir: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Default, Clone)]
 pub struct MascotConfig {
     pub enabled: Option<bool>,
     pub frame_ms: Option<u64>,
-}
-
-#[derive(Debug, Deserialize, Default, Clone)]
-pub struct WindsurfConfig {
-    pub enabled: Option<bool>,
-    pub sessions_dir: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Default, Clone)]
-pub struct CopilotConfig {
-    pub enabled: Option<bool>,
-}
-
-#[derive(Debug, Deserialize, Default, Clone)]
-pub struct GeminiConfig {
-    pub enabled: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -160,6 +125,7 @@ pub fn default_powerline_lines() -> Vec<String> {
 }
 
 /// Expand a leading `~` to the user's home directory.
+#[allow(dead_code)]
 pub fn expand_tilde(path: &str) -> PathBuf {
     if path.starts_with('~') {
         if let Some(home) = dirs::home_dir() {

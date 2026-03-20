@@ -88,11 +88,6 @@ fn default_modules() -> Vec<ModuleEntry> {
             enabled: true,
         },
         ModuleEntry {
-            name: "Cost".into(),
-            token: "$sonde.cost".into(),
-            enabled: false,
-        },
-        ModuleEntry {
             name: "Context Window".into(),
             token: "$sonde.context_window".into(),
             enabled: false,
@@ -110,11 +105,6 @@ fn default_modules() -> Vec<ModuleEntry> {
         ModuleEntry {
             name: "Mascot Icon".into(),
             token: "$sonde.mascot_icon".into(),
-            enabled: false,
-        },
-        ModuleEntry {
-            name: "Combined Spend".into(),
-            token: "$sonde.combined_spend".into(),
             enabled: false,
         },
     ]
@@ -324,7 +314,6 @@ fn draw_powerline_preview(frame: &mut Frame, state: &ConfigState, area: Rect) {
 
     let mock_data = [
         ("sonde.model", "Opus"),
-        ("sonde.cost", "$1.23"),
         ("sonde.context_bar", "[━━━━╌╌╌╌╌╌] 42%"),
         ("sonde.usage_limits", "5h 42%"),
         ("sonde.pacing", "Elevated 38%"),

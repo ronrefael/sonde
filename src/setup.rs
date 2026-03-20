@@ -132,7 +132,7 @@ pub fn run(dry_run: bool) -> Result<(), Box<dyn std::error::Error>> {
     // Preview with mock context
     println!("\n\x1b[1mPreview:\x1b[0m");
     let mock_ctx = context::parse_str(
-        r#"{"model":{"display_name":"Opus"},"cost":{"total_cost_usd":1.23},"context_window":{"used_percentage":42.0}}"#,
+        r#"{"model":{"display_name":"Opus"},"context_window":{"used_percentage":42.0}}"#,
     );
     let cfg = config::load();
     let output = renderer::render(&mock_ctx, &cfg);
@@ -181,9 +181,7 @@ mod tests {
 
     #[test]
     fn preview_renders_without_panic() {
-        let ctx = context::parse_str(
-            r#"{"model":{"display_name":"Opus"},"cost":{"total_cost_usd":1.23}}"#,
-        );
+        let ctx = context::parse_str(r#"{"model":{"display_name":"Opus"}}"#);
         let cfg = config::SondeConfig::default();
         let output = renderer::render(&ctx, &cfg);
         assert!(!output.is_empty());

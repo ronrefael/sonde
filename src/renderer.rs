@@ -3,7 +3,7 @@ use crate::config::{self, SondeConfig};
 use crate::context::Context;
 use crate::modules;
 
-/// Format: "$sonde.model $sonde.cost some_literal_text $sonde.context_bar"
+/// Format: "$sonde.model some_literal_text $sonde.context_bar"
 pub fn render_line(line: &str, ctx: &Context, cfg: &SondeConfig) -> String {
     let mut result = String::new();
     let mut chars = line.chars().peekable();
@@ -72,24 +72,18 @@ fn extract_module_names(line: &str) -> Vec<String> {
 fn module_priority(name: &str) -> u8 {
     match name {
         "sonde.model" => 1,
-        "sonde.cost" => 1,
         "sonde.context_bar" => 2,
         "sonde.usage_limits" => 2,
         "sonde.promo_badge" => 3,
         "sonde.pacing" => 3,
         "sonde.git_branch" => 4,
         "sonde.session_clock" => 4,
-        "sonde.codex_cost" => 4,
-        "sonde.combined_spend" => 4,
         "sonde.active_sessions" => 5,
         "sonde.model_suggestion" => 5,
         "sonde.context_window" => 5,
         "sonde.agent" => 2,
         "sonde.worktree" => 3,
         "sonde.mascot_icon" => 0, // highest priority — always visible
-        "sonde.windsurf_cost" => 4,
-        "sonde.copilot_cost" => 4,
-        "sonde.gemini_cost" => 4,
         _ => 6,
     }
 }
@@ -297,23 +291,19 @@ mod tests {
     use crate::context;
 
     #[test]
-    fn render_model_and_cost() {
-        let ctx = context::parse_str(
-            r#"{"model":{"display_name":"Opus"},"cost":{"total_cost_usd":1.23}}"#,
-        );
+    fn render_model() {
+        let ctx = context::parse_str(r#"{"model":{"display_name":"Opus"}}"#);
         let cfg = SondeConfig::default();
-        let line = render_line("$sonde.model $sonde.cost", &ctx, &cfg);
+        let line = render_line("$sonde.model", &ctx, &cfg);
         assert!(line.contains("Opus"));
-        assert!(line.contains("1.23"));
     }
 
     #[test]
     fn missing_module_silently_omitted() {
         let ctx = context::parse_str(r#"{"model":{"display_name":"Opus"}}"#);
         let cfg = SondeConfig::default();
-        let line = render_line("$sonde.model $sonde.cost", &ctx, &cfg);
+        let line = render_line("$sonde.model $sonde.nonexistent", &ctx, &cfg);
         assert!(line.contains("Opus"));
-        assert!(!line.contains("cost"));
     }
 
     #[test]
@@ -326,15 +316,13 @@ mod tests {
 
     #[test]
     fn extract_modules_from_line() {
-        let names = extract_module_names("$sonde.model $sonde.cost $sonde.pacing");
-        assert_eq!(names, vec!["sonde.model", "sonde.cost", "sonde.pacing"]);
+        let names = extract_module_names("$sonde.model $sonde.pacing");
+        assert_eq!(names, vec!["sonde.model", "sonde.pacing"]);
     }
 
     #[test]
     fn powerline_renders_segments() {
-        let ctx = context::parse_str(
-            r#"{"model":{"display_name":"Opus"},"cost":{"total_cost_usd":0.53}}"#,
-        );
+        let ctx = context::parse_str(r#"{"model":{"display_name":"Opus"}}"#);
         let mut cfg = SondeConfig::default();
         cfg.theme = Some("powerline".to_string());
         let output = render(&ctx, &cfg);
@@ -345,9 +333,7 @@ mod tests {
 
     #[test]
     fn plain_theme_unchanged() {
-        let ctx = context::parse_str(
-            r#"{"model":{"display_name":"Opus"},"cost":{"total_cost_usd":1.23}}"#,
-        );
+        let ctx = context::parse_str(r#"{"model":{"display_name":"Opus"}}"#);
         let mut cfg = SondeConfig::default();
         cfg.theme = Some("plain".to_string());
         let output = render(&ctx, &cfg);
@@ -372,7 +358,6 @@ mod tests {
     #[test]
     fn module_priorities_correct() {
         assert!(module_priority("sonde.model") < module_priority("sonde.pacing"));
-        assert!(module_priority("sonde.cost") < module_priority("sonde.git_branch"));
         assert!(module_priority("sonde.context_bar") < module_priority("sonde.active_sessions"));
     }
 }

@@ -277,8 +277,6 @@ private struct ScanlineOverlay: View {
 private struct ModelPill: View {
     let name: String
     let theme: PopoverTheme
-    var cost: Double? = nil
-    var compact: Bool = false
 
     private var shortName: String {
         let lower = name.lowercased()
@@ -289,18 +287,12 @@ private struct ModelPill: View {
     }
 
     var body: some View {
-        HStack(spacing: 3) {
-            Text(shortName)
-                .font(.system(size: compact ? 9 : 11, weight: .semibold, design: .monospaced))
-            if let cost {
-                Text(String(format: "$%.2f", cost))
-                    .font(.system(size: compact ? 9 : 10, weight: .medium, design: .monospaced))
-            }
-        }
-        .foregroundStyle(theme.modelPillText)
-        .padding(.horizontal, compact ? 5 : 7)
-        .padding(.vertical, compact ? 2 : 3)
-        .background(theme.modelColor(for: name), in: RoundedRectangle(cornerRadius: 4))
+        Text(shortName)
+            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            .foregroundStyle(theme.modelPillText)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(theme.modelColor(for: name), in: RoundedRectangle(cornerRadius: 4))
     }
 }
 
@@ -375,31 +367,15 @@ private struct LiveSessionStrip: View {
     let theme: PopoverTheme
     let session: SessionData
     let liveTimer: String
-    let payPerToken: Bool
-    let extraUsageUsed: Double?
-    let extraUsageLimit: Double?
-    let markActive: Bool
-    let costSinceMark: Double
-    let timeSinceMark: String
-    let showCosts: Bool
-    let onSetMark: () -> Void
-    let onClearMark: () -> Void
 
     var body: some View {
         VStack(spacing: 6) {
-            // Top row: model pill, git branch, cost, timer, pulse dot
+            // Top row: model pill, git branch, timer, pulse dot
             HStack(spacing: 8) {
                 if let model = session.modelName {
                     HStack(spacing: 4) {
                         ModelPill(name: model, theme: theme)
-                        if payPerToken {
-                            Text(tokenRate(for: model))
-                                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                .foregroundStyle(theme.costMedColor.opacity(0.8))
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(theme.costMedColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 3))
-                        } else if let window = session.contextWindowSize, window > 0 {
+                        if let window = session.contextWindowSize, window > 0 {
                             Text(formatWindowSize(window))
                                 .font(.system(size: 9, weight: .medium, design: .monospaced))
                                 .foregroundStyle(theme.textSecondary.opacity(0.6))
@@ -438,74 +414,12 @@ private struct LiveSessionStrip: View {
 
                 Spacer()
 
-                if showCosts && (payPerToken || showExtraUsageCost) {
-                    HStack(spacing: 3) {
-                        if showExtraUsageCost && !payPerToken {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 8))
-                                .foregroundStyle(theme.costMedColor)
-                                .help("Extended session — extra usage billing active")
-                        }
-                        Text(session.formattedCost)
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            .foregroundStyle(costColor)
-                            .contentTransition(.numericText())
-                    }
-                }
-
                 Text(liveTimer)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(theme.textSecondary)
                     .contentTransition(.numericText())
 
                 PulseDot(theme: theme)
-            }
-
-            // Burn rate + mark row
-            HStack(spacing: 0) {
-                // Mark button / indicator
-                if showCosts {
-                    if markActive {
-                        Button(action: onClearMark) {
-                            HStack(spacing: 3) {
-                                Image(systemName: "flag.fill")
-                                    .font(.system(size: 8))
-                                    .foregroundStyle(.blue)
-                                Text(String(format: "+$%.2f", costSinceMark))
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.blue)
-                                Text(timeSinceMark)
-                                    .font(.system(size: 9, design: .monospaced))
-                                    .foregroundStyle(theme.textSecondary.opacity(0.6))
-                            }
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Click to clear checkpoint")
-                    } else {
-                        Button(action: onSetMark) {
-                            HStack(spacing: 3) {
-                                Image(systemName: "flag")
-                                    .font(.system(size: 8))
-                                Text("Mark")
-                                    .font(.system(size: 9))
-                            }
-                            .foregroundStyle(theme.textSecondary.opacity(0.4))
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Set checkpoint to track cost from now")
-                    }
-                }
-
-                Spacer()
-
-                if showCosts, let rate = session.costPerHour {
-                    Image(systemName: "flame")
-                        .font(.system(size: 8))
-                        .foregroundStyle(theme.costMedColor)
-                    Text(" \(rate)")
-                        .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundStyle(theme.textSecondary.opacity(0.7))
-                }
             }
 
             // Context bar
@@ -524,31 +438,10 @@ private struct LiveSessionStrip: View {
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
-    /// Show cost when extra usage has kicked in (user extended beyond included limits)
-    private var showExtraUsageCost: Bool {
-        guard let used = extraUsageUsed else { return false }
-        return used > 0
-    }
-
-    private var costColor: Color {
-        guard let cost = session.sessionCost else { return theme.textPrimary }
-        if cost >= 10.0 { return theme.costHighColor }
-        if cost >= 5.0 { return theme.costMedColor }
-        return theme.textPrimary
-    }
-
     private func formatWindowSize(_ tokens: Int) -> String {
         if tokens >= 1_000_000 { return "\(tokens / 1_000_000)M ctx" }
         if tokens >= 1000 { return "\(tokens / 1000)k ctx" }
         return "\(tokens) ctx"
-    }
-
-    /// Per-MTok pricing for the current model (input/output)
-    private func tokenRate(for model: String) -> String {
-        let lower = model.lowercased()
-        if lower.contains("opus") { return "$15/$75 MTok" }
-        if lower.contains("haiku") { return "$0.25/$1.25 MTok" }
-        return "$3/$15 MTok" // Sonnet default
     }
 }
 
@@ -557,7 +450,6 @@ private struct LiveSessionStrip: View {
 struct PopoverView: View {
     @ObservedObject var viewModel: SondeViewModel
     @AppStorage("popoverTheme") private var themeName: String = PopoverTheme.system.rawValue
-    @AppStorage("showCosts") private var showCosts: Bool = false
     @AppStorage("appearanceMode") private var appearanceMode: String = "auto"
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var showProjects = false
@@ -612,16 +504,7 @@ struct PopoverView: View {
                 LiveSessionStrip(
                     theme: theme,
                     session: viewModel.session,
-                    liveTimer: viewModel.liveSessionDuration,
-                    payPerToken: viewModel.extraUsageEnabled,
-                    extraUsageUsed: viewModel.extraUsageUsedCredits,
-                    extraUsageLimit: viewModel.extraUsageMonthlyLimit,
-                    markActive: viewModel.markActive,
-                    costSinceMark: viewModel.costSinceMark,
-                    timeSinceMark: viewModel.timeSinceMark,
-                    showCosts: showCosts,
-                    onSetMark: { viewModel.setMark() },
-                    onClearMark: { viewModel.clearMark() }
+                    liveTimer: viewModel.liveSessionDuration
                 )
                 .animation(.easeInOut(duration: 0.3), value: hasActiveSession)
 
@@ -631,7 +514,6 @@ struct PopoverView: View {
             if showSettings {
                 SettingsTab(
                     theme: theme,
-                    showCosts: $showCosts,
                     themeName: $themeName,
                     showSettings: $showSettings
                 )
@@ -639,7 +521,6 @@ struct PopoverView: View {
                 ProjectsView(
                     projects: viewModel.allProjects,
                     showProjects: $showProjects,
-                    showCosts: showCosts,
                     theme: theme
                 )
             } else if viewModel.isLoading {
@@ -648,8 +529,7 @@ struct PopoverView: View {
                 DashboardContent(
                     theme: theme,
                     viewModel: viewModel,
-                    showProjects: $showProjects,
-                    showCosts: showCosts
+                    showProjects: $showProjects
                 )
             }
 
@@ -682,9 +562,8 @@ struct PopoverView: View {
 
     private func copySummary() {
         let sessions = viewModel.allSessions
-        let totalCost = sessions.reduce(0.0) { $0 + ($1.sessionCost ?? 0) }
         let count = max(sessions.count, viewModel.activeSessions.count)
-        var text = String(format: "$%.2f across %d session%@", totalCost, count, count == 1 ? "" : "s")
+        var text = String(format: "%d session%@", count, count == 1 ? "" : "s")
         if let fh = viewModel.fiveHourUtil {
             text += String(format: " (%d%% of 5h limit used)", Int(fh))
         }
@@ -873,7 +752,6 @@ private struct DashboardContent: View {
     let theme: PopoverTheme
     @ObservedObject var viewModel: SondeViewModel
     @Binding var showProjects: Bool
-    let showCosts: Bool
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -893,8 +771,6 @@ private struct DashboardContent: View {
                     pacePredict: viewModel.pacePredict,
                     modelName: viewModel.session.modelName,
                     codeVelocity: viewModel.session.codeVelocity,
-                    costPerModel: viewModel.session.costPerModel,
-                    showCosts: showCosts,
                     onTap: { showProjects = true }
                 )
 
@@ -902,8 +778,7 @@ private struct DashboardContent: View {
                 SessionActivityCard(
                     theme: theme,
                     sessions: viewModel.allSessions,
-                    session: viewModel.session,
-                    showCosts: showCosts
+                    session: viewModel.session
                 )
 
                 UsageCard(
@@ -913,20 +788,6 @@ private struct DashboardContent: View {
                     fiveHourUtil: viewModel.fiveHourUtil,
                     sevenDayUtil: viewModel.sevenDayUtil
                 )
-
-                if showCosts {
-                    DailySpendCard(
-                        theme: theme,
-                        claudeCost: viewModel.dailyClaudeCost,
-                        codexCost: viewModel.dailyCodexCost,
-                        budget: viewModel.dailyBudget,
-                        budgetExceeded: viewModel.budgetExceeded,
-                        dailyHistory: viewModel.dailyHistory,
-                        otherProjects: viewModel.session.otherProjects,
-                        showCosts: showCosts,
-                        onSetBudget: { viewModel.dailyBudget = $0 }
-                    )
-                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -951,15 +812,12 @@ private struct MainCard: View {
     let pacePredict: String?
     let modelName: String?
     let codeVelocity: String?
-    let costPerModel: [ModelCostEntry]
-    let showCosts: Bool
     let onTap: () -> Void
 
     @State private var gaugeAppeared = false
     @State private var isHovered = false
 
     private var sessionCount: Int { max(sessions.count, activeCount) }
-    private var totalCost: Double { sessions.reduce(0.0) { $0 + ($1.sessionCost ?? 0) } }
     private var totalTokens: Int {
         sessions.reduce(0) { $0 + ($1.totalInputTokens ?? 0) + ($1.totalOutputTokens ?? 0) }
     }
@@ -987,16 +845,8 @@ private struct MainCard: View {
                         )
                     }
 
-                    // Center: cost + sessions + sparkline + code velocity
+                    // Center: sessions + sparkline + code velocity
                     VStack(spacing: 4) {
-                        if showCosts {
-                            Text(totalCost > 0 ? String(format: "$%.2f", totalCost) : "--")
-                                .font(.system(size: 22, weight: .bold, design: .monospaced))
-                                .foregroundStyle(costColor)
-                                .shadow(color: theme.textGlow ?? .clear, radius: 3)
-                                .contentTransition(.numericText())
-                        }
-
                         HStack(spacing: 4) {
                             Image(systemName: "terminal")
                                 .font(.system(size: 10))
@@ -1043,9 +893,6 @@ private struct MainCard: View {
                     if totalLines > 0 {
                         statLabel(value: "+\(totalLines)", unit: "lines")
                     }
-                    if showCosts, let cpl = costPerLineValue {
-                        statLabel(value: cpl, unit: "/line")
-                    }
                     if let cache = cacheHitRatio {
                         statLabel(value: cache, unit: "cache")
                     }
@@ -1058,16 +905,6 @@ private struct MainCard: View {
                         Text(paceTier.rawValue)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(theme.textSecondary)
-                    }
-                }
-
-                // Per-model cost breakdown
-                if showCosts && costPerModel.count > 1 {
-                    HStack(spacing: 6) {
-                        ForEach(costPerModel.sorted(by: { $0.cost > $1.cost }), id: \.model) { entry in
-                            ModelPill(name: entry.model, theme: theme, cost: entry.cost, compact: true)
-                        }
-                        Spacer()
                     }
                 }
 
@@ -1100,24 +937,12 @@ private struct MainCard: View {
         }
     }
 
-    // Efficiency metrics (aggregated from all sessions)
-    private var costPerLineValue: String? {
-        guard totalLines > 0, totalCost > 0 else { return nil }
-        return String(format: "$%.2f", totalCost / Double(totalLines))
-    }
-
     private var cacheHitRatio: String? {
         let totalRead = sessions.reduce(0) { $0 + $1.cacheReadTokens }
         let totalWrite = sessions.reduce(0) { $0 + $1.cacheWriteTokens }
         let total = totalRead + totalWrite
         guard total > 0 else { return nil }
         return "\(Int(Double(totalRead) / Double(total) * 100))%"
-    }
-
-    private var costColor: Color {
-        if totalCost >= 10.0 { return theme.costHighColor }
-        if totalCost >= 5.0 { return theme.costMedColor }
-        return theme.textPrimary
     }
 
     private func statLabel(value: String, unit: String) -> some View {
@@ -1251,7 +1076,6 @@ private struct SessionActivityCard: View {
     let theme: PopoverTheme
     let sessions: [SessionData]
     let session: SessionData
-    let showCosts: Bool
 
     private var totalCacheRead: Int { sessions.reduce(0) { $0 + $1.cacheReadTokens } }
     private var totalCacheWrite: Int { sessions.reduce(0) { $0 + $1.cacheWriteTokens } }
@@ -1555,251 +1379,6 @@ private struct UsageSparkline: View {
         if peak >= 85 { return theme.highUtilColor }
         if peak >= 60 { return theme.medUtilColor }
         return theme.lowUtilColor
-    }
-}
-
-// MARK: - Daily Spend Card
-
-private struct DailySpendCard: View {
-    let theme: PopoverTheme
-    let claudeCost: Double
-    let codexCost: Double
-    let budget: Double
-    let budgetExceeded: Bool
-    let dailyHistory: [DailySnapshot]
-    let otherProjects: [ProjectCost]
-    let showCosts: Bool
-    let onSetBudget: (Double) -> Void
-
-    @State private var showBudgetSheet = false
-    @State private var budgetInput = ""
-
-    private var total: Double { claudeCost + codexCost }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Spend")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(theme.textSecondary.opacity(0.7))
-                Spacer()
-            }
-
-            HStack(spacing: 0) {
-                Text("Today")
-                    .font(.system(size: 12))
-                    .foregroundStyle(theme.textSecondary.opacity(0.6))
-
-                Spacer()
-
-                if showCosts {
-                    if budgetExceeded {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 11))
-                            .foregroundStyle(theme.highUtilColor)
-                            .padding(.trailing, 4)
-                    }
-
-                    Text(String(format: "$%.2f", total))
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
-                        .foregroundStyle(total >= 10 ? theme.costHighColor : total >= 5 ? theme.costMedColor : theme.textPrimary)
-                        .contentTransition(.numericText())
-
-                    Button {
-                        budgetInput = budget > 0 ? String(format: "%.0f", budget) : ""
-                        showBudgetSheet = true
-                    } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .buttonStyle(.borderless)
-                    .padding(.leading, 6)
-                    .popover(isPresented: $showBudgetSheet, arrowEdge: .trailing) {
-                        BudgetPopover(
-                            budgetInput: $budgetInput,
-                            showSheet: $showBudgetSheet,
-                            currentBudget: budget,
-                            onSetBudget: onSetBudget
-                        )
-                    }
-                }
-            }
-
-            // Cost breakdown (only if codex is used)
-            if showCosts && codexCost > 0 {
-                HStack(spacing: 12) {
-                    HStack(spacing: 2) {
-                        Text(String(format: "$%.2f", claudeCost))
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(theme.textSecondary)
-                        Text("Claude")
-                            .font(.system(size: 10))
-                            .foregroundStyle(theme.textSecondary.opacity(0.5))
-                    }
-                    HStack(spacing: 2) {
-                        Text(String(format: "$%.2f", codexCost))
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(theme.textSecondary)
-                        Text("Codex")
-                            .font(.system(size: 10))
-                            .foregroundStyle(theme.textSecondary.opacity(0.5))
-                    }
-                    Spacer()
-                }
-            }
-
-            // Per-project costs (up to 3)
-            if showCosts && !otherProjects.isEmpty {
-                VStack(spacing: 3) {
-                    ForEach(otherProjects.prefix(3), id: \.name) { project in
-                        HStack(spacing: 4) {
-                            Image(systemName: "folder.fill")
-                                .font(.system(size: 9))
-                                .foregroundStyle(theme.textSecondary.opacity(0.5))
-                            Text(project.name)
-                                .font(.system(size: 10))
-                                .foregroundStyle(theme.textSecondary)
-                                .lineLimit(1)
-                            Spacer()
-                            Text(String(format: "$%.2f", project.cost))
-                                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                .foregroundStyle(theme.textPrimary)
-                        }
-                    }
-                }
-                .padding(.top, 2)
-            }
-
-            // Budget bar
-            if showCosts && budget > 0 {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(theme.borderColor)
-                            .frame(height: 3)
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(budgetExceeded ? theme.highUtilColor : theme.lowUtilColor)
-                            .frame(width: max(0, geo.size.width * min(total / budget, 1.0)), height: 3)
-                    }
-                }
-                .frame(height: 3)
-            }
-
-            // 14-day usage trend
-            if dailyHistory.count >= 3 {
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack {
-                        Text("14-day spend")
-                            .font(.system(size: 9))
-                            .foregroundStyle(theme.textSecondary.opacity(0.5))
-                        Spacer()
-                        if showCosts {
-                            Text(String(format: "$%.0f avg", dailyHistory.suffix(14).map(\.dailyCost).reduce(0, +) / Double(min(dailyHistory.count, 14))))
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundStyle(theme.textSecondary.opacity(0.5))
-                        }
-                    }
-                    DailyCostChart(data: Array(dailyHistory.suffix(14).map(\.dailyCost)), theme: theme)
-                        .frame(height: 36)
-                }
-                .padding(.top, 2)
-            }
-        }
-        .padding(12)
-        .background(theme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.borderColor, lineWidth: 1))
-        .shadow(color: theme.cardGlow ?? .clear, radius: 4)
-    }
-}
-
-// MARK: - Daily Cost Chart (area sparkline)
-
-private struct DailyCostChart: View {
-    let data: [Double]
-    let theme: PopoverTheme
-
-    var body: some View {
-        Canvas { context, size in
-            guard data.count > 1 else { return }
-            let maxVal = max(data.max() ?? 1, 1)
-            let stepX = size.width / CGFloat(data.count - 1)
-            let inset: CGFloat = 2
-
-            // Build line path
-            var linePath = Path()
-            for (i, val) in data.enumerated() {
-                let x = CGFloat(i) * stepX
-                let y = inset + (size.height - inset * 2) * (1 - CGFloat(val / maxVal))
-                if i == 0 { linePath.move(to: CGPoint(x: x, y: y)) }
-                else { linePath.addLine(to: CGPoint(x: x, y: y)) }
-            }
-
-            // Fill path (close to bottom)
-            var fillPath = linePath
-            fillPath.addLine(to: CGPoint(x: CGFloat(data.count - 1) * stepX, y: size.height))
-            fillPath.addLine(to: CGPoint(x: 0, y: size.height))
-            fillPath.closeSubpath()
-
-            let gradient = Gradient(colors: [
-                theme.headerAccent.opacity(0.25),
-                theme.headerAccent.opacity(0.05),
-            ])
-            context.fill(fillPath, with: .linearGradient(
-                gradient,
-                startPoint: CGPoint(x: 0, y: 0),
-                endPoint: CGPoint(x: 0, y: size.height)
-            ))
-
-            context.stroke(linePath, with: .color(theme.headerAccent.opacity(0.6)), lineWidth: 1.5)
-
-            // Dots on each day
-            for (i, val) in data.enumerated() {
-                let x = CGFloat(i) * stepX
-                let y = inset + (size.height - inset * 2) * (1 - CGFloat(val / maxVal))
-                let dot = CGRect(x: x - 2, y: y - 2, width: 4, height: 4)
-                context.fill(Path(ellipseIn: dot), with: .color(theme.headerAccent.opacity(0.8)))
-            }
-        }
-    }
-}
-
-// MARK: - Budget Popover
-
-private struct BudgetPopover: View {
-    @Binding var budgetInput: String
-    @Binding var showSheet: Bool
-    let currentBudget: Double
-    let onSetBudget: (Double) -> Void
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Text("Daily Budget")
-                .font(.body)
-                .fontWeight(.semibold)
-            TextField("Amount ($)", text: $budgetInput)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 140)
-            HStack(spacing: 8) {
-                if currentBudget > 0 {
-                    Button("Clear") {
-                        onSetBudget(0)
-                        showSheet = false
-                    }
-                    .font(.caption)
-                }
-                Button("Save") {
-                    if let val = Double(budgetInput), val > 0 {
-                        onSetBudget(val)
-                    }
-                    showSheet = false
-                }
-                .font(.caption)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            }
-        }
-        .padding(14)
     }
 }
 

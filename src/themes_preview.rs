@@ -4,7 +4,6 @@ use crate::themes;
 pub fn run() {
     let mock_segments = [
         ("sonde.model", "Opus"),
-        ("sonde.cost", "$1.23"),
         ("sonde.context_bar", "[━━━━╌╌╌╌╌╌] 42%"),
         ("sonde.usage_limits", "5h 42%"),
         ("sonde.pacing", "Elevated 38%"),

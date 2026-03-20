@@ -199,8 +199,6 @@ Configurable via Settings. Each segment can be toggled:
 | Agent | `$sonde.agent` | Agent name badge |
 | Worktree | `$sonde.worktree` | Worktree name |
 | Mascot | `$sonde.mascot_icon` | Animated status icon |
-| Copilot | `$sonde.copilot_cost` | GitHub Copilot (detection only) |
-| Gemini | `$sonde.gemini_cost` | Google Gemini Code Assist (detection only) |
 | Custom | `$sonde.custom.{name}` | Your own shell command modules |
 
 ### Pacing tiers

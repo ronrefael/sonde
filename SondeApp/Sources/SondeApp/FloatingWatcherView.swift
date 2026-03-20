@@ -29,7 +29,7 @@ struct FloatingWatcherView: View {
 
             Divider()
 
-            // Current model + cost summary
+            // Current model summary
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Model")
@@ -40,15 +40,6 @@ struct FloatingWatcherView: View {
                         .fontWeight(.semibold)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text("Cost")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                    Text(viewModel.session.formattedCost)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .monospacedDigit()
-                }
             }
             .padding(.vertical, 2)
 

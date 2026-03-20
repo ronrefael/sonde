@@ -5,7 +5,6 @@ import SwiftUI
 struct ProjectsView: View {
     let projects: [ProjectSession]
     @Binding var showProjects: Bool
-    let showCosts: Bool
     let theme: PopoverTheme
     @State private var selectedProject: ProjectSession?
     @State private var showAllTasks: Bool = false
@@ -77,12 +76,6 @@ struct ProjectsView: View {
                     .truncationMode(.middle)
 
                 Spacer()
-
-                if showCosts {
-                    Text(project.formattedCost)
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
-                        .foregroundStyle(costColor(for: project.sessionCost))
-                }
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 9))
@@ -239,18 +232,6 @@ struct ProjectsView: View {
 
                 // Hero row
                 HStack(spacing: 0) {
-                    if showCosts {
-                        VStack(spacing: 1) {
-                            Text("Cost")
-                                .font(.system(size: 9))
-                                .foregroundStyle(theme.textSecondary.opacity(0.6))
-                            Text(project.formattedCost)
-                                .font(.system(size: 18, weight: .bold, design: .monospaced))
-                                .foregroundStyle(costColor(for: project.sessionCost))
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-
                     VStack(spacing: 1) {
                         Text("Messages")
                             .font(.system(size: 9))
@@ -273,17 +254,6 @@ struct ProjectsView: View {
                         .frame(maxWidth: .infinity)
                     }
 
-                    if showCosts, let cpl = project.costPerLine {
-                        VStack(spacing: 1) {
-                            Text("Per Line")
-                                .font(.system(size: 9))
-                                .foregroundStyle(theme.textSecondary.opacity(0.6))
-                            Text(cpl)
-                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(theme.textPrimary)
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
                 }
                 .padding(10)
                 .background(theme.cardBackground)
@@ -384,12 +354,6 @@ struct ProjectsView: View {
                     .truncationMode(.tail)
 
                 Spacer()
-
-                if showCosts {
-                    Text(task.formattedCost)
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(theme.textSecondary)
-                }
             }
 
             HStack(spacing: 6) {
@@ -484,13 +448,6 @@ struct ProjectsView: View {
     }
 
     // MARK: - Helpers
-
-    private func costColor(for cost: Double?) -> Color {
-        guard let cost else { return theme.textPrimary }
-        if cost >= 5.0 { return theme.costHighColor }
-        if cost >= 2.0 { return theme.costMedColor }
-        return theme.textPrimary
-    }
 
     private func formatTokens(_ count: Int?) -> String {
         guard let count else { return "--" }

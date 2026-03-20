@@ -4,11 +4,9 @@ import SondeCore
 /// Full settings tab that replaces the dashboard content area.
 struct SettingsTab: View {
     let theme: PopoverTheme
-    @Binding var showCosts: Bool
     @Binding var themeName: String
     @Binding var showSettings: Bool
     @AppStorage("appearanceMode") var appearanceMode: String = "auto"
-    @AppStorage("showMenuBarCost") var showMenuBarCost: Bool = true
     @AppStorage("showMenuBarPromo") var showMenuBarPromo: Bool = true
     @AppStorage("showMenuBarCountdown") var showMenuBarCountdown: Bool = true
     @AppStorage("menuBarTimerMode") var menuBarTimerMode: String = "5h_left"
@@ -64,12 +62,6 @@ struct SettingsTab: View {
 
                 // MENU BAR
                 sectionCard("MENU BAR") {
-                    settingsRow("Show cost") {
-                        sondeToggle($showMenuBarCost)
-                    }
-                    .opacity(showCosts ? 1.0 : 0.3)
-                    .allowsHitTesting(showCosts)
-                    thinDivider
                     settingsRow("Show promo status") {
                         sondeToggle($showMenuBarPromo)
                     }
@@ -95,10 +87,6 @@ struct SettingsTab: View {
 
                 // DISPLAY
                 sectionCard("DISPLAY") {
-                    settingsRow("Show costs") {
-                        sondeToggle($showCosts)
-                    }
-                    thinDivider
                     settingsRow("Theme") {
                         ThemeChipPicker(
                             selection: $themeName,
