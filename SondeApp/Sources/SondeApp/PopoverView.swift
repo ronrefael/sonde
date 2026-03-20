@@ -52,7 +52,7 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x141726)
         case .synthwave: hex(0x2D1B4E)
         case .solarFlare: hex(0x1A0A12)
-        case .system: isDark ? hex(0x2C2C2E) : Color(white: 0.95)
+        case .system: isDark ? hex(0x2C2C2E) : .white
         }
     }
 
@@ -92,7 +92,7 @@ enum PopoverTheme: String, CaseIterable {
     var costHighColor: Color {
         switch self {
         case .terminal: Color(red: 1.0, green: 0.15, blue: 0.15)
-        case .system: isDark ? hex(0xFF453A) : hex(0xFF3B30) // Apple system red
+        case .system: isDark ? hex(0xFF6961) : hex(0xE5484D)
         default: .red
         }
     }
@@ -100,7 +100,7 @@ enum PopoverTheme: String, CaseIterable {
     var costMedColor: Color {
         switch self {
         case .terminal: Self.amber
-        case .system: isDark ? hex(0xFF9F0A) : hex(0xFF9500) // Apple system orange
+        case .system: isDark ? hex(0xF5A623) : hex(0xD97706)
         default: .orange
         }
     }
@@ -112,7 +112,7 @@ enum PopoverTheme: String, CaseIterable {
         case .cyberpunk: hex(0x18E0FF).opacity(0.2)
         case .synthwave: hex(0xFF2975).opacity(0.2)
         case .solarFlare: hex(0xFF6B2B).opacity(0.2)
-        case .system: isDark ? Color.white.opacity(0.12) : hex(0xC6C6C8).opacity(0.5) // Apple separator
+        case .system: isDark ? Color.white.opacity(0.12) : hex(0xC6C6C8).opacity(0.8)
         }
     }
 
@@ -131,15 +131,16 @@ enum PopoverTheme: String, CaseIterable {
         switch self {
         case .liquidGlass: Color.primary.opacity(0.1)
         case .terminal: Self.phosphor.opacity(0.12)
-        case .system: Color.primary.opacity(0.08)
+        case .system: isDark ? Color.white.opacity(0.08) : hex(0xC6C6C8).opacity(0.6)
         default: borderColor
         }
     }
 
     var footerText: Color {
         switch self {
-        case .liquidGlass, .system: .secondary
+        case .liquidGlass: .secondary
         case .terminal: Self.phosphorFaint
+        case .system: isDark ? hex(0x98989D) : hex(0x3C3C43).opacity(0.6)
         default: textSecondary.opacity(0.7)
         }
     }
@@ -181,34 +182,34 @@ enum PopoverTheme: String, CaseIterable {
     var highlightAccent: Color {
         switch self {
         case .terminal: Self.cyan
-        case .system: isDark ? hex(0x64D2FF) : hex(0x007AFF) // Apple teal/blue
+        case .system: isDark ? hex(0x64D2FF) : hex(0x5B8DEF) // soft periwinkle blue
         default: headerAccent
         }
     }
 
-    /// Low-utilization color for gauges and bars
+    /// Low-utilization color — healthy / good
     var lowUtilColor: Color {
         switch self {
         case .terminal: Self.phosphor
-        case .system: isDark ? hex(0x30D158) : hex(0x34C759) // Apple system green
+        case .system: isDark ? hex(0x30D158) : hex(0x2DB87B)
         default: .green
         }
     }
 
-    /// Medium-utilization color for gauges
+    /// Medium-utilization color — caution / warming up
     var medUtilColor: Color {
         switch self {
         case .terminal: Self.amber
-        case .system: isDark ? hex(0xFF9F0A) : hex(0xFF9500) // Apple system orange
+        case .system: isDark ? hex(0x64D2FF) : hex(0x5B8DEF)
         default: .orange
         }
     }
 
-    /// High-utilization color for gauges
+    /// High-utilization color — danger / critical
     var highUtilColor: Color {
         switch self {
         case .terminal: Color(red: 1.0, green: 0.15, blue: 0.15)
-        case .system: isDark ? hex(0xFF453A) : hex(0xFF3B30) // Apple system red
+        case .system: isDark ? hex(0xFF6961) : hex(0xE5484D)
         default: .red
         }
     }
@@ -306,11 +307,12 @@ private struct ModelPill: View {
 // MARK: - Pulse Dot
 
 private struct PulseDot: View {
+    var theme: PopoverTheme = .system
     @State private var pulsing = false
 
     var body: some View {
         Circle()
-            .fill(.green)
+            .fill(theme.lowUtilColor)
             .frame(width: 5, height: 5)
             .opacity(pulsing ? 1.0 : 0.3)
             .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: pulsing)
@@ -327,8 +329,8 @@ private struct ContextBar: View {
     let windowSize: Int
 
     private var barColor: Color {
-        if pct >= 80 { return .red }
-        if pct >= 60 { return .orange }
+        if pct >= 80 { return theme.highUtilColor }
+        if pct >= 60 { return theme.medUtilColor }
         return theme.lowUtilColor
     }
 
@@ -441,7 +443,7 @@ private struct LiveSessionStrip: View {
                         if showExtraUsageCost && !payPerToken {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 8))
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(theme.costMedColor)
                                 .help("Extended session — extra usage billing active")
                         }
                         Text(session.formattedCost)
@@ -456,7 +458,7 @@ private struct LiveSessionStrip: View {
                     .foregroundStyle(theme.textSecondary)
                     .contentTransition(.numericText())
 
-                PulseDot()
+                PulseDot(theme: theme)
             }
 
             // Burn rate + mark row
@@ -499,7 +501,7 @@ private struct LiveSessionStrip: View {
                 if showCosts, let rate = session.costPerHour {
                     Image(systemName: "flame")
                         .font(.system(size: 8))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(theme.costMedColor)
                     Text(" \(rate)")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(theme.textSecondary.opacity(0.7))
@@ -1066,7 +1068,7 @@ private struct MainCard: View {
                    paceTier == .elevated || paceTier == .hot || paceTier == .critical || paceTier == .runaway {
                     Label(predict, systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90")
                         .font(.system(size: 11))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(theme.costMedColor)
                 }
             }
             .padding(12)
@@ -1132,9 +1134,9 @@ private struct UsageBar: View {
     let reset: String?
 
     private var barColor: Color {
-        if util >= 80 { return .red }
-        if util >= 60 { return .orange }
-        if util >= 40 { return .yellow }
+        if util >= 80 { return theme.highUtilColor }
+        if util >= 60 { return theme.costMedColor }
+        if util >= 40 { return theme.medUtilColor }
         return theme.lowUtilColor
     }
 
@@ -1186,9 +1188,9 @@ private struct CircleGauge: View {
     private var remaining: Int { max(0, Int(100 - util)) }
 
     private var gaugeColor: Color {
-        if util >= 80 { return .red }
-        if util >= 60 { return .orange }
-        if util >= 40 { return .yellow }
+        if util >= 80 { return theme.highUtilColor }
+        if util >= 60 { return theme.costMedColor }
+        if util >= 40 { return theme.medUtilColor }
         return theme.lowUtilColor
     }
 
@@ -1281,29 +1283,29 @@ private struct SessionActivityCard: View {
                             Spacer()
                             Text("+\(totalLinesAdded)")
                                 .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.green)
+                                .foregroundStyle(theme.lowUtilColor)
                             Text("/")
                                 .font(.system(size: 9))
                                 .foregroundStyle(theme.textSecondary.opacity(0.3))
                             Text("-\(totalLinesRemoved)")
                                 .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.red)
+                                .foregroundStyle(theme.highUtilColor)
                             Text("=")
                                 .font(.system(size: 9))
                                 .foregroundStyle(theme.textSecondary.opacity(0.3))
                             Text("\(netLines > 0 ? "+" : "")\(netLines) net")
                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(netLines >= 0 ? .green : .red)
+                                .foregroundStyle(netLines >= 0 ? theme.lowUtilColor : theme.highUtilColor)
                         }
                         // Visual ratio bar: green (added) vs red (removed)
                         let total = max(totalLinesAdded + totalLinesRemoved, 1)
                         GeometryReader { geo in
                             HStack(spacing: 1) {
                                 RoundedRectangle(cornerRadius: 2)
-                                    .fill(.green.opacity(0.7))
+                                    .fill(theme.lowUtilColor.opacity(0.7))
                                     .frame(width: geo.size.width * CGFloat(totalLinesAdded) / CGFloat(total))
                                 RoundedRectangle(cornerRadius: 2)
-                                    .fill(.red.opacity(0.7))
+                                    .fill(theme.highUtilColor.opacity(0.7))
                                     .frame(width: geo.size.width * CGFloat(totalLinesRemoved) / CGFloat(total))
                             }
                         }
@@ -1326,30 +1328,34 @@ private struct SessionActivityCard: View {
 
                 // Multi-session breakdown (when >1 session)
                 if sessions.count > 1 {
-                    VStack(spacing: 3) {
-                        ForEach(sessions.prefix(3), id: \.sessionId) { s in
-                            HStack(spacing: 6) {
+                    VStack(spacing: 4) {
+                        ForEach(sessions.prefix(5), id: \.sessionId) { s in
+                            HStack(spacing: 0) {
+                                // Project name — fixed left column
                                 Text(s.projectName ?? "Unknown")
                                     .font(.system(size: 10))
                                     .foregroundStyle(theme.textPrimary)
                                     .lineLimit(1)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .frame(width: 120, alignment: .leading)
+
+                                Spacer(minLength: 4)
+
+                                // Model pill — fixed width
                                 if let model = s.modelName {
                                     Text(shortModel(model))
                                         .font(.system(size: 8, weight: .semibold, design: .monospaced))
                                         .foregroundStyle(theme.modelPillText)
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 1)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 2)
                                         .background(theme.modelColor(for: model), in: RoundedRectangle(cornerRadius: 3))
+                                        .frame(width: 50)
                                 }
-                                if showCosts {
-                                    Text(s.formattedCost)
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundStyle(theme.textSecondary)
-                                }
+
+                                // Duration — right-aligned
                                 Text(s.formattedDuration)
                                     .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(theme.textSecondary.opacity(0.6))
+                                    .frame(width: 60, alignment: .trailing)
                             }
                         }
                     }
@@ -1474,8 +1480,8 @@ private struct UsageCard: View {
     }
 
     private func barColor(_ value: Double, isToday: Bool) -> Color {
-        if value >= 85 { return .red }
-        if value >= 60 { return .orange }
+        if value >= 85 { return theme.highUtilColor }
+        if value >= 60 { return theme.medUtilColor }
         if isToday { return theme.lowUtilColor }
         return theme.lowUtilColor.opacity(0.6)
     }
@@ -1533,8 +1539,8 @@ private struct UsageSparkline: View {
 
     private var sparkColor: Color {
         let peak = data.max() ?? 0
-        if peak >= 85 { return .red }
-        if peak >= 60 { return .orange }
+        if peak >= 85 { return theme.highUtilColor }
+        if peak >= 60 { return theme.medUtilColor }
         return theme.lowUtilColor
     }
 }
@@ -1577,7 +1583,7 @@ private struct DailySpendCard: View {
                     if budgetExceeded {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 11))
-                            .foregroundStyle(.red)
+                            .foregroundStyle(theme.highUtilColor)
                             .padding(.trailing, 4)
                     }
 
@@ -1660,7 +1666,7 @@ private struct DailySpendCard: View {
                             .fill(theme.borderColor)
                             .frame(height: 3)
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(budgetExceeded ? Color.red : theme.lowUtilColor)
+                            .fill(budgetExceeded ? theme.highUtilColor : theme.lowUtilColor)
                             .frame(width: max(0, geo.size.width * min(total / budget, 1.0)), height: 3)
                     }
                 }
@@ -1846,7 +1852,7 @@ private struct FooterBar: View {
             } label: {
                 Image(systemName: "power")
                     .font(.system(size: 11))
-                    .foregroundStyle(theme.footerText)
+                    .foregroundStyle(theme.textSecondary)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)

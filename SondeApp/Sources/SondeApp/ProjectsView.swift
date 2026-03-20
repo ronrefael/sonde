@@ -120,7 +120,7 @@ struct ProjectsView: View {
             HStack(spacing: 0) {
                 miniStat(icon: "text.word.spacing", value: formatTokens(project.contextTokensUsed), label: "tokens")
                 if let lines = project.linesAdded, lines > 0 {
-                    miniStat(icon: "plus.square", value: "+\(lines)", label: "lines", color: .green)
+                    miniStat(icon: "plus.square", value: "+\(lines)", label: "lines", color: theme.lowUtilColor)
                 }
                 if let cache = project.cacheHitRatio {
                     miniStat(icon: "arrow.triangle.2.circlepath", value: cache, label: "cache")
@@ -148,7 +148,7 @@ struct ProjectsView: View {
     }
 
     private func miniContextBar(pct: Double, used: Int, window: Int) -> some View {
-        let color: Color = pct >= 80 ? .red : pct >= 60 ? .orange : theme.lowUtilColor
+        let color: Color = pct >= 80 ? theme.highUtilColor : pct >= 60 ? theme.medUtilColor : theme.lowUtilColor
         return HStack(spacing: 6) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -310,8 +310,8 @@ struct ProjectsView: View {
                             statCell(label: "Cache Hit", value: cache)
                         }
                         if hasLines {
-                            statCell(label: "Added", value: "+\(project.linesAdded ?? 0)", color: .green)
-                            statCell(label: "Removed", value: "-\(project.linesRemoved ?? 0)", color: .red)
+                            statCell(label: "Added", value: "+\(project.linesAdded ?? 0)", color: theme.lowUtilColor)
+                            statCell(label: "Removed", value: "-\(project.linesRemoved ?? 0)", color: theme.highUtilColor)
                         }
                         if project.webSearchCount > 0 {
                             statCell(label: "Searches", value: "\(project.webSearchCount)")
@@ -430,7 +430,7 @@ struct ProjectsView: View {
         let size = project.contextWindowSize ?? 200_000
         let pct = size > 0 ? Double(used) / Double(size) * 100 : 0
         let barPct = min(pct, 100)
-        let color: Color = pct >= 70 ? .red : pct >= 40 ? .orange : theme.lowUtilColor
+        let color: Color = pct >= 70 ? theme.highUtilColor : pct >= 40 ? theme.medUtilColor : theme.lowUtilColor
 
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -442,7 +442,7 @@ struct ProjectsView: View {
                     Text("FULL")
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(theme.highUtilColor)
                 } else {
                     Text("\(Int(pct))%")
                         .font(.caption)
