@@ -318,7 +318,12 @@ public actor SessionReader {
         session.apiDurationMs = data["total_api_duration_ms"] as? Int
         session.claudeVersion = data["version"] as? String
         session.agentName = data["agent_name"] as? String
-        if let cwd = data["cwd"] as? String { session.projectPath = cwd }
+        // Prefer project_dir (real path) over cwd (avoids decode ambiguity)
+        if let projectDir = data["project_dir"] as? String {
+            session.projectPath = projectDir
+        } else if let cwd = data["cwd"] as? String {
+            session.projectPath = cwd
+        }
         if let sid = data["session_id"] as? String { session.sessionId = sid }
         if let branch = data["git_branch"] as? String { session.gitBranch = branch }
 
@@ -357,11 +362,10 @@ public actor SessionReader {
 
             // Filter out stale files (not updated in 10 minutes)
             // Sessions may not render frequently when idle, so use a generous window
+            // Skip stale files but don't delete — Rust manages its own cache cleanup
             if let values = try? fileURL.resourceValues(forKeys: [.contentModificationDateKey]),
                let modDate = values.contentModificationDate,
                now.timeIntervalSince(modDate) > 600 {
-                // Clean up stale session files
-                try? fm.removeItem(at: fileURL)
                 continue
             }
 
@@ -396,11 +400,14 @@ public actor SessionReader {
             session.agentName = data["agent_name"] as? String
             session.vimMode = data["vim_mode"] as? String
 
-            // Store session_id and cwd for multi-session display
+            // Store session_id and project path for multi-session display
             if let sessionId = data["session_id"] as? String {
                 session.sessionId = sessionId
             }
-            if let cwd = data["cwd"] as? String {
+            // Prefer project_dir (real path) over cwd
+            if let projectDir = data["project_dir"] as? String {
+                session.projectPath = projectDir
+            } else if let cwd = data["cwd"] as? String {
                 session.projectPath = cwd
             }
             if let branch = data["git_branch"] as? String {

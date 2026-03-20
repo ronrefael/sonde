@@ -97,6 +97,13 @@ fn write_session_cache(ctx: &context::Context) {
         obj.insert("cwd".into(), serde_json::Value::String(cwd.clone()));
     }
 
+    // Write the real project_dir so Swift can use it directly (avoids path decode ambiguity)
+    if let Some(ref ws) = ctx.workspace {
+        if let Some(ref dir) = ws.project_dir {
+            obj.insert("project_dir".into(), serde_json::Value::String(dir.clone()));
+        }
+    }
+
     if let Some(ref wt) = ctx.worktree {
         if let Some(ref branch) = wt.branch {
             obj.insert(
