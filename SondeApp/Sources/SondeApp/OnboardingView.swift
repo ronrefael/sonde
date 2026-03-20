@@ -38,6 +38,10 @@ struct OnboardingView: View {
                     .tag(5)
             }
             .tabViewStyle(.automatic)
+            .overlay(alignment: .top) {
+                // Cover the system tab indicator — we use custom dots in the footer
+                Rectangle().fill(Color(white: 0.97)).frame(height: 28)
+            }
             .animation(.easeInOut(duration: 0.3), value: currentStep)
 
             // Navigation controls
