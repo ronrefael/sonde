@@ -6,7 +6,7 @@ use crate::promo;
 fn nerd_icon(emoji: &str) -> &str {
     match emoji {
         "🟢" => "\u{f0e7}", //  bolt
-        "🔴" => "\u{f00d}", //  times
+        "🔴" => "\u{f017}", //  clock (countdown to off-peak)
         "🟡" => "\u{f017}", //  clock
         _ => emoji,
     }

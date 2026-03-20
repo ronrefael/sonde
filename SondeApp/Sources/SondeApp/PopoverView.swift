@@ -568,7 +568,7 @@ struct PopoverView: View {
         }
 
         // Check loading state (rate limited / refreshing)
-        if viewModel.isLoading && viewModel.lastUpdated != nil {
+        if viewModel.lastRefreshFailed && viewModel.lastUpdated != nil {
             conditions.append(.rateLimited)
         }
 
@@ -945,7 +945,7 @@ private struct MainCard: View {
     private var totalTokens: Int {
         sessions.reduce(0) { $0 + ($1.totalInputTokens ?? 0) + ($1.totalOutputTokens ?? 0) }
     }
-    private var totalLines: Int { sessions.reduce(0) { $0 + ($1.linesAdded ?? 0) } }
+    private var totalLines: Int { sessions.reduce(0) { $0 + ($1.linesAdded ?? 0) - ($1.linesRemoved ?? 0) } }
 
     var body: some View {
         Button(action: onTap) {
@@ -1014,8 +1014,9 @@ private struct MainCard: View {
                 // Stats row
                 HStack(spacing: 10) {
                     statLabel(value: formatTokens(totalTokens), unit: "tokens")
-                    if totalLines > 0 {
-                        statLabel(value: "+\(totalLines)", unit: "lines")
+                    if totalLines != 0 {
+                        let lineLabel = totalLines >= 0 ? "+\(totalLines)" : "\(totalLines)"
+                        statLabel(value: lineLabel, unit: "lines")
                     }
                     if let cache = cacheHitRatio {
                         statLabel(value: cache, unit: "cache")

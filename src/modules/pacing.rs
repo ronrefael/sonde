@@ -158,9 +158,9 @@ pub fn predict_time_to_limit(utilization: f64, resets_at: Option<&str>) -> Optio
     let mins = ((secs_to_limit % 3600.0) / 60.0) as u64;
 
     if hours > 0 {
-        Some(format!("~{hours}h {mins:02}m"))
+        Some(format!("~{hours}h {mins:02}m avg"))
     } else {
-        Some(format!("~{mins}m"))
+        Some(format!("~{mins}m avg"))
     }
 }
 

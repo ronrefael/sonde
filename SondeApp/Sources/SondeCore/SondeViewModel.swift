@@ -64,6 +64,7 @@ public final class SondeViewModel: ObservableObject {
     @Published public var showWatcher: Bool = false
 
     // Usage history (sparkline)
+    // TODO: Add timestamps and persistence for accurate trend display
     @Published public var usageHistory: [Double] = []
 
     // Update
@@ -78,6 +79,7 @@ public final class SondeViewModel: ObservableObject {
 
     // State
     @Published public var isLoading: Bool = true
+    @Published public var lastRefreshFailed = false
     @Published public var lastUpdated: Date?
 
     private let usageService = UsageService()
@@ -93,6 +95,7 @@ public final class SondeViewModel: ObservableObject {
     private var sessionTimer: Timer?
     private var sessionStartTime: Date?
     private var hasCheckedForUpdate = false
+    private var hasShownCacheToast = false
 
     public init() {
         NotificationManager.shared.requestPermission()
@@ -272,8 +275,17 @@ public final class SondeViewModel: ObservableObject {
 
         // Detect stale/cached data — if usage timestamp is >2 min old, data came from cache
         if usage != nil, let ts = usageTimestamp, Date().timeIntervalSince(ts) > 120 {
-            NotificationManager.shared.toastHandler?("Using cached data", "\u{1F4BE}")
+            if !hasShownCacheToast {
+                NotificationManager.shared.toastHandler?("Using cached data", "\u{1F4BE}")
+                hasShownCacheToast = true
+            }
+        } else {
+            // Fresh data arrived — allow the toast to fire again next time data goes stale
+            hasShownCacheToast = false
         }
+
+        // Track whether usage data arrived
+        lastRefreshFailed = (usage == nil)
 
         // Last updated — use current time whenever we complete a refresh
         lastUpdated = Date()
@@ -406,7 +418,7 @@ public final class SondeViewModel: ObservableObject {
         if dailyHistory != newHistory { dailyHistory = newHistory }
 
         // Live session timer — derive start time from session duration
-        if newSession.modelName != nil && sessionStartTime == nil {
+        if newSession.modelName != nil {
             if let durationMs = newSession.sessionDurationMs, durationMs > 0 {
                 sessionStartTime = Date().addingTimeInterval(-Double(durationMs) / 1000.0)
             } else {

@@ -3,22 +3,31 @@ use crate::config::SondeConfig;
 use crate::context::Context;
 
 pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
-    let cwd = ctx.cwd.as_deref()?;
+    // Prefer branch from context (already provided by Claude Code) over subprocess
+    let branch = if let Some(ref wt) = ctx.worktree {
+        wt.branch.clone()
+    } else {
+        None
+    };
 
-    let output = std::process::Command::new("git")
-        .args(["rev-parse", "--abbrev-ref", "HEAD"])
-        .current_dir(cwd)
-        .output()
-        .ok()?;
+    let branch = branch.or_else(|| {
+        let cwd = ctx.cwd.as_deref()?;
+        let output = std::process::Command::new("git")
+            .args(["rev-parse", "--abbrev-ref", "HEAD"])
+            .current_dir(cwd)
+            .output()
+            .ok()?;
+        if !output.status.success() { return None; }
+        let b = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if b.is_empty() { None } else { Some(b) }
+    })?;
 
-    if !output.status.success() {
-        return None;
-    }
-
-    let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if branch.is_empty() {
-        return None;
-    }
+    // Truncate long branch names for display
+    let branch = if branch.chars().count() > 30 {
+        format!("{}...", branch.chars().take(27).collect::<String>())
+    } else {
+        branch
+    };
 
     let gcfg = cfg.git_branch.as_ref();
     let symbol = gcfg.and_then(|c| c.symbol.as_deref()).unwrap_or("\u{e0a0} ");

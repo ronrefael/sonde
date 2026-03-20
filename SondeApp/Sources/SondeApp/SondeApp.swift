@@ -82,9 +82,9 @@ struct MenuBarLabel: View {
 
                 case "5h_elapsed":
                     guard let reset = viewModel.fiveHourReset else { return "" }
-                    let remaining = TimeFormatting.remainingMinutes(from: reset)
-                    guard remaining > 0 else { return "" }
-                    let elapsed = max(0, 300 - remaining)
+                    guard let resetDate = ISO8601DateFormatter().date(from: reset) else { return "" }
+                    let windowStart = resetDate.addingTimeInterval(-5 * 3600)
+                    let elapsed = max(0, Int(Date().timeIntervalSince(windowStart) / 60))
                     let h = elapsed / 60; let m = elapsed % 60
                     return h > 0 ? "\(h)h\(String(format: "%02d", m))m" : "\(m)m"
 
@@ -101,8 +101,9 @@ struct MenuBarLabel: View {
                     return TimeFormatting.formatResetTime(from: reset)
 
                 case "promo_left":
-                    guard viewModel.promoActive else { return "" }
-                    return viewModel.promoCountdown
+                    if viewModel.promoActive { return viewModel.promoCountdown }
+                    guard let reset = viewModel.fiveHourReset else { return "" }
+                    return TimeFormatting.formatResetCountdown(from: reset)
 
                 case "session":
                     let dur = viewModel.liveSessionDuration

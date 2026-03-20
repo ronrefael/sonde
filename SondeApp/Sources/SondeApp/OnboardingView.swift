@@ -91,6 +91,17 @@ struct OnboardingView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
+
+                // Quick skip for returning users
+                if currentStep > 0 && currentStep < totalSteps - 1 {
+                    Button("Skip setup") {
+                        onComplete()
+                    }
+                    .font(.system(size: 10))
+                    .foregroundStyle(theme.textSecondary.opacity(0.5))
+                    .buttonStyle(.borderless)
+                    .padding(.bottom, 4)
+                }
             }
         }
     }

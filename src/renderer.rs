@@ -91,6 +91,8 @@ fn module_priority(name: &str) -> u8 {
     }
 }
 
+/// Compacts text for narrow terminals by removing parenthesized content
+/// (typically reset countdowns like "(3h51m)") and shortening tier labels.
 fn abbreviate(text: &str) -> String {
     let mut result = String::new();
     let mut depth = 0;

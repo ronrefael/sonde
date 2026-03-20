@@ -50,15 +50,11 @@ public enum TimeFormatting {
         return fmt.string(from: resetDate)
     }
 
-    /// Resolve a reset date — if it's in the past, project forward in 5h increments.
+    /// Resolve a reset date — returns nil if the reset is in the past.
+    /// We don't project forward because that's a guess, not real API data.
     private static func resolveResetDate(_ rfc3339: String) -> Date? {
-        guard var resetDate = parseDate(rfc3339) else { return nil }
-        let now = Date()
-        let fiveHours: TimeInterval = 5 * 3600
-        // If reset is in the past, advance by 5h increments until it's in the future
-        while resetDate <= now {
-            resetDate = resetDate.addingTimeInterval(fiveHours)
-        }
+        guard let resetDate = parseDate(rfc3339) else { return nil }
+        if resetDate <= Date() { return nil }
         return resetDate
     }
 

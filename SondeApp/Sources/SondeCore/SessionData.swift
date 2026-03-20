@@ -593,7 +593,7 @@ public actor SessionReader {
         defer { handle.closeFile() }
 
         let fileSize = handle.seekToEndOfFile()
-        let readSize: UInt64 = min(fileSize, 65536)
+        let readSize: UInt64 = min(fileSize, 524288)
         handle.seek(toFileOffset: fileSize - readSize)
         let tailData = handle.readDataToEndOfFile()
 
@@ -690,7 +690,7 @@ public actor SessionReader {
         defer { handle.closeFile() }
 
         let fileSize = handle.seekToEndOfFile()
-        let readSize: UInt64 = min(fileSize, 65536)
+        let readSize: UInt64 = min(fileSize, 524288)
         handle.seek(toFileOffset: fileSize - readSize)
         let tailData = handle.readDataToEndOfFile()
 

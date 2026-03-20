@@ -78,11 +78,15 @@ fn format_reset_time(rfc3339: &str) -> String {
         return "now".to_string();
     }
 
-    let hours = diff.num_hours();
+    let total_hours = diff.num_hours();
     let mins = diff.num_minutes() % 60;
 
-    if hours > 0 {
-        format!("{hours}h{mins:02}m")
+    if total_hours >= 24 {
+        let days = total_hours / 24;
+        let hours = total_hours % 24;
+        format!("{days}d {hours}h{mins:02}m")
+    } else if total_hours > 0 {
+        format!("{total_hours}h{mins:02}m")
     } else {
         format!("{mins}m")
     }

@@ -137,7 +137,8 @@ fn run_statusline() {
         println!("{output}");
     }
 
-    // Record usage history for TUI sparkline (fire-and-forget)
+    // Record usage history — fetch_usage is memoized per process via OnceLock,
+    // so this reuses the render cycle's data without an extra API call
     let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);
     let five_hour_util =
         usage_api::fetch_usage(ttl).and_then(|d| d.five_hour.and_then(|w| w.utilization));
