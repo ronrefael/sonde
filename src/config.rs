@@ -30,7 +30,6 @@ pub struct SondeConfig {
     pub mascot: Option<MascotConfig>,
     pub windsurf: Option<WindsurfConfig>,
     pub notifications: Option<NotificationsConfig>,
-    pub accounts: Option<HashMap<String, AccountConfig>>,
     pub copilot: Option<CopilotConfig>,
     pub gemini: Option<GeminiConfig>,
     pub custom: Option<HashMap<String, CustomModuleConfig>>,
@@ -119,14 +118,6 @@ pub struct MascotConfig {
 pub struct WindsurfConfig {
     pub enabled: Option<bool>,
     pub sessions_dir: Option<String>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Deserialize, Default, Clone)]
-pub struct AccountConfig {
-    pub name: Option<String>,
-    pub credential_service: Option<String>,
-    pub api_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

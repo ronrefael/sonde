@@ -1,3 +1,4 @@
+// Detection only — cost tracking coming in a future release
 use crate::ansi;
 use crate::config::SondeConfig;
 use crate::context::Context;

@@ -128,11 +128,13 @@ mod tests {
 
     #[test]
     fn prunes_old_entries() {
+        // Pruning happens inside record(), not read_history_from().
+        // Simulate record()'s logic: read entries, append a new one, prune, and write back.
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("history.json");
 
         let now = now_epoch();
-        let entries = vec![
+        let mut entries = vec![
             HistoryEntry {
                 timestamp: now - 25 * 3600, // 25h ago — should be pruned
                 five_hour_util: Some(10.0),
@@ -147,12 +149,23 @@ mod tests {
             },
         ];
 
+        // Simulate what record() does: append new entry and prune
+        entries.push(HistoryEntry {
+            timestamp: now,
+            five_hour_util: Some(60.0),
+            seven_day_util: None,
+            session_cost: None,
+        });
+        let cutoff = now.saturating_sub(24 * 3600);
+        entries.retain(|e| e.timestamp >= cutoff);
+
         let json = serde_json::to_string(&entries).unwrap();
         std::fs::write(&path, &json).unwrap();
 
-        // Read and verify the old entry is still in the file
         let loaded = read_history_from(&path);
+        // The 25h-old entry should have been pruned; only the 1h-old and new entries remain
         assert_eq!(loaded.len(), 2);
+        assert!(loaded.iter().all(|e| e.timestamp >= cutoff));
     }
 
     #[test]

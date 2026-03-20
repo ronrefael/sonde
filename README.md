@@ -60,13 +60,13 @@ A Rust-powered statusline that renders directly in Claude Code:
  ⚡ 2X  10h32m left
 ```
 
-20+ configurable modules. Renders in under 50ms. Powerline arrows with 6 color themes.
+20+ configurable modules. Renders typically under 50ms (~30ms measured on Apple Silicon). Powerline arrows with 6 color themes.
 
 ## Promo awareness
 
 This is sonde's killer feature. **No other tool does this.**
 
-Claude Code runs promotions where your rate limits are doubled (2X) or tripled (3X) during off-peak hours. These promotions aren't announced with push notifications — you'd never know unless you checked the support page manually.
+Claude Code runs promotions where your rate limits are doubled (2X) during off-peak hours. These promotions aren't announced with push notifications — you'd never know unless you checked the support page manually.
 
 sonde knows. It tracks the current promotion schedule and tells you:
 
@@ -155,7 +155,7 @@ cd SondeApp && swift build && swift run
 | **Time-to-limit** | Predicts when you'll hit your rate limit at current pace |
 | **7-day chart** | Daily peak usage bar chart with backfilled history |
 | **Active sessions** | All running Claude sessions with project, model, and duration |
-| **Promo badge** | 2X/3X status with countdown timer |
+| **Promo badge** | 2X status with countdown timer |
 | **Context bar** | Visual progress bar of context window usage |
 | **Session info** | Model, project name, git branch, session duration |
 
@@ -192,13 +192,15 @@ Configurable via Settings. Each segment can be toggled:
 | Context bar | `$sonde.context_bar` | Visual progress bar [━━━━╌╌╌╌╌╌] |
 | Usage limits | `$sonde.usage_limits` | 5h and 7d utilization with reset countdowns |
 | Pacing | `$sonde.pacing` | 6-tier burn rate with time-to-limit prediction |
-| Promo badge | `$sonde.promo_badge` | 2X/3X status with countdown |
+| Promo badge | `$sonde.promo_badge` | 2X status with countdown |
 | Session clock | `$sonde.session_clock` | Elapsed session time |
 | Git branch | `$sonde.git_branch` | Current git branch |
 | Active sessions | `$sonde.active_sessions` | Count of parallel Claude sessions |
 | Agent | `$sonde.agent` | Agent name badge |
 | Worktree | `$sonde.worktree` | Worktree name |
 | Mascot | `$sonde.mascot_icon` | Animated status icon |
+| Copilot | `$sonde.copilot_cost` | GitHub Copilot (detection only) |
+| Gemini | `$sonde.gemini_cost` | Google Gemini Code Assist (detection only) |
 | Custom | `$sonde.custom.{name}` | Your own shell command modules |
 
 ### Pacing tiers
@@ -277,7 +279,7 @@ Auto-detects Slack, Discord, or generic webhook format.
 
 ## How it works
 
-sonde reads Claude Code's OAuth token from your system keychain (never stored to disk), calls the usage API, caches results for 60 seconds, and renders everything in real-time. The Rust binary runs in under 50ms. The Swift app polls every 30 seconds (configurable).
+sonde reads Claude Code's OAuth token from your system keychain (never stored to disk), calls the usage API, caches results for 60 seconds, and renders everything in real-time. The Rust binary renders typically under 50ms. The Swift app polls every 30 seconds (configurable).
 
 **Security**: Your OAuth token is never written to disk, logs, cache, or stdout. It's held in memory only for the duration of the API call, then dropped.
 
@@ -296,10 +298,10 @@ sonde themes
 
 ## What's next
 
-- VS Code extension (status bar + webview panel)
+- VS Code extension (coming soon)
 - Raycast extension (quick view from launcher)
 - Apple Watch complication (usage ring on your wrist)
-- Landing page at sonde.dev
+- Landing page (coming soon)
 
 ## License
 

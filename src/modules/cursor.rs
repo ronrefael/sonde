@@ -27,6 +27,7 @@ enum CursorEvent {
     Other,
 }
 
+// Pricing as of March 2026 — may need updating
 fn price_per_million(model: &str) -> (f64, f64) {
     match model {
         m if m.contains("claude-3.5-sonnet") || m.contains("claude-3-5-sonnet") => (3.00, 15.00),

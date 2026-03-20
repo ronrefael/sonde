@@ -13,12 +13,6 @@
       "title": "Show AI Usage",
       "description": "Display current AI usage metrics",
       "mode": "view"
-    },
-    {
-      "name": "pacing",
-      "title": "Show Pacing",
-      "description": "Display current pacing tier",
-      "mode": "no-view"
     }
   ],
   "dependencies": {

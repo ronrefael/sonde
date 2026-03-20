@@ -153,24 +153,7 @@ fn main() {
         .with_target(false)
         .init();
 
-    // Parse --account flag (can appear in any position)
-    let args: Vec<String> = std::env::args().collect();
-    let account_name = args
-        .iter()
-        .position(|a| a == "--account")
-        .and_then(|i| args.get(i + 1).cloned());
-
-    if let Some(ref _acct) = account_name {
-        // Multi-account support: account name affects cache scoping
-        // and credential service lookup. The actual account config
-        // is resolved in config::load() based on the account name.
-        // For now, set an env var that cache.rs and usage_api.rs can read.
-        // This is a lightweight approach that avoids threading account
-        // through every function signature.
-    }
-
-    let arg = args.get(1).map(|s| s.as_str());
-    match arg {
+    match std::env::args().nth(1).as_deref() {
         Some("tui") => {
             if let Err(e) = tui::run() {
                 eprintln!("TUI error: {e}");

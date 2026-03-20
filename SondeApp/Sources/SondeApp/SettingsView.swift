@@ -67,6 +67,8 @@ struct SettingsTab: View {
                     settingsRow("Show cost") {
                         sondeToggle($showMenuBarCost)
                     }
+                    .opacity(showCosts ? 1.0 : 0.3)
+                    .allowsHitTesting(showCosts)
                     thinDivider
                     settingsRow("Show promo status") {
                         sondeToggle($showMenuBarPromo)

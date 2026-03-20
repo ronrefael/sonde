@@ -559,11 +559,24 @@ struct PopoverView: View {
     @AppStorage("popoverTheme") private var themeName: String = PopoverTheme.system.rawValue
     @AppStorage("showCosts") private var showCosts: Bool = false
     @AppStorage("appearanceMode") private var appearanceMode: String = "auto"
+    @Environment(\.colorScheme) private var systemColorScheme
     @State private var showProjects = false
     @State private var showSettings = false
 
     private var theme: PopoverTheme {
         PopoverTheme(rawValue: themeName) ?? .system
+    }
+
+    /// Whether the current theme should render in dark mode.
+    /// For System theme, uses the live SwiftUI colorScheme environment
+    /// instead of reading NSApp appearance (which doesn't update reactively).
+    private var isDark: Bool {
+        guard theme == .system else { return true }
+        switch appearanceMode {
+        case "light": return false
+        case "dark": return true
+        default: return systemColorScheme == .dark
+        }
     }
 
     private var hasActiveSession: Bool {

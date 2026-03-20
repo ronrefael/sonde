@@ -68,70 +68,9 @@ public final class UsageHistoryTracker {
     }
 
     /// Return the stored history (up to 14 days).
-    /// On first call, backfills from ~/.claude/ session transcripts if history is sparse.
+    /// Shows empty bars until real data accumulates from actual API polls.
     public func getHistory() -> [DailySnapshot] {
-        var history = loadHistory()
-        if history.count < 3 {
-            backfillFromSessions(&history)
-            saveHistory(history)
-        }
-        return history
-    }
-
-    /// Scan ~/.claude/projects/ for session transcripts and estimate daily activity
-    /// from file modification dates. This gives us historical bars even before the app
-    /// was tracking usage.
-    private func backfillFromSessions(_ history: inout [DailySnapshot]) {
-        guard let home = FileManager.default.homeDirectoryForCurrentUser as URL? else { return }
-        let projectsDir = home.appendingPathComponent(".claude/projects")
-        guard FileManager.default.fileExists(atPath: projectsDir.path) else { return }
-
-        let cal = Calendar.current
-        let dateFmt = DateFormatter()
-        dateFmt.dateFormat = "yyyy-MM-dd"
-        dateFmt.timeZone = .current
-
-        // Collect modification dates from .jsonl files in the last 14 days
-        var activityByDay: [String: Int] = [:]
-        let cutoff = cal.date(byAdding: .day, value: -14, to: Date()) ?? Date()
-
-        guard let enumerator = FileManager.default.enumerator(
-            at: projectsDir,
-            includingPropertiesForKeys: [.contentModificationDateKey],
-            options: [.skipsHiddenFiles]
-        ) else { return }
-
-        while let url = enumerator.nextObject() as? URL {
-            guard url.pathExtension == "jsonl" else { continue }
-            guard let values = try? url.resourceValues(forKeys: [.contentModificationDateKey]),
-                  let modDate = values.contentModificationDate,
-                  modDate > cutoff
-            else { continue }
-
-            let dayKey = dateFmt.string(from: modDate)
-            activityByDay[dayKey, default: 0] += 1
-        }
-
-        // Convert session count to estimated utilization (heuristic: more sessions = higher usage)
-        // This is approximate — better than empty bars
-        let maxSessions = max(activityByDay.values.max() ?? 1, 1)
-        for (day, count) in activityByDay {
-            if history.contains(where: { $0.date == day }) { continue }
-            // Scale: sessions relative to busiest day, cap at ~80% to not overstate
-            let estimatedUtil = min(Double(count) / Double(maxSessions) * 80.0, 80.0)
-            history.append(DailySnapshot(
-                date: day,
-                fiveHourPeak: estimatedUtil,
-                sevenDayPeak: 0,
-                dailyCost: 0
-            ))
-        }
-
-        // Sort and prune
-        history.sort { $0.date < $1.date }
-        if history.count > maxDays {
-            history = Array(history.suffix(maxDays))
-        }
+        return loadHistory()
     }
 
     // MARK: - Private
