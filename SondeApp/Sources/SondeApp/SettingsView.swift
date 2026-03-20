@@ -7,19 +7,26 @@ struct SettingsTab: View {
     @Binding var showCosts: Bool
     @Binding var themeName: String
     @Binding var showSettings: Bool
+    @AppStorage("appearanceMode") var appearanceMode: String = "auto"
     @AppStorage("showMenuBarCost") var showMenuBarCost: Bool = true
     @AppStorage("showMenuBarPromo") var showMenuBarPromo: Bool = true
     @AppStorage("showMenuBarCountdown") var showMenuBarCountdown: Bool = true
     @AppStorage("menuBarTimerMode") var menuBarTimerMode: String = "5h_left"
     @AppStorage("pollInterval") var pollInterval: Double = 30
 
+    private let appearanceOptions: [(String, String)] = [
+        ("auto", "Auto (System)"),
+        ("light", "Light"),
+        ("dark", "Dark"),
+    ]
+
     private let timerOptions: [(String, String)] = [
-        ("5h_left", "5h — Time left"),
-        ("5h_elapsed", "5h — Time elapsed"),
-        ("5h_reset_time", "5h — Resets at"),
-        ("7d_left", "7d — Time left"),
-        ("7d_reset_time", "7d — Resets at"),
-        ("promo_left", "Promo — Time left"),
+        ("5h_left", "5h time left"),
+        ("5h_elapsed", "5h elapsed"),
+        ("5h_reset_time", "5h resets at"),
+        ("7d_left", "7d time left"),
+        ("7d_reset_time", "7d resets at"),
+        ("promo_left", "Promo time left"),
         ("session", "Session duration"),
     ]
 
@@ -88,6 +95,17 @@ struct SettingsTab: View {
 
                 // DISPLAY
                 sectionCard("DISPLAY") {
+                    // Appearance only for System theme (others are fixed dark)
+                    if theme == .system {
+                        settingsRow("Appearance") {
+                            themedMenu(
+                                selection: $appearanceMode,
+                                options: appearanceOptions,
+                                label: { appearanceOptions.first { $0.0 == appearanceMode }?.1 ?? "Auto" }
+                            )
+                        }
+                        thinDivider
+                    }
                     settingsRow("Show costs") {
                         Toggle("", isOn: $showCosts)
                             .toggleStyle(.switch).controlSize(.mini)
@@ -115,14 +133,14 @@ struct SettingsTab: View {
                                     .frame(width: 8, height: 8)
                                 Text(themeName)
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(theme.headerAccent)
+                                    .foregroundColor(dropdownTextColor)
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 8, weight: .bold))
-                                    .foregroundStyle(theme.headerAccent.opacity(0.6))
+                                    .foregroundColor(dropdownTextColor.opacity(0.6))
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(theme.headerAccent.opacity(0.1), in: RoundedRectangle(cornerRadius: 5))
+                            .background(dropdownBgColor, in: RoundedRectangle(cornerRadius: 5))
                         }
                         .buttonStyle(.borderless)
                     }
@@ -168,12 +186,30 @@ struct SettingsTab: View {
         }
     }
 
-    /// Text color that's always readable on the card background.
-    private var rowTextColor: Color {
+    /// Whether the current theme has a dark card background.
+    private var isDarkTheme: Bool {
         switch theme {
-        case .system, .liquidGlass: return .primary
-        default: return .white
+        case .system: return false
+        case .liquidGlass: return true // translucent dark
+        default: return true
         }
+    }
+
+    /// Text color for row labels — always readable on card background.
+    private var rowTextColor: Color {
+        isDarkTheme ? Color(white: 0.95) : Color(white: 0.1)
+    }
+
+    /// Accent color for dropdown buttons — needs contrast on card background.
+    private var dropdownTextColor: Color {
+        // Use headerAccent on dark themes (it's always bright)
+        // Use a darker accent on light themes
+        isDarkTheme ? theme.headerAccent : Color(red: 0.2, green: 0.3, blue: 0.8)
+    }
+
+    /// Background for dropdown pills.
+    private var dropdownBgColor: Color {
+        isDarkTheme ? theme.headerAccent.opacity(0.15) : Color(white: 0.0).opacity(0.06)
     }
 
     @ViewBuilder
@@ -212,14 +248,14 @@ struct SettingsTab: View {
             HStack(spacing: 4) {
                 Text(label())
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(theme.headerAccent)
+                    .foregroundColor(dropdownTextColor)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(theme.headerAccent.opacity(0.6))
+                    .foregroundColor(dropdownTextColor.opacity(0.6))
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(theme.headerAccent.opacity(0.1), in: RoundedRectangle(cornerRadius: 5))
+            .background(dropdownBgColor, in: RoundedRectangle(cornerRadius: 5))
         }
         .buttonStyle(.borderless)
     }

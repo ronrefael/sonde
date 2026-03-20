@@ -88,20 +88,19 @@ struct MenuBarLabel: View {
                 switch menuBarTimerMode {
                 case "5h_left":
                     guard let reset = viewModel.fiveHourReset else { return "" }
-                    let cd = TimeFormatting.formatResetCountdown(from: reset)
-                    return cd.isEmpty ? "0m" : cd
+                    return TimeFormatting.formatResetCountdown(from: reset)
 
                 case "5h_elapsed":
                     guard let reset = viewModel.fiveHourReset else { return "" }
                     let remaining = TimeFormatting.remainingMinutes(from: reset)
+                    guard remaining > 0 else { return "" }
                     let elapsed = max(0, 300 - remaining)
                     let h = elapsed / 60; let m = elapsed % 60
                     return h > 0 ? "\(h)h\(String(format: "%02d", m))m" : "\(m)m"
 
                 case "5h_reset_time":
                     guard let reset = viewModel.fiveHourReset else { return "" }
-                    let t = TimeFormatting.formatResetTime(from: reset)
-                    return t.isEmpty ? "reset" : t
+                    return TimeFormatting.formatResetTime(from: reset)
 
                 case "7d_left":
                     guard let reset = viewModel.sevenDayReset else { return "" }

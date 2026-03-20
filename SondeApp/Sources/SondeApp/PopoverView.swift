@@ -367,16 +367,29 @@ private struct LiveSessionStrip: View {
                     .transition(.scale.combined(with: .opacity))
                 }
 
-                if let branch = session.gitBranch {
-                    HStack(spacing: 3) {
-                        Image(systemName: "arrow.triangle.branch")
-                            .font(.system(size: 9))
-                        Text(branch)
-                            .font(.system(size: 11, design: .monospaced))
-                            .lineLimit(1)
-                            .frame(maxWidth: 90, alignment: .leading)
+                if session.projectName != nil || session.gitBranch != nil {
+                    VStack(alignment: .leading, spacing: 1) {
+                        if let project = session.projectName {
+                            HStack(spacing: 3) {
+                                Image(systemName: "folder.fill")
+                                    .font(.system(size: 8))
+                                Text(project)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .lineLimit(1)
+                            }
+                            .foregroundStyle(theme.textPrimary)
+                        }
+                        if let branch = session.gitBranch {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.triangle.branch")
+                                    .font(.system(size: 8))
+                                Text(branch)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .lineLimit(1)
+                            }
+                            .foregroundStyle(theme.textSecondary)
+                        }
                     }
-                    .foregroundStyle(theme.textSecondary)
                 }
 
                 Spacer()
@@ -501,6 +514,7 @@ struct PopoverView: View {
     @ObservedObject var viewModel: SondeViewModel
     @AppStorage("popoverTheme") private var themeName: String = PopoverTheme.system.rawValue
     @AppStorage("showCosts") private var showCosts: Bool = false
+    @AppStorage("appearanceMode") private var appearanceMode: String = "auto"
     @State private var showProjects = false
     @State private var showSettings = false
 
@@ -510,6 +524,14 @@ struct PopoverView: View {
 
     private var hasActiveSession: Bool {
         viewModel.session.modelName != nil
+    }
+
+    private var colorScheme: ColorScheme? {
+        switch appearanceMode {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil // auto — follows system
+        }
     }
 
     var body: some View {
@@ -597,6 +619,7 @@ struct PopoverView: View {
         .overlay {
             if theme.hasScanlines { ScanlineOverlay() }
         }
+        .preferredColorScheme(colorScheme)
         .onAppear { Task { await viewModel.refresh() } }
     }
 
