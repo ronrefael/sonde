@@ -41,6 +41,15 @@ enum PopoverTheme: String, CaseIterable {
                 // Auto: check macOS appearance
                 return NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
             }
+        case .sonde:
+            // Safe to read UserDefaults.standard directly (not @AppStorage) — no cycle
+            let mode = UserDefaults.standard.string(forKey: "appearanceMode") ?? "auto"
+            switch mode {
+            case "light": return false
+            case "dark": return true
+            default:
+                return NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            }
         case .liquidGlass: return true
         default: return true
         }
@@ -502,10 +511,10 @@ struct PopoverView: View {
     }
 
     /// Whether the current theme should render in dark mode.
-    /// For System theme, uses the live SwiftUI colorScheme environment
+    /// For System/Sonde themes, uses the live SwiftUI colorScheme environment
     /// instead of reading NSApp appearance (which doesn't update reactively).
     private var isDark: Bool {
-        guard theme == .system else { return true }
+        guard theme == .system || theme == .sonde else { return true }
         switch appearanceMode {
         case "light": return false
         case "dark": return true
