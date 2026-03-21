@@ -84,17 +84,11 @@ On first launch, a guided setup walks you through everything — Claude Code det
 
 ### Terminal Statusline (macOS / Linux)
 
-The terminal statusline is also included inside the DMG app. But if you want it standalone:
-
 ```bash
-# Homebrew (recommended)
-brew install ronrefael/tap/sonde
-
-# Or one-liner
-curl -sSf https://raw.githubusercontent.com/ronrefael/sonde/main/install.sh | bash
-
-# Or from source
+# From source
 cargo install --git https://github.com/ronrefael/sonde --locked
+
+# Or download the binary for your platform from the latest release
 ```
 
 Then run:
@@ -205,7 +199,6 @@ Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable 
 | Context bar | Visual progress bar of context window |
 | Active sessions | Count of parallel Claude sessions |
 | Session clock | Elapsed session time |
-| Custom | Your own shell command modules |
 
 ---
 
@@ -240,16 +233,6 @@ sonde looks for config in this order:
 3. `~/.config/sonde/sonde.toml` (XDG)
 4. `~/.sonde.toml` (home fallback)
 
-### Custom modules
-
-```toml
-[sonde.custom.cpu]
-command = "top -l 1 | awk '/CPU usage/ {print $3}'"
-style   = "fg:#7dcfff"
-```
-
-Use as `$sonde.custom.cpu` in your `lines` config.
-
 ---
 
 ## How it works
@@ -267,20 +250,18 @@ sonde reads Claude Code's OAuth token from your system keychain (never stored to
 | `sonde` | Render statusline (reads JSON from stdin) |
 | `sonde setup` | Auto-configure everything in ~10 seconds |
 | `sonde doctor` | Run 9 diagnostic checks |
-| `sonde tui` | Full-screen terminal dashboard |
 | `sonde themes` | Preview all 7 terminal palettes |
-| `sonde configure` | Interactive TUI configurator |
 | `sonde version` | Print version |
 
 ---
 
 ## What's next
 
+- Apple notarization (no more `xattr` workaround)
+- Homebrew tap (`brew install ronrefael/tap/sonde`)
+- Webhook notifications (Slack/Discord alerts when usage gets high)
 - VS Code extension
-- Raycast extension (quick view from launcher)
-- Apple Watch complication (usage ring on your wrist)
 - iOS companion app
-- Landing page
 
 ---
 
