@@ -65,8 +65,14 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
             .label
             .as_deref()
             .unwrap_or(if is_offpeak {
-                    if ansi::has_nerd_fonts() { "\u{f0e7} Promo" } else { "\u{2605} Promo" }
-                } else { "" })
+                if ansi::has_nerd_fonts() {
+                    "\u{f0e7} Promo"
+                } else {
+                    "\u{2605} Promo"
+                }
+            } else {
+                ""
+            })
             .to_string(),
     };
 

@@ -12,7 +12,11 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     }
 
     // Try workspace.project_dir first, then fall back to cwd
-    let name = match ctx.workspace.as_ref().and_then(|w| w.project_dir.as_deref()) {
+    let name = match ctx
+        .workspace
+        .as_ref()
+        .and_then(|w| w.project_dir.as_deref())
+    {
         Some(dir) => extract_last_component(dir),
         None => match ctx.cwd.as_deref() {
             Some(dir) => extract_last_component(dir),
@@ -25,8 +29,14 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
 
     match name {
         Some(n) => {
-            let default_sym = if ansi::has_nerd_fonts() { "\u{f07b} " } else { "" };
-            let symbol = pcfg.and_then(|c| c.symbol.as_deref()).unwrap_or(default_sym);
+            let default_sym = if ansi::has_nerd_fonts() {
+                "\u{f07b} "
+            } else {
+                ""
+            };
+            let symbol = pcfg
+                .and_then(|c| c.symbol.as_deref())
+                .unwrap_or(default_sym);
             let style = pcfg.and_then(|c| c.style.as_deref());
             let text = if symbol.is_empty() {
                 n.to_string()
@@ -56,9 +66,8 @@ mod tests {
 
     #[test]
     fn renders_project_from_workspace() {
-        let ctx = parse_str(
-            r#"{"workspace":{"project_dir":"/Users/dev/projects/my-app"},"cwd":"/tmp"}"#,
-        );
+        let ctx =
+            parse_str(r#"{"workspace":{"project_dir":"/Users/dev/projects/my-app"},"cwd":"/tmp"}"#);
         let cfg = SondeConfig::default();
         let result = render(&ctx, &cfg);
         let text = result.unwrap();

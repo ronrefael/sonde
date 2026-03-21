@@ -454,23 +454,71 @@ pub fn is_light_terminal() -> bool {
 pub fn sonde_model_color(model_name: &str, is_light: bool) -> Color {
     let lower = model_name.to_lowercase();
     if lower.contains("opus") {
-        if is_light { Color::Rgb(136, 57, 239) } else { Color::Rgb(203, 166, 247) }
+        if is_light {
+            Color::Rgb(136, 57, 239)
+        } else {
+            Color::Rgb(203, 166, 247)
+        }
     } else if lower.contains("haiku") {
-        if is_light { Color::Rgb(156, 160, 176) } else { Color::Rgb(24, 24, 37) }
+        if is_light {
+            Color::Rgb(156, 160, 176)
+        } else {
+            Color::Rgb(24, 24, 37)
+        }
     } else {
         // Sonnet (default)
-        if is_light { Color::Rgb(180, 135, 35) } else { Color::Rgb(235, 190, 100) }
+        if is_light {
+            Color::Rgb(180, 135, 35)
+        } else {
+            Color::Rgb(235, 190, 100)
+        }
     }
 }
 
 pub fn sonde_pace_color(tier_name: &str, is_light: bool) -> Color {
     match tier_name {
-        "Comfortable" => if is_light { Color::Rgb(64, 160, 43) } else { Color::Rgb(166, 227, 161) },
-        "On Track" => if is_light { Color::Rgb(114, 135, 253) } else { Color::Rgb(180, 190, 254) },
-        "Elevated" => if is_light { Color::Rgb(223, 142, 29) } else { Color::Rgb(249, 226, 175) },
-        "Hot" => if is_light { Color::Rgb(230, 69, 83) } else { Color::Rgb(235, 160, 172) },
-        "Runaway" | "Critical" => if is_light { Color::Rgb(210, 15, 57) } else { Color::Rgb(150, 60, 85) },
-        _ => if is_light { Color::Rgb(64, 160, 43) } else { Color::Rgb(166, 227, 161) },
+        "Comfortable" => {
+            if is_light {
+                Color::Rgb(64, 160, 43)
+            } else {
+                Color::Rgb(166, 227, 161)
+            }
+        }
+        "On Track" => {
+            if is_light {
+                Color::Rgb(114, 135, 253)
+            } else {
+                Color::Rgb(180, 190, 254)
+            }
+        }
+        "Elevated" => {
+            if is_light {
+                Color::Rgb(223, 142, 29)
+            } else {
+                Color::Rgb(249, 226, 175)
+            }
+        }
+        "Hot" => {
+            if is_light {
+                Color::Rgb(230, 69, 83)
+            } else {
+                Color::Rgb(235, 160, 172)
+            }
+        }
+        "Runaway" | "Critical" => {
+            if is_light {
+                Color::Rgb(210, 15, 57)
+            } else {
+                Color::Rgb(150, 60, 85)
+            }
+        }
+        _ => {
+            if is_light {
+                Color::Rgb(64, 160, 43)
+            } else {
+                Color::Rgb(166, 227, 161)
+            }
+        }
     }
 }
 

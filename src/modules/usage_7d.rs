@@ -43,9 +43,13 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
         .map(|r| format_reset_time_7d(r))
         .unwrap_or_default();
 
-    let fmt = ucfg
-        .and_then(|c| c.seven_day_format.as_deref())
-        .unwrap_or(if ansi::has_nerd_fonts() { "\u{f073} 7d {pct}% ({reset})" } else { "7d {pct}% ({reset})" });
+    let fmt =
+        ucfg.and_then(|c| c.seven_day_format.as_deref())
+            .unwrap_or(if ansi::has_nerd_fonts() {
+                "\u{f073} 7d {pct}% ({reset})"
+            } else {
+                "7d {pct}% ({reset})"
+            });
 
     let text = fmt
         .replace("{pct}", &format!("{pct:.0}"))
@@ -119,7 +123,8 @@ mod tests {
     #[test]
     fn format_7d_no_days_when_under_24h() {
         // Use chrono to build a time ~5 hours from now
-        let future = chrono::Utc::now() + chrono::Duration::hours(5) + chrono::Duration::minutes(30);
+        let future =
+            chrono::Utc::now() + chrono::Duration::hours(5) + chrono::Duration::minutes(30);
         let rfc = future.to_rfc3339();
         let result = format_reset_time_7d(&rfc);
         assert!(!result.contains('d'), "Should not contain days: {result}");

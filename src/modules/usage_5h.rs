@@ -43,9 +43,13 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
         .map(|r| format_reset_time(r))
         .unwrap_or_default();
 
-    let fmt = ucfg
-        .and_then(|c| c.five_hour_format.as_deref())
-        .unwrap_or(if ansi::has_nerd_fonts() { "\u{f252} 5h {pct}% ({reset})" } else { "5h {pct}% ({reset})" });
+    let fmt =
+        ucfg.and_then(|c| c.five_hour_format.as_deref())
+            .unwrap_or(if ansi::has_nerd_fonts() {
+                "\u{f252} 5h {pct}% ({reset})"
+            } else {
+                "5h {pct}% ({reset})"
+            });
 
     let text = fmt
         .replace("{pct}", &format!("{pct:.0}"))

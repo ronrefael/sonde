@@ -17,9 +17,15 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
             .current_dir(cwd)
             .output()
             .ok()?;
-        if !output.status.success() { return None; }
+        if !output.status.success() {
+            return None;
+        }
         let b = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if b.is_empty() { None } else { Some(b) }
+        if b.is_empty() {
+            None
+        } else {
+            Some(b)
+        }
     })?;
 
     // Truncate long branch names for display
@@ -30,8 +36,14 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     };
 
     let gcfg = cfg.git_branch.as_ref();
-    let default_sym = if ansi::has_nerd_fonts() { "\u{f126} " } else { "" };
-    let symbol = gcfg.and_then(|c| c.symbol.as_deref()).unwrap_or(default_sym);
+    let default_sym = if ansi::has_nerd_fonts() {
+        "\u{f126} "
+    } else {
+        ""
+    };
+    let symbol = gcfg
+        .and_then(|c| c.symbol.as_deref())
+        .unwrap_or(default_sym);
     let style = gcfg.and_then(|c| c.style.as_deref());
 
     let text = format!("{symbol}{branch}");

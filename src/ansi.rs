@@ -142,7 +142,11 @@ fn check_apple_terminal_font() -> bool {
     };
 
     let font_output = std::process::Command::new("defaults")
-        .args(["read", "com.apple.Terminal", &format!("Window Settings.{}.Font", profile)])
+        .args([
+            "read",
+            "com.apple.Terminal",
+            &format!("Window Settings.{}.Font", profile),
+        ])
         .output();
     match font_output {
         Ok(o) if o.status.success() => {

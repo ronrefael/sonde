@@ -158,16 +158,24 @@ fn heavy_week_threshold(entries: &[history::HistoryEntry]) -> f64 {
     // Group entries by day and find peak utilization per day
     let mut daily_peaks: std::collections::HashMap<u64, f64> = std::collections::HashMap::new();
     for e in entries {
-        if e.timestamp < five_days_ago { continue; }
+        if e.timestamp < five_days_ago {
+            continue;
+        }
         if let Some(util) = e.five_hour_util {
             let day = e.timestamp / 86400;
             let peak = daily_peaks.entry(day).or_insert(0.0);
-            if util > *peak { *peak = util; }
+            if util > *peak {
+                *peak = util;
+            }
         }
     }
 
     let heavy_days = daily_peaks.values().filter(|&&p| p >= 80.0).count();
-    if heavy_days >= 3 { 10.0 } else { MIN_UTILIZATION }
+    if heavy_days >= 3 {
+        10.0
+    } else {
+        MIN_UTILIZATION
+    }
 }
 
 /// Predicts time until utilization hits 100% using recent differential rates
@@ -178,7 +186,13 @@ fn heavy_week_threshold(entries: &[history::HistoryEntry]) -> f64 {
 pub fn predict_time_to_limit(utilization: f64, resets_at: Option<&str>) -> Option<String> {
     let entries = history::read_history();
     let threshold = heavy_week_threshold(&entries);
-    predict_time_to_limit_with_history_threshold(utilization, resets_at, &entries, chrono::Utc::now(), threshold)
+    predict_time_to_limit_with_history_threshold(
+        utilization,
+        resets_at,
+        &entries,
+        chrono::Utc::now(),
+        threshold,
+    )
 }
 
 /// Inner implementation that accepts history, clock, and threshold for testability.
@@ -188,7 +202,13 @@ pub fn predict_time_to_limit_with_history(
     history: &[history::HistoryEntry],
     now: chrono::DateTime<chrono::Utc>,
 ) -> Option<String> {
-    predict_time_to_limit_with_history_threshold(utilization, resets_at, history, now, MIN_UTILIZATION)
+    predict_time_to_limit_with_history_threshold(
+        utilization,
+        resets_at,
+        history,
+        now,
+        MIN_UTILIZATION,
+    )
 }
 
 fn predict_time_to_limit_with_history_threshold(
@@ -221,8 +241,8 @@ fn predict_time_to_limit_with_history_threshold(
 
     // --- Compute window boundaries ---
     let window_secs: f64 = 5.0 * 3600.0;
-    let window_start_epoch = (reset_dt - chrono::Duration::seconds(window_secs as i64))
-        .timestamp() as u64;
+    let window_start_epoch =
+        (reset_dt - chrono::Duration::seconds(window_secs as i64)).timestamp() as u64;
     let now_epoch = now.timestamp() as u64;
     let rate_cutoff = now_epoch.saturating_sub(RATE_WINDOW_SECS);
 
@@ -358,7 +378,11 @@ fn predict_time_to_limit_with_history_threshold(
 
 /// Naive fallback: average rate over elapsed window. Used during cold start
 /// (no history samples yet) or when confidence is low but utilization is high.
-fn predict_fallback_average(utilization: f64, remaining_secs: f64, window_secs: f64) -> Option<String> {
+fn predict_fallback_average(
+    utilization: f64,
+    remaining_secs: f64,
+    window_secs: f64,
+) -> Option<String> {
     let elapsed_secs = window_secs - remaining_secs;
     if elapsed_secs <= 60.0 {
         return None; // need at least 1 minute of data
@@ -471,7 +495,13 @@ mod tests {
     // --- Prediction tests ---
 
     /// Helper: build a history of steadily increasing utilization samples.
-    fn steady_history(now_epoch: u64, count: usize, interval_secs: u64, start_util: f64, rate_per_sec: f64) -> Vec<HistoryEntry> {
+    fn steady_history(
+        now_epoch: u64,
+        count: usize,
+        interval_secs: u64,
+        start_util: f64,
+        rate_per_sec: f64,
+    ) -> Vec<HistoryEntry> {
         (0..count)
             .map(|i| {
                 let t = now_epoch - (count as u64 - 1 - i as u64) * interval_secs;
@@ -569,7 +599,10 @@ mod tests {
         // Should be None: EWMA rate is low (dominated by recent idle),
         // and/or CV is too high from the burst-then-idle pattern.
         // Either way, the prediction is not shown.
-        assert!(result.is_none(), "Burst-then-idle should suppress prediction");
+        assert!(
+            result.is_none(),
+            "Burst-then-idle should suppress prediction"
+        );
     }
 
     #[test]
@@ -607,7 +640,10 @@ mod tests {
         let result = predict_time_to_limit_with_history(70.0, Some(&reset), &[], now);
         assert!(result.is_some(), "Cold start should use fallback");
         let text = result.unwrap();
-        assert!(text.contains("avg"), "Fallback should be labeled 'avg': {text}");
+        assert!(
+            text.contains("avg"),
+            "Fallback should be labeled 'avg': {text}"
+        );
     }
 
     #[test]
@@ -631,7 +667,10 @@ mod tests {
         let result = predict_time_to_limit_with_history(70.0, Some(&reset), &history, now);
         // Should fall back to average since no in-window history
         if let Some(text) = &result {
-            assert!(text.contains("avg"), "Old-window data should trigger fallback: {text}");
+            assert!(
+                text.contains("avg"),
+                "Old-window data should trigger fallback: {text}"
+            );
         }
     }
 
