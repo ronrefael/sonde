@@ -133,7 +133,7 @@ Click to open the full dashboard:
 | **Usage rings** | 5-hour and 7-day utilization with color-coded gauges |
 | **Pacing tier** | Comfortable → On Track → Elevated → Hot → Critical → Runaway |
 | **Time-to-limit** | "At this rate, you'll hit your limit in ~2h 15m" |
-| **Promo badge** | ⚡ 2X Active · 2d 10h left |
+| **Promo badge** | Active promotion status with countdown timer |
 | **Active sessions** | All running Claude sessions with model, project, and duration |
 | **Code activity** | Lines added/removed, net change, wait percentage |
 | **7-day chart** | Daily peak usage bar chart with backfilled history |
@@ -214,7 +214,7 @@ Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable 
 | 5h usage | Utilization + reset countdown |
 | 7d usage | Weekly utilization + reset countdown |
 | Pacing | 6-tier burn rate with time-to-limit |
-| Promo badge | 2X status with countdown |
+| Promo badge | Active promotion status with countdown |
 | Context bar | Visual progress bar of context window |
 | Active sessions | Count of parallel Claude sessions |
 | Session clock | Elapsed session time |
@@ -223,7 +223,7 @@ Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable 
 
 ## Themes
 
-### Menu bar app — 7 themes
+### Menu bar app — 7 themes (Liquid Glass, System, Sonde, Terminal, Cyberpunk, Synthwave, Solarflare)
 
 | | | |
 |:---:|:---:|:---:|
@@ -233,7 +233,14 @@ Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable 
 
 ### Terminal — 6 powerline palettes
 
-<img src="assets/screenshots/terminal-themes.png" alt="Terminal themes" width="600">
+| Theme | Vibe |
+|-------|------|
+| **catppuccin-mocha** | Pastel on dark — mauve, sapphire, teal, peach |
+| **terminal** | Phosphor green + amber CRT aesthetic |
+| **cyberpunk** | Neon cyan + electric purple on deep navy |
+| **synthwave** | Hot pink + lavender on midnight purple |
+| **solarflare** | Fiery orange + solar yellow on deep red-black |
+| **sonde** | Auto light/dark — the default theme |
 
 ```bash
 sonde themes    # Preview all palettes in your terminal
