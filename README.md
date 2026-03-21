@@ -66,7 +66,12 @@ Click to open a full dashboard with:
 ### The Terminal Statusline
 A Rust-powered statusline that renders directly in Claude Code:
 
-<img src="assets/screenshots/terminal-statusline.png" alt="Terminal statusline" width="600">
+<p>
+  <img src="assets/screenshots/terminal-statusline-light.png" alt="Terminal statusline light" width="600">
+</p>
+<p>
+  <img src="assets/screenshots/terminal-statusline-dark.png" alt="Terminal statusline dark" width="600">
+</p>
 
 20+ configurable modules including project name, git branch, model, usage gauges, pacing tier, context bar, and promo status. Renders typically under 50ms (~30ms measured on Apple Silicon). Powerline arrows with 7 color themes.
 
