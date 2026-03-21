@@ -44,9 +44,9 @@ You're deep in a coding session. Claude is on fire. Then suddenly — rate limit
 A native macOS app that lives in your menu bar. One glance tells you everything:
 
 <p>
-  <img src="assets/screenshots/menubar-light.png" alt="Menu bar light" height="28">
+  <img src="assets/screenshots/menubar-light.png" alt="Menu bar light" height="40">
   &nbsp;&nbsp;
-  <img src="assets/screenshots/menubar-dark.png" alt="Menu bar dark" height="28">
+  <img src="assets/screenshots/menubar-dark.png" alt="Menu bar dark" height="40">
 </p>
 
 Click to open a full dashboard with:
