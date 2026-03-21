@@ -64,7 +64,7 @@ enum PopoverTheme: String, CaseIterable {
 
     var cardBackground: Color {
         switch self {
-        case .liquidGlass: Color.primary.opacity(0.04)
+        case .liquidGlass: Color(white: 0.15).opacity(0.35)
         case .terminal: Color(red: 0.04, green: 0.06, blue: 0.04)
         case .cyberpunk: hex(0x141726)
         case .synthwave: hex(0x2D1B4E)
@@ -88,7 +88,7 @@ enum PopoverTheme: String, CaseIterable {
 
     var textPrimary: Color {
         switch self {
-        case .liquidGlass: .primary
+        case .liquidGlass: Color.white
         case .terminal: Self.phosphor
         case .cyberpunk: hex(0xE0E0E0)
         case .synthwave: hex(0xF0E6FF)
@@ -100,7 +100,7 @@ enum PopoverTheme: String, CaseIterable {
 
     var textSecondary: Color {
         switch self {
-        case .liquidGlass: .secondary
+        case .liquidGlass: Color(white: 0.7)
         case .terminal: Self.amberDim
         case .cyberpunk: hex(0x8FA4B8)
         case .synthwave: hex(0xC4A0E8)
@@ -130,7 +130,7 @@ enum PopoverTheme: String, CaseIterable {
 
     var borderColor: Color {
         switch self {
-        case .liquidGlass: Color.primary.opacity(0.06)
+        case .liquidGlass: Color.white.opacity(0.15)
         case .terminal: Self.phosphorDim.opacity(0.3)
         case .cyberpunk: hex(0x18E0FF).opacity(0.2)
         case .synthwave: hex(0xFF2975).opacity(0.2)
@@ -154,7 +154,7 @@ enum PopoverTheme: String, CaseIterable {
 
     var dividerColor: Color {
         switch self {
-        case .liquidGlass: Color.primary.opacity(0.1)
+        case .liquidGlass: Color.white.opacity(0.15)
         case .terminal: Self.phosphor.opacity(0.12)
         case .system: isDark ? Color.white.opacity(0.08) : hex(0xC6C6C8).opacity(0.6)
         case .sonde: isDark ? hex(0x45475A).opacity(0.3) : hex(0xBCC0CC).opacity(0.4)
@@ -164,7 +164,7 @@ enum PopoverTheme: String, CaseIterable {
 
     var footerText: Color {
         switch self {
-        case .liquidGlass: .secondary
+        case .liquidGlass: Color(white: 0.6)
         case .terminal: Self.phosphorFaint
         case .system: isDark ? hex(0x98989D) : hex(0x3C3C43).opacity(0.6)
         case .sonde: isDark ? hex(0x6C7086) : hex(0x8C8FA1)
@@ -302,7 +302,7 @@ private struct CardEdgeModifier: ViewModifier {
         case .system, .sonde:
             content.shadow(color: Color.black.opacity(0.15), radius: 8, y: 3)
         case .liquidGlass:
-            content.overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 0.5))
+            content.overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.2), lineWidth: 0.5))
         default:
             content
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.borderColor, lineWidth: 1))

@@ -213,13 +213,13 @@ struct SettingsTab: View {
     /// Whether the current theme has a dark card background.
     /// Liquid Glass is translucent — needs dark text despite isDark=true.
     private var isDarkTheme: Bool {
-        if theme == .liquidGlass { return false }
+        if theme == .liquidGlass { return true }
         return theme.isDark
     }
 
     /// Text color for row labels.
     private var rowTextColor: Color {
-        if theme == .liquidGlass { return Color(white: 0.15) }
+        if theme == .liquidGlass { return Color(white: 0.9) }
         return isDarkTheme ? Color(white: 0.95) : Color(white: 0.08)
     }
 
@@ -503,7 +503,7 @@ struct FontInstallRow: View {
     @State private var isInstalling = false
 
     private var rowTextColor: Color {
-        if theme == .liquidGlass { return Color(white: 0.15) }
+        if theme == .liquidGlass { return Color(white: 0.9) }
         return isDark ? Color(white: 0.95) : Color(white: 0.08)
     }
 

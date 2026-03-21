@@ -12,11 +12,6 @@ struct SondeMenuBarApp: App {
         NotificationManager.shared.toastHandler = { message, icon in
             ToastManager.shared.show(message: message, icon: icon)
         }
-        // Defer defaults clearing until AFTER SwiftUI has finished setting up
-        // the MenuBarExtra window. Clearing during init() kills window state.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            Self.clearStaleDefaultsIfNeeded()
-        }
     }
 
     /// Kill any other running Sonde instances to prevent duplicate menu bar items.
