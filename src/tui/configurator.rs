@@ -481,9 +481,9 @@ mod tests {
     #[test]
     fn toml_includes_theme() {
         let mut state = ConfigState::new();
-        state.theme_idx = 1; // dracula
+        state.theme_idx = 1; // terminal
         let toml = state.generate_toml();
-        assert!(toml.contains("dracula"));
+        assert!(toml.contains("terminal"));
     }
 
     #[test]

@@ -59,259 +59,208 @@ static CATPPUCCIN_MOCHA: Palette = Palette {
     modules: CATPPUCCIN_MOCHA_MODULES,
 };
 
-// -- Dracula --
-static DRACULA_MODULES: &[(&str, (Color, Color))] = &[
+// -- Terminal -- phosphor green CRT + amber accents
+static TERMINAL_MODULES: &[(&str, (Color, Color))] = &[
     (
         "sonde.model",
-        (Color::Rgb(40, 42, 54), Color::Rgb(189, 147, 249)),
-    ), // purple
+        (Color::Rgb(5, 5, 10), Color::Rgb(255, 217, 77)),
+    ), // amber
     (
         "sonde.context_bar",
-        (Color::Rgb(40, 42, 54), Color::Rgb(80, 250, 123)),
-    ), // green
+        (Color::Rgb(5, 5, 10), Color::Rgb(51, 255, 51)),
+    ), // phosphor green
     (
         "sonde.context_window",
-        (Color::Rgb(40, 42, 54), Color::Rgb(80, 250, 123)),
-    ),
-    (
-        "sonde.usage_limits",
-        (Color::Rgb(40, 42, 54), Color::Rgb(241, 250, 140)),
-    ), // yellow
-    (
-        "sonde.promo_badge",
-        (Color::Rgb(40, 42, 54), Color::Rgb(255, 184, 108)),
-    ), // orange
-    (
-        "sonde.pacing",
-        (Color::Rgb(40, 42, 54), Color::Rgb(255, 121, 198)),
-    ), // pink
-    (
-        "sonde.session_clock",
-        (Color::Rgb(248, 248, 242), Color::Rgb(68, 71, 90)),
-    ), // comment
-    (
-        "sonde.git_branch",
-        (Color::Rgb(40, 42, 54), Color::Rgb(139, 233, 253)),
+        (Color::Rgb(5, 5, 10), Color::Rgb(77, 230, 230)),
     ), // cyan
     (
+        "sonde.usage_limits",
+        (Color::Rgb(5, 5, 10), Color::Rgb(38, 153, 38)),
+    ), // phosphor dim
+    (
+        "sonde.promo_badge",
+        (Color::Rgb(5, 5, 10), Color::Rgb(191, 153, 51)),
+    ), // amber dim
+    (
+        "sonde.pacing",
+        (Color::Rgb(5, 5, 10), Color::Rgb(102, 204, 51)),
+    ), // lime green
+    (
+        "sonde.session_clock",
+        (Color::Rgb(51, 255, 51), Color::Rgb(10, 15, 10)),
+    ), // dark surface + phosphor text
+    (
+        "sonde.git_branch",
+        (Color::Rgb(5, 5, 10), Color::Rgb(31, 115, 31)),
+    ), // phosphor faint
+    (
         "sonde.active_sessions",
-        (Color::Rgb(248, 248, 242), Color::Rgb(68, 71, 90)),
-    ),
+        (Color::Rgb(51, 255, 51), Color::Rgb(15, 20, 15)),
+    ), // deeper dark
     (
         "sonde.model_suggestion",
-        (Color::Rgb(40, 42, 54), Color::Rgb(241, 250, 140)),
-    ),
+        (Color::Rgb(5, 5, 10), Color::Rgb(255, 38, 38)),
+    ), // CRT red
 ];
 
-static DRACULA: Palette = Palette {
-    base: Color::Rgb(40, 42, 54),
-    text: Color::Rgb(248, 248, 242),
-    surface: Color::Rgb(68, 71, 90),
-    modules: DRACULA_MODULES,
+static TERMINAL: Palette = Palette {
+    base: Color::Rgb(5, 5, 10),
+    text: Color::Rgb(51, 255, 51),
+    surface: Color::Rgb(10, 15, 10),
+    modules: TERMINAL_MODULES,
 };
 
-// -- Tokyo Night --
-static TOKYO_NIGHT_MODULES: &[(&str, (Color, Color))] = &[
+// -- Cyberpunk -- neon cyan + electric accents on deep navy
+static CYBERPUNK_MODULES: &[(&str, (Color, Color))] = &[
     (
         "sonde.model",
-        (Color::Rgb(26, 27, 38), Color::Rgb(187, 154, 247)),
-    ), // purple
+        (Color::Rgb(11, 12, 16), Color::Rgb(24, 224, 255)),
+    ), // neon cyan accent
     (
         "sonde.context_bar",
-        (Color::Rgb(26, 27, 38), Color::Rgb(115, 218, 202)),
+        (Color::Rgb(11, 12, 16), Color::Rgb(140, 64, 217)),
+    ), // electric purple
+    (
+        "sonde.context_window",
+        (Color::Rgb(11, 12, 16), Color::Rgb(51, 115, 230)),
+    ), // deep blue
+    (
+        "sonde.usage_limits",
+        (Color::Rgb(11, 12, 16), Color::Rgb(0, 255, 136)),
+    ), // neon green
+    (
+        "sonde.promo_badge",
+        (Color::Rgb(11, 12, 16), Color::Rgb(255, 0, 170)),
+    ), // hot magenta
+    (
+        "sonde.pacing",
+        (Color::Rgb(11, 12, 16), Color::Rgb(230, 255, 0)),
+    ), // electric yellow
+    (
+        "sonde.session_clock",
+        (Color::Rgb(224, 224, 224), Color::Rgb(20, 23, 38)),
+    ), // card surface
+    (
+        "sonde.git_branch",
+        (Color::Rgb(11, 12, 16), Color::Rgb(0, 166, 140)),
     ), // teal
     (
-        "sonde.context_window",
-        (Color::Rgb(26, 27, 38), Color::Rgb(115, 218, 202)),
-    ),
-    (
-        "sonde.usage_limits",
-        (Color::Rgb(26, 27, 38), Color::Rgb(158, 206, 106)),
-    ), // green
-    (
-        "sonde.promo_badge",
-        (Color::Rgb(26, 27, 38), Color::Rgb(255, 158, 100)),
-    ), // orange
-    (
-        "sonde.pacing",
-        (Color::Rgb(26, 27, 38), Color::Rgb(224, 175, 104)),
-    ), // yellow
-    (
-        "sonde.session_clock",
-        (Color::Rgb(169, 177, 214), Color::Rgb(52, 59, 88)),
-    ), // dark3
-    (
-        "sonde.git_branch",
-        (Color::Rgb(26, 27, 38), Color::Rgb(115, 218, 202)),
-    ), // teal
-    (
         "sonde.active_sessions",
-        (Color::Rgb(169, 177, 214), Color::Rgb(52, 59, 88)),
-    ),
+        (Color::Rgb(143, 164, 184), Color::Rgb(11, 12, 16)),
+    ), // deep base
     (
         "sonde.model_suggestion",
-        (Color::Rgb(26, 27, 38), Color::Rgb(224, 175, 104)),
-    ),
+        (Color::Rgb(11, 12, 16), Color::Rgb(255, 120, 0)),
+    ), // neon orange
 ];
 
-static TOKYO_NIGHT: Palette = Palette {
-    base: Color::Rgb(26, 27, 38),
-    text: Color::Rgb(169, 177, 214),
-    surface: Color::Rgb(52, 59, 88),
-    modules: TOKYO_NIGHT_MODULES,
+static CYBERPUNK: Palette = Palette {
+    base: Color::Rgb(11, 12, 16),
+    text: Color::Rgb(224, 224, 224),
+    surface: Color::Rgb(20, 23, 38),
+    modules: CYBERPUNK_MODULES,
 };
 
-// -- Nord --
-static NORD_MODULES: &[(&str, (Color, Color))] = &[
+// -- Synthwave -- hot pink + retro purple on midnight
+static SYNTHWAVE_MODULES: &[(&str, (Color, Color))] = &[
     (
         "sonde.model",
-        (Color::Rgb(46, 52, 64), Color::Rgb(180, 142, 173)),
-    ), // purple
+        (Color::Rgb(26, 16, 37), Color::Rgb(255, 41, 117)),
+    ), // hot pink accent
     (
         "sonde.context_bar",
-        (Color::Rgb(46, 52, 64), Color::Rgb(136, 192, 208)),
-    ), // frost cyan
+        (Color::Rgb(26, 16, 37), Color::Rgb(196, 160, 232)),
+    ), // lavender
     (
         "sonde.context_window",
-        (Color::Rgb(46, 52, 64), Color::Rgb(136, 192, 208)),
-    ),
+        (Color::Rgb(26, 16, 37), Color::Rgb(140, 80, 200)),
+    ), // deep violet
     (
         "sonde.usage_limits",
-        (Color::Rgb(46, 52, 64), Color::Rgb(163, 190, 140)),
-    ), // green
+        (Color::Rgb(26, 16, 37), Color::Rgb(0, 255, 255)),
+    ), // neon cyan
     (
         "sonde.promo_badge",
-        (Color::Rgb(46, 52, 64), Color::Rgb(208, 135, 112)),
-    ), // orange
+        (Color::Rgb(26, 16, 37), Color::Rgb(255, 150, 50)),
+    ), // sunset orange
     (
         "sonde.pacing",
-        (Color::Rgb(46, 52, 64), Color::Rgb(235, 203, 139)),
-    ), // yellow
+        (Color::Rgb(26, 16, 37), Color::Rgb(255, 230, 77)),
+    ), // retro yellow
     (
         "sonde.session_clock",
-        (Color::Rgb(216, 222, 233), Color::Rgb(67, 76, 94)),
-    ), // polar3
+        (Color::Rgb(240, 230, 255), Color::Rgb(45, 27, 78)),
+    ), // card surface
     (
         "sonde.git_branch",
-        (Color::Rgb(46, 52, 64), Color::Rgb(143, 188, 187)),
-    ), // frost teal
+        (Color::Rgb(26, 16, 37), Color::Rgb(77, 130, 255)),
+    ), // electric blue
     (
         "sonde.active_sessions",
-        (Color::Rgb(216, 222, 233), Color::Rgb(67, 76, 94)),
-    ),
+        (Color::Rgb(196, 160, 232), Color::Rgb(26, 16, 37)),
+    ), // deep base
     (
         "sonde.model_suggestion",
-        (Color::Rgb(46, 52, 64), Color::Rgb(235, 203, 139)),
-    ),
+        (Color::Rgb(26, 16, 37), Color::Rgb(255, 100, 100)),
+    ), // coral red
 ];
 
-static NORD: Palette = Palette {
-    base: Color::Rgb(46, 52, 64),
-    text: Color::Rgb(216, 222, 233),
-    surface: Color::Rgb(67, 76, 94),
-    modules: NORD_MODULES,
+static SYNTHWAVE: Palette = Palette {
+    base: Color::Rgb(26, 16, 37),
+    text: Color::Rgb(240, 230, 255),
+    surface: Color::Rgb(45, 27, 78),
+    modules: SYNTHWAVE_MODULES,
 };
 
-// -- Gruvbox --
-static GRUVBOX_MODULES: &[(&str, (Color, Color))] = &[
+// -- Solarflare -- fiery orange + solar tones on deep red-black
+static SOLARFLARE_MODULES: &[(&str, (Color, Color))] = &[
     (
         "sonde.model",
-        (Color::Rgb(40, 40, 40), Color::Rgb(211, 134, 155)),
-    ), // purple
+        (Color::Rgb(13, 2, 8), Color::Rgb(255, 107, 43)),
+    ), // fiery orange accent
     (
         "sonde.context_bar",
-        (Color::Rgb(40, 40, 40), Color::Rgb(142, 192, 124)),
-    ), // green
+        (Color::Rgb(13, 2, 8), Color::Rgb(255, 200, 50)),
+    ), // solar yellow
     (
         "sonde.context_window",
-        (Color::Rgb(40, 40, 40), Color::Rgb(142, 192, 124)),
-    ),
+        (Color::Rgb(13, 2, 8), Color::Rgb(200, 60, 40)),
+    ), // ember red
     (
         "sonde.usage_limits",
-        (Color::Rgb(40, 40, 40), Color::Rgb(184, 187, 38)),
-    ), // yellow-green
+        (Color::Rgb(13, 2, 8), Color::Rgb(220, 170, 80)),
+    ), // molten gold
     (
         "sonde.promo_badge",
-        (Color::Rgb(40, 40, 40), Color::Rgb(254, 128, 25)),
-    ), // orange
+        (Color::Rgb(13, 2, 8), Color::Rgb(230, 60, 120)),
+    ), // flare pink
     (
         "sonde.pacing",
-        (Color::Rgb(40, 40, 40), Color::Rgb(250, 189, 47)),
-    ), // yellow
+        (Color::Rgb(13, 2, 8), Color::Rgb(200, 140, 60)),
+    ), // copper
     (
         "sonde.session_clock",
-        (Color::Rgb(235, 219, 178), Color::Rgb(80, 73, 69)),
-    ), // bg2
+        (Color::Rgb(255, 224, 200), Color::Rgb(26, 10, 18)),
+    ), // card surface
     (
         "sonde.git_branch",
-        (Color::Rgb(40, 40, 40), Color::Rgb(142, 192, 124)),
-    ), // green
+        (Color::Rgb(13, 2, 8), Color::Rgb(100, 140, 220)),
+    ), // corona blue
     (
         "sonde.active_sessions",
-        (Color::Rgb(235, 219, 178), Color::Rgb(80, 73, 69)),
-    ),
+        (Color::Rgb(192, 128, 80), Color::Rgb(13, 2, 8)),
+    ), // deep base
     (
         "sonde.model_suggestion",
-        (Color::Rgb(40, 40, 40), Color::Rgb(250, 189, 47)),
-    ),
+        (Color::Rgb(13, 2, 8), Color::Rgb(255, 240, 200)),
+    ), // white-hot
 ];
 
-static GRUVBOX: Palette = Palette {
-    base: Color::Rgb(40, 40, 40),
-    text: Color::Rgb(235, 219, 178),
-    surface: Color::Rgb(80, 73, 69),
-    modules: GRUVBOX_MODULES,
-};
-
-// -- Solarized Dark --
-static SOLARIZED_DARK_MODULES: &[(&str, (Color, Color))] = &[
-    (
-        "sonde.model",
-        (Color::Rgb(0, 43, 54), Color::Rgb(108, 113, 196)),
-    ), // violet
-    (
-        "sonde.context_bar",
-        (Color::Rgb(0, 43, 54), Color::Rgb(42, 161, 152)),
-    ), // cyan
-    (
-        "sonde.context_window",
-        (Color::Rgb(0, 43, 54), Color::Rgb(42, 161, 152)),
-    ),
-    (
-        "sonde.usage_limits",
-        (Color::Rgb(0, 43, 54), Color::Rgb(133, 153, 0)),
-    ), // green
-    (
-        "sonde.promo_badge",
-        (Color::Rgb(0, 43, 54), Color::Rgb(203, 75, 22)),
-    ), // orange
-    (
-        "sonde.pacing",
-        (Color::Rgb(0, 43, 54), Color::Rgb(181, 137, 0)),
-    ), // yellow
-    (
-        "sonde.session_clock",
-        (Color::Rgb(147, 161, 161), Color::Rgb(7, 54, 66)),
-    ), // base02
-    (
-        "sonde.git_branch",
-        (Color::Rgb(0, 43, 54), Color::Rgb(42, 161, 152)),
-    ), // cyan
-    (
-        "sonde.active_sessions",
-        (Color::Rgb(147, 161, 161), Color::Rgb(7, 54, 66)),
-    ),
-    (
-        "sonde.model_suggestion",
-        (Color::Rgb(0, 43, 54), Color::Rgb(181, 137, 0)),
-    ),
-];
-
-static SOLARIZED_DARK: Palette = Palette {
-    base: Color::Rgb(0, 43, 54),
-    text: Color::Rgb(147, 161, 161),
-    surface: Color::Rgb(7, 54, 66),
-    modules: SOLARIZED_DARK_MODULES,
+static SOLARFLARE: Palette = Palette {
+    base: Color::Rgb(13, 2, 8),
+    text: Color::Rgb(255, 224, 200),
+    surface: Color::Rgb(26, 10, 18),
+    modules: SOLARFLARE_MODULES,
 };
 
 // -- Sonde Dark (Catppuccin Mocha-inspired) --
@@ -524,21 +473,19 @@ pub fn sonde_pace_color(tier_name: &str, is_light: bool) -> Color {
 
 pub const ALL_THEME_NAMES: &[&str] = &[
     "catppuccin-mocha",
-    "dracula",
-    "tokyo-night",
-    "nord",
-    "gruvbox",
-    "solarized-dark",
+    "terminal",
+    "cyberpunk",
+    "synthwave",
+    "solarflare",
     "sonde",
 ];
 
 pub fn get_palette(name: &str) -> &'static Palette {
     match name {
-        "dracula" => &DRACULA,
-        "tokyo-night" => &TOKYO_NIGHT,
-        "nord" => &NORD,
-        "gruvbox" => &GRUVBOX,
-        "solarized-dark" => &SOLARIZED_DARK,
+        "terminal" => &TERMINAL,
+        "cyberpunk" => &CYBERPUNK,
+        "synthwave" => &SYNTHWAVE,
+        "solarflare" => &SOLARFLARE,
         "sonde" => {
             if is_light_terminal() {
                 &SONDE_LIGHT
@@ -571,9 +518,9 @@ mod tests {
     }
 
     #[test]
-    fn get_dracula() {
-        let p = get_palette("dracula");
-        assert!(matches!(p.base, Color::Rgb(40, 42, 54)));
+    fn get_terminal() {
+        let p = get_palette("terminal");
+        assert!(matches!(p.base, Color::Rgb(5, 5, 10)));
     }
 
     #[test]
@@ -610,7 +557,7 @@ mod tests {
 
     #[test]
     fn unknown_module_returns_surface_default() {
-        let p = get_palette("dracula");
+        let p = get_palette("terminal");
         let (fg, bg) = powerline_colors(p, "sonde.nonexistent");
         assert_eq!(fg, p.text);
         assert_eq!(bg, p.surface);

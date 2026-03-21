@@ -34,17 +34,13 @@
 
 ## The one thing no other tool does
 
-Claude Code runs **2X capacity promotions** during off-peak hours. Your rate limits literally double. But Anthropic doesn't send push notifications about them — you'd have to check their support page manually.
+Claude Code periodically runs **capacity promotions** — your rate limits increase, sometimes dramatically. But Anthropic doesn't send push notifications. You'd have to check their status page manually to know one is active.
 
-**sonde tracks this for you.** It knows when 2X is active, how long it lasts, and adjusts your pacing predictions automatically. No more guessing whether it's safe to go heavy on a coding session.
+**sonde tracks this for you.** It monitors Claude's promotion page, detects when any promotion starts and how long it lasts, and adjusts your pacing predictions automatically. No more guessing whether it's safe to go heavy on a coding session.
 
-> **How it works:** sonde monitors the [PromoClock API](https://promoclock.co) and cross-references it with your real-time usage from Claude Code's OAuth API. When 2X is active and you're at 50% usage, sonde knows you're effectively at 25% burn rate — so it tells you to keep going instead of slowing down.
+> **How it works:** sonde monitors Claude's promotion page and cross-references it with your real-time usage from Claude Code's OAuth API. When a promotion is active and you're at 50% usage, sonde factors in the boosted capacity — so it tells you to keep going instead of slowing down.
 
-### Current 2X schedule
-- **Weekdays**: Before 8 AM and after 2 PM (your local time)
-- **Weekends**: All day Saturday and Sunday
-
-sonde detects this automatically. Zero configuration.
+As Anthropic releases new promotions, sonde picks them up automatically. Zero configuration.
 
 ---
 
@@ -143,6 +139,28 @@ Click to open the full dashboard:
 | **7-day chart** | Daily peak usage bar chart with backfilled history |
 | **Context bar** | Visual progress of your context window usage |
 
+### Projects view
+
+Drill into per-project usage data:
+
+| | |
+|---|---|
+| **Project list** | All projects with model pill, token count, cache %, message count, task count |
+| **Last activity** | Relative timestamp of most recent activity per project |
+
+### Session detail view
+
+Tap a project to see its full breakdown:
+
+| | |
+|---|---|
+| **Messages** | Total message count for the project |
+| **Activity** | Time since last activity |
+| **Token breakdown** | Input, Output, Cache Read, Cache Write tokens |
+| **Cache hit %** | Percentage of tokens served from cache |
+| **Total tokens** | Aggregate token count across all conversations |
+| **Conversations** | Individual conversation list with per-conversation token and message counts |
+
 ### Guided onboarding
 
 First launch walks you through everything. Zero terminal commands.
@@ -213,7 +231,7 @@ Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable 
 | <img src="assets/screenshots/dashboard-terminal.png" width="250"><br>**Terminal** | <img src="assets/screenshots/dashboard-cyberpunk.png" width="250"><br>**Cyberpunk** | <img src="assets/screenshots/dashboard-synthwave.png" width="250"><br>**Synthwave** |
 | <img src="assets/screenshots/dashboard-solarflare.png" width="250"><br>**Solar Flare** | <img src="assets/screenshots/settings-light.png" width="250"><br>**Settings (Light)** | <img src="assets/screenshots/settings-dark.png" width="250"><br>**Settings (Dark)** |
 
-### Terminal — 7 powerline palettes
+### Terminal — 6 powerline palettes
 
 <img src="assets/screenshots/terminal-themes.png" alt="Terminal themes" width="600">
 
@@ -221,7 +239,9 @@ Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable 
 sonde themes    # Preview all palettes in your terminal
 ```
 
-Set in `sonde.toml`: `theme = "dracula"` — options: catppuccin-mocha (default), dracula, tokyo-night, nord, gruvbox, solarized-dark, sonde.
+Set in `sonde.toml`: `theme = "sonde"` — options: catppuccin-mocha, terminal, cyberpunk, synthwave, solarflare, sonde (default).
+
+Terminal themes match the menu bar app themes — same names, same color palettes.
 
 ---
 
@@ -251,7 +271,7 @@ sonde reads Claude Code's OAuth token from your system keychain (never stored to
 | `sonde` | Render statusline (reads JSON from stdin) |
 | `sonde setup` | Auto-configure everything in ~10 seconds |
 | `sonde doctor` | Run 9 diagnostic checks |
-| `sonde themes` | Preview all 7 terminal palettes |
+| `sonde themes` | Preview all 6 terminal palettes |
 | `sonde version` | Print version |
 
 ---
