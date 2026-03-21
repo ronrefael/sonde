@@ -24,6 +24,10 @@
 
 ---
 
+<p align="center">
+  <img src="assets/screenshots/hero.png" alt="Sonde dashboard" width="700">
+</p>
+
 ## Why sonde exists
 
 You're deep in a coding session. Claude is on fire. Then suddenly — rate limited. No warning. No countdown. Just... stopped.
@@ -39,9 +43,11 @@ You're deep in a coding session. Claude is on fire. Then suddenly — rate limit
 ### The Menu Bar App
 A native macOS app that lives in your menu bar. One glance tells you everything:
 
-```
-✓ | 2X | 92% | 3h21m
-```
+<p>
+  <img src="assets/screenshots/menubar-light.png" alt="Menu bar light" height="28">
+  &nbsp;&nbsp;
+  <img src="assets/screenshots/menubar-dark.png" alt="Menu bar dark" height="28">
+</p>
 
 Click to open a full dashboard with:
 - **Usage gauges** — 5-hour and 7-day utilization rings
@@ -49,8 +55,13 @@ Click to open a full dashboard with:
 - **7-day usage chart** — bar chart showing your daily peak usage
 - **Active sessions** — see all your running Claude sessions across projects
 - **Promo status** — know exactly when 2X capacity is active and how long it lasts
-- **6 themes** — Liquid Glass, System (light + dark), Terminal, Cyberpunk, Synthwave, Solar Flare
+- **7 themes** — Liquid Glass, System, Sonde, Terminal, Cyberpunk, Synthwave, Solar Flare
 - **Configurable settings** — customize what shows in the menu bar, pick your timer mode, choose your theme
+
+<p>
+  <img src="assets/screenshots/dashboard-system-light.png" alt="System light" width="380">
+  <img src="assets/screenshots/dashboard-system-dark.png" alt="System dark" width="380">
+</p>
 
 ### The Terminal Statusline
 A Rust-powered statusline that renders directly in Claude Code:
@@ -84,25 +95,31 @@ sonde detects this automatically. No configuration needed.
 
 ## Install
 
-### Homebrew (macOS/Linux)
+### Menu Bar App (macOS)
+
+Download `Sonde.dmg` from the [latest release](https://github.com/ronrefael/sonde/releases), open it, and drag **Sonde** into **Applications**.
+
+### Terminal Statusline
+
+#### Homebrew (macOS/Linux)
 
 ```bash
 brew install ronrefael/tap/sonde
 ```
 
-### From source
+#### From source
 
 ```bash
 cargo install --git https://github.com/ronrefael/sonde --locked
 ```
 
-### Quick install script
+#### Quick install script
 
 ```bash
 curl -sSf https://raw.githubusercontent.com/ronrefael/sonde/main/install.sh | bash
 ```
 
-### Build locally
+#### Build locally
 
 ```bash
 git clone https://github.com/ronrefael/sonde && cd sonde
@@ -142,22 +159,21 @@ Runs 9 diagnostic checks: Claude Code installed, OAuth token, API connectivity, 
 
 ## The menu bar app
 
-```bash
-cd SondeApp && make bundle && open build/SondeApp.app
-```
-
 ### First launch: guided onboarding
 
-On first launch, sonde walks you through a 6-step setup wizard:
+On first launch, sonde walks you through a 7-step setup wizard. No terminal commands needed — everything configures itself.
 
-1. **Welcome** — what sonde does
-2. **Claude Code check** — detects your installation
-3. **Auth check** — validates your OAuth token
-4. **Statusline setup** — one-click enable in `~/.claude/settings.json`
-5. **Theme picker** — choose from 6 themes with a **live preview card** that updates as you browse
-6. **Done** — tips and you're off
-
-No terminal commands needed. Everything configures itself.
+<p>
+  <img src="assets/screenshots/onboarding-1.png" alt="Welcome" width="190">
+  <img src="assets/screenshots/onboarding-2.png" alt="Claude Check" width="190">
+  <img src="assets/screenshots/onboarding-3.png" alt="Auth Check" width="190">
+  <img src="assets/screenshots/onboarding-4.png" alt="Statusline" width="190">
+</p>
+<p>
+  <img src="assets/screenshots/onboarding-5.png" alt="Font Install" width="190">
+  <img src="assets/screenshots/onboarding-6.png" alt="Theme Picker" width="190">
+  <img src="assets/screenshots/onboarding-7.png" alt="Done" width="190">
+</p>
 
 ### Dashboard features
 
@@ -195,6 +211,18 @@ Configurable via Settings. Each segment can be toggled:
 | Promo time left | Promo countdown (only during promo) | `12h30m` |
 | Session duration | Current session time | `2h 14m` |
 
+### Build from source
+
+```bash
+cd SondeApp && make bundle && open build/Sonde.app
+```
+
+To create an installer DMG:
+
+```bash
+cd SondeApp && make dmg && open build/Sonde.dmg
+```
+
 ## The terminal statusline
 
 ### Modules
@@ -227,6 +255,14 @@ Configurable via Settings. Each segment can be toggled:
 
 ## Themes
 
+### Menu bar app (7 themes)
+
+| | | |
+|:---:|:---:|:---:|
+| <img src="assets/screenshots/dashboard-liquidglass.png" width="250"><br>**Liquid Glass** | <img src="assets/screenshots/dashboard-system-light.png" width="250"><br>**System Light** | <img src="assets/screenshots/dashboard-system-dark.png" width="250"><br>**System Dark** |
+| <img src="assets/screenshots/dashboard-terminal.png" width="250"><br>**Terminal** | <img src="assets/screenshots/dashboard-cyberpunk.png" width="250"><br>**Cyberpunk** | <img src="assets/screenshots/dashboard-synthwave.png" width="250"><br>**Synthwave** |
+| <img src="assets/screenshots/dashboard-solarflare.png" width="250"><br>**Solar Flare** | <img src="assets/screenshots/settings-light.png" width="250"><br>**Settings (Light)** | <img src="assets/screenshots/settings-dark.png" width="250"><br>**Settings (Dark)** |
+
 ### Terminal (6 powerline palettes)
 
 ```bash
@@ -234,17 +270,6 @@ sonde themes    # Preview all palettes
 ```
 
 Set in config: `theme = "dracula"` — options: catppuccin-mocha (default), dracula, tokyo-night, nord, gruvbox, solarized-dark.
-
-### Menu bar app (6 themes)
-
-| Theme | Vibe |
-|-------|------|
-| **Liquid Glass** | macOS native translucent |
-| **System** | Apple HIG light + dark mode |
-| **Terminal** | Green phosphor retro CRT |
-| **Cyberpunk** | Neon cyan on deep blue |
-| **Synthwave** | Pink on purple, 80s aesthetic |
-| **Solar Flare** | Warm orange on dark red |
 
 ## Commands
 

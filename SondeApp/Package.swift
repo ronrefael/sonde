@@ -17,7 +17,10 @@ let package = Package(
         .executableTarget(
             name: "SondeApp",
             dependencies: ["SondeCore"],
-            path: "Sources/SondeApp"
+            path: "Sources/SondeApp",
+            resources: [
+                .copy("Resources")
+            ]
         ),
     ]
 )

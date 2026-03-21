@@ -135,6 +135,11 @@ struct SettingsTab: View {
                     .allowsHitTesting(theme == .system || theme == .sonde)
                 }
 
+                // TERMINAL
+                sectionCard("TERMINAL") {
+                    FontInstallRow(theme: theme, isDark: isDarkTheme)
+                }
+
                 // DATA (bottom)
                 sectionCard("DATA") {
                     settingsRow("Refresh interval") {
@@ -485,5 +490,67 @@ private struct ThemeChipPicker: View {
             .frame(minWidth: 180)
             .background(isDark ? SondeColors.chipGridDarkBg : .white)
         }
+    }
+}
+
+// MARK: - Font Install Row
+
+/// Settings row for installing/checking Nerd Font status.
+struct FontInstallRow: View {
+    let theme: PopoverTheme
+    let isDark: Bool
+    @State private var fontInstalled = NerdFontInstaller.isInstalled()
+    @State private var isInstalling = false
+
+    private var rowTextColor: Color {
+        if theme == .liquidGlass { return Color(white: 0.15) }
+        return isDark ? Color(white: 0.95) : Color(white: 0.08)
+    }
+
+    var body: some View {
+        HStack {
+            Text("Nerd Font")
+                .font(.system(size: 12))
+                .foregroundColor(rowTextColor)
+                .glowText(theme)
+            Spacer()
+            if fontInstalled {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color(red: 0.18, green: 0.8, blue: 0.44))
+                    Text("Installed")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(red: 0.18, green: 0.8, blue: 0.44))
+                }
+            } else {
+                Button {
+                    isInstalling = true
+                    let result = NerdFontInstaller.install()
+                    if case .success = result {
+                        fontInstalled = true
+                    }
+                    isInstalling = false
+                } label: {
+                    HStack(spacing: 4) {
+                        if isInstalling {
+                            ProgressView().controlSize(.small)
+                        }
+                        Image(systemName: "arrow.down.circle")
+                            .font(.system(size: 10))
+                        Text("Install")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(theme.headerAccent)
+                    .glowText(theme)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(theme.headerAccent.opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.borderless)
+                .disabled(isInstalling)
+            }
+        }
+        .padding(.vertical, 6)
     }
 }

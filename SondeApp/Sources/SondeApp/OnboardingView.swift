@@ -12,29 +12,40 @@ struct OnboardingView: View {
     @State private var currentStep = 0
     @AppStorage("popoverTheme") private var selectedTheme: String = PopoverTheme.system.rawValue
 
-    private let totalSteps = 6
+    private let totalSteps = 7
 
     var body: some View {
         VStack(spacing: 0) {
-            // Sonde branding header — visible on steps 1+ (not welcome)
-            if currentStep > 0 {
-                HStack(spacing: 6) {
-                    SondeLogoMascot()
-                        .frame(width: 18, height: 18)
-                    HStack(spacing: 0) {
-                        Text("sond")
-                            .font(.system(size: 14, weight: .bold, design: .monospaced))
-                            .foregroundStyle(SondeColors.brandGreen)
-                        Text("e")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(SondeColors.brandGreen)
+            // Quit button + branding header
+            HStack {
+                if currentStep > 0 {
+                    HStack(spacing: 6) {
+                        SondeLogoMascot()
+                            .frame(width: 18, height: 18)
+                        HStack(spacing: 0) {
+                            Text("sond")
+                                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                .foregroundStyle(SondeColors.brandGreen)
+                            Text("e")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(SondeColors.brandGreen)
+                        }
                     }
-                    Spacer()
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-                .padding(.bottom, 4)
+                Spacer()
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Image(systemName: "power")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(white: 0.4))
+                }
+                .buttonStyle(.borderless)
+                .help("Quit (Cmd+Q)")
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, currentStep > 0 ? 4 : 0)
 
             Group {
                 switch currentStep {
@@ -42,8 +53,9 @@ struct OnboardingView: View {
                 case 1: ClaudeCheckStep(theme: theme)
                 case 2: AuthCheckStep(theme: theme)
                 case 3: StatuslineStep(theme: theme)
-                case 4: ThemeStep(theme: theme, selectedTheme: $selectedTheme)
-                case 5: DoneStep(theme: theme, onComplete: onComplete)
+                case 4: FontInstallStep(theme: theme)
+                case 5: ThemeStep(theme: theme, selectedTheme: $selectedTheme)
+                case 6: DoneStep(theme: theme, onComplete: onComplete)
                 default: EmptyView()
                 }
             }
@@ -495,7 +507,159 @@ private struct StatuslineStep: View {
     }
 }
 
-// MARK: - Step 5: Theme
+// MARK: - Step 5: Font Install
+
+private struct FontInstallStep: View {
+    let theme: PopoverTheme
+    @State private var fontInstalled = NerdFontInstaller.isInstalled()
+    @State private var isInstalling = false
+    @State private var installError: String?
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            Image(systemName: fontInstalled ? "textformat.abc.dottedunderline" : "textformat.abc")
+                .font(.system(size: 48))
+                .foregroundStyle(fontInstalled ? Color(red: 0.18, green: 0.8, blue: 0.44) : SondeColors.brandGreen)
+
+            VStack(spacing: 8) {
+                Text("Terminal Icons")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Color(white: 0.1))
+
+                if fontInstalled {
+                    VStack(spacing: 6) {
+                        Text("Nerd Font is installed.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color(red: 0.18, green: 0.8, blue: 0.44))
+                            .multilineTextAlignment(.center)
+
+                        Text("Set your terminal font to **MesloLGS Nerd Font Mono**\nfor icons to appear in the statusline.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color(white: 0.4))
+                            .multilineTextAlignment(.center)
+
+                        Text("Terminal → Settings → Profiles → Font → Change")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(Color(white: 0.5))
+                    }
+                } else {
+                    Text("Install Nerd Font for icons in the terminal statusline.\nWithout it, the statusline uses text-only mode.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(white: 0.4))
+                        .multilineTextAlignment(.center)
+                }
+            }
+
+            if let error = installError {
+                Text(error)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color(red: 0.9, green: 0.2, blue: 0.2))
+            }
+
+            if !fontInstalled {
+                Button {
+                    isInstalling = true
+                    installError = nil
+                    let result = NerdFontInstaller.install()
+                    switch result {
+                    case .success:
+                        fontInstalled = true
+                    case .failure(let err):
+                        installError = err.localizedDescription
+                    }
+                    isInstalling = false
+                } label: {
+                    HStack(spacing: 4) {
+                        if isInstalling {
+                            ProgressView().controlSize(.small)
+                        }
+                        Text("Install Nerd Font")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(SondeColors.brandGreen, in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.borderless)
+                .disabled(isInstalling)
+
+                Text("Sets your terminal font to MesloLGS Nerd Font Mono")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color(white: 0.5))
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+    }
+}
+
+/// Shared helper for installing bundled Nerd Font files to ~/Library/Fonts.
+/// Used by both onboarding and Settings.
+enum NerdFontInstaller {
+    static func isInstalled() -> Bool {
+        let fontsDir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Fonts")
+        guard let contents = try? FileManager.default.contentsOfDirectory(atPath: fontsDir.path) else {
+            return false
+        }
+        return contents.contains { $0.contains("NerdFont") }
+    }
+
+    static func install() -> Result<Void, Error> {
+        let fm = FileManager.default
+        let fontsDir = fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Fonts")
+
+        // Find bundled font files — check the resource bundle first
+        var fontURLs: [URL] = []
+
+        if let resourceURL = Bundle.main.url(forResource: "SondeApp_SondeApp", withExtension: "bundle") {
+            // SPM places .ttf files at the bundle root
+            if let files = try? fm.contentsOfDirectory(at: resourceURL, includingPropertiesForKeys: nil) {
+                fontURLs = files.filter { $0.pathExtension == "ttf" }
+            }
+            // Also check Resources/ subdirectory
+            if fontURLs.isEmpty {
+                let subdir = resourceURL.appendingPathComponent("Resources")
+                if let files = try? fm.contentsOfDirectory(at: subdir, includingPropertiesForKeys: nil) {
+                    fontURLs = files.filter { $0.pathExtension == "ttf" }
+                }
+            }
+        }
+
+        // Fallback: try direct bundle resources
+        if fontURLs.isEmpty {
+            if let urls = Bundle.main.urls(forResourcesWithExtension: "ttf", subdirectory: nil) {
+                fontURLs = urls
+            }
+        }
+
+        guard !fontURLs.isEmpty else {
+            return .failure(NSError(domain: "NerdFontInstaller", code: 1,
+                                   userInfo: [NSLocalizedDescriptionKey: "No font files found in app bundle"]))
+        }
+
+        do {
+            try fm.createDirectory(at: fontsDir, withIntermediateDirectories: true)
+            for fontFile in fontURLs {
+                let dest = fontsDir.appendingPathComponent(fontFile.lastPathComponent)
+                if fm.fileExists(atPath: dest.path) {
+                    try fm.removeItem(at: dest)
+                }
+                try fm.copyItem(at: fontFile, to: dest)
+            }
+            return .success(())
+        } catch {
+            return .failure(error)
+        }
+    }
+
+}
+
+// MARK: - Step 6: Theme
 
 private struct ThemeStep: View {
     let theme: PopoverTheme

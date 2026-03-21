@@ -63,6 +63,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Generate app icon
+        run: |
+          pip3 install Pillow
+          python3 scripts/generate_icon.py
       - name: Build DMG
         run: cd SondeApp && make dmg
       - name: Upload DMG

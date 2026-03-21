@@ -91,6 +91,68 @@ pub fn threshold_style<'a>(
     default_style
 }
 
+/// Returns true if the terminal likely supports Nerd Font glyphs.
+/// Auto-detects by checking the terminal's configured font.
+/// Override with SONDE_NERD_FONTS=1 to force on, or =0 to force off.
+pub fn has_nerd_fonts() -> bool {
+    // Explicit override takes priority
+    match std::env::var("SONDE_NERD_FONTS").as_deref() {
+        Ok("1") => return true,
+        Ok("0") => return false,
+        _ => {}
+    }
+
+    // Terminals that always support Nerd Fonts (they bundle them or use configurable fonts)
+    let term_program = std::env::var("TERM_PROGRAM").unwrap_or_default();
+    match term_program.as_str() {
+        // These terminals typically have Nerd Font configured by power users
+        "iTerm.app" | "WezTerm" | "Alacritty" | "ghostty" => return true,
+        // VS Code terminal uses its own font setting
+        "vscode" => return true,
+        _ => {}
+    }
+
+    // For Apple Terminal, check if the font is actually set to a Nerd Font
+    if term_program == "Apple_Terminal" {
+        return check_apple_terminal_font();
+    }
+
+    // Unknown terminal — check if any Nerd Font is installed as a heuristic
+    let home = std::env::var("HOME").unwrap_or_default();
+    let font_dir = format!("{}/Library/Fonts", home);
+    if let Ok(entries) = std::fs::read_dir(&font_dir) {
+        for entry in entries.flatten() {
+            if entry.file_name().to_string_lossy().contains("NerdFont") {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Check if Apple Terminal's current profile uses a Nerd Font.
+fn check_apple_terminal_font() -> bool {
+    let output = std::process::Command::new("defaults")
+        .args(["read", "com.apple.Terminal", "Default Window Settings"])
+        .output();
+    let profile = match output {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
+        _ => return false,
+    };
+
+    let font_output = std::process::Command::new("defaults")
+        .args(["read", "com.apple.Terminal", &format!("Window Settings.{}.Font", profile)])
+        .output();
+    match font_output {
+        Ok(o) if o.status.success() => {
+            let font_data = String::from_utf8_lossy(&o.stdout);
+            font_data.contains("Nerd") || font_data.contains("nerd")
+        }
+        _ => false,
+    }
+}
+
 /// Only handles CSI sequences (ESC [ ... letter) — sufficient for nu-ansi-term output.
 pub fn strip_ansi(s: &str) -> String {
     let mut result = String::new();

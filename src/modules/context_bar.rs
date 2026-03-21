@@ -26,7 +26,8 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let filled = filled.min(width);
     let empty = width - filled;
 
-    let bar = format!("\u{f04ec} [{}{}] {:.0}%", "━".repeat(filled), "╌".repeat(empty), pct);
+    let icon = if ansi::has_nerd_fonts() { "\u{f1c0} " } else { "" };
+    let bar = format!("{icon}[{}{}] {:.0}%", "━".repeat(filled), "╌".repeat(empty), pct);
 
     let style = bcfg.and_then(|c| {
         ansi::threshold_style(

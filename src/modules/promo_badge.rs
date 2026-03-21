@@ -4,11 +4,19 @@ use crate::context::Context;
 use crate::promo;
 
 fn nerd_icon(emoji: &str) -> &str {
-    match emoji {
-        "🟢" => "\u{f0e7}", //  bolt
-        "🔴" => "\u{f017}", //  clock (countdown to off-peak)
-        "🟡" => "\u{f017}", //  clock
-        _ => emoji,
+    if ansi::has_nerd_fonts() {
+        match emoji {
+            "🟢" => "\u{f0e7}", //  bolt
+            "🔴" => "\u{f017}", //  clock
+            "🟡" => "\u{f017}", //  clock
+            _ => emoji,
+        }
+    } else {
+        match emoji {
+            "🟢" => "\u{2605}", // ★
+            "🔴" | "🟡" => "",
+            _ => emoji,
+        }
     }
 }
 
@@ -56,7 +64,9 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
         _ => status
             .label
             .as_deref()
-            .unwrap_or(if is_offpeak { "\u{f0e7} Promo" } else { "" })
+            .unwrap_or(if is_offpeak {
+                    if ansi::has_nerd_fonts() { "\u{f0e7} Promo" } else { "\u{2605} Promo" }
+                } else { "" })
             .to_string(),
     };
 
@@ -69,7 +79,7 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
         if countdown.is_empty() {
             format!("{icon} {promo_label}")
         } else {
-            format!("{icon} {promo_label} \u{f017} {countdown} left")
+            format!("{icon} {promo_label} {countdown} left")
         }
     } else {
         if countdown.is_empty() {

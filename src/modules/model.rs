@@ -18,7 +18,8 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
         .unwrap_or("unknown");
 
     let mcfg = cfg.model.as_ref();
-    let symbol = mcfg.and_then(|c| c.symbol.as_deref()).unwrap_or("\u{f06b5} ");
+    let default_sym = if ansi::has_nerd_fonts() { "\u{f2db} " } else { "" };
+    let symbol = mcfg.and_then(|c| c.symbol.as_deref()).unwrap_or(default_sym);
     let style = mcfg.and_then(|c| c.style.as_deref());
 
     // Append context size indicator for large context models,

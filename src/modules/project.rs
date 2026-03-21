@@ -25,7 +25,8 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
 
     match name {
         Some(n) => {
-            let symbol = pcfg.and_then(|c| c.symbol.as_deref()).unwrap_or("\u{f07b} ");
+            let default_sym = if ansi::has_nerd_fonts() { "\u{f07b} " } else { "" };
+            let symbol = pcfg.and_then(|c| c.symbol.as_deref()).unwrap_or(default_sym);
             let style = pcfg.and_then(|c| c.style.as_deref());
             let text = if symbol.is_empty() {
                 n.to_string()

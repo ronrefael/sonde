@@ -19,13 +19,24 @@ pub enum PaceTier {
 
 impl PaceTier {
     pub fn icon(&self) -> &'static str {
-        match self {
-            PaceTier::Comfortable => "\u{f058}", //  check-circle
-            PaceTier::OnTrack => "\u{f00c}",     //  check
-            PaceTier::Elevated => "\u{f071}",    //  warning
-            PaceTier::Hot => "\u{f06d}",         //  fire
-            PaceTier::Critical => "\u{f06a}",    //  exclamation-circle
-            PaceTier::Runaway => "\u{f05e}",     //  ban
+        if crate::ansi::has_nerd_fonts() {
+            match self {
+                PaceTier::Comfortable => "\u{f058}",
+                PaceTier::OnTrack => "\u{f00c}",
+                PaceTier::Elevated => "\u{f071}",
+                PaceTier::Hot => "\u{f06d}",
+                PaceTier::Critical => "\u{f06a}",
+                PaceTier::Runaway => "\u{f05e}",
+            }
+        } else {
+            match self {
+                PaceTier::Comfortable => "\u{25cf}", // ●
+                PaceTier::OnTrack => "\u{2713}",     // ✓
+                PaceTier::Elevated => "\u{25b2}",    // ▲
+                PaceTier::Hot => "\u{25b2}",         // ▲
+                PaceTier::Critical => "\u{25c6}",    // ◆
+                PaceTier::Runaway => "\u{2715}",     // ✕
+            }
         }
     }
 
