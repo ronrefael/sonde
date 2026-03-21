@@ -3,21 +3,21 @@
 </p>
 
 <p align="center">
-  <em>Your AI coding copilot's copilot.</em>
+  <strong>Know when you're about to get rate-limited. Before it happens.</strong>
 </p>
 
 <p align="center">
+  <a href="#the-one-thing-no-other-tool-does">Why Sonde</a> &bull;
   <a href="#install">Install</a> &bull;
-  <a href="#what-you-get">What You Get</a> &bull;
   <a href="#the-menu-bar-app">Menu Bar App</a> &bull;
   <a href="#the-terminal-statusline">Terminal Statusline</a> &bull;
-  <a href="#promo-awareness">Promo Awareness</a> &bull;
   <a href="#themes">Themes</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/github/v/release/ronrefael/sonde?style=flat-square&color=2DB87B" alt="Release">
   <img src="https://img.shields.io/github/license/ronrefael/sonde?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/macOS-13%2B-000?style=flat-square&logo=apple" alt="macOS">
   <img src="https://img.shields.io/badge/rust-stable-E5484D?style=flat-square" alt="Rust">
   <img src="https://img.shields.io/badge/swift-5.9+-5B8DEF?style=flat-square" alt="Swift">
 </p>
@@ -26,21 +26,82 @@
 
 <p align="center">
   <img src="assets/screenshots/hero.png" alt="Sonde dashboard" width="700">
+  <br>
+  <sub>Hero wallpaper: "Everyone-can-fly" by Adrian Slazok — <a href="https://www.comedywildlifephoto.com/">Comedy Wildlife Photography Awards</a></sub>
 </p>
 
-## Why sonde exists
+---
+
+## The one thing no other tool does
+
+Claude Code runs **2X capacity promotions** during off-peak hours. Your rate limits literally double. But Anthropic doesn't send push notifications about them — you'd have to check their support page manually.
+
+**sonde tracks this for you.** It knows when 2X is active, how long it lasts, and adjusts your pacing predictions automatically. No more guessing whether it's safe to go heavy on a coding session.
+
+> **How it works:** sonde monitors the [PromoClock API](https://promoclock.co) and cross-references it with your real-time usage from Claude Code's OAuth API. When 2X is active and you're at 50% usage, sonde knows you're effectively at 25% burn rate — so it tells you to keep going instead of slowing down.
+
+### Current 2X schedule
+- **Weekdays**: Before 8 AM and after 2 PM (your local time)
+- **Weekends**: All day Saturday and Sunday
+
+sonde detects this automatically. Zero configuration.
+
+---
+
+## But it does a lot more than promos
 
 You're deep in a coding session. Claude is on fire. Then suddenly — rate limited. No warning. No countdown. Just... stopped.
 
-**sonde** fixes that. It sits in your menu bar and terminal, continuously monitoring your AI usage so you always know exactly where you stand. Think of it as the fuel gauge for your AI coding tools.
+**sonde** is the fuel gauge for your AI coding tools. It sits in your menu bar and terminal, continuously showing you exactly where you stand — usage, pacing, time-to-limit, active sessions, and more.
 
 > **sonde** (noun, /sɒnd/) — a device sent into the atmosphere to transmit measurements back to the observer. Just like a weather sonde reports conditions from the sky, sonde reports the conditions of your AI usage in real-time.
 
-## What you get
+---
 
-**Two interfaces, one mission:**
+## Install
 
-### The Menu Bar App
+### Menu Bar App (macOS)
+
+Download `Sonde.dmg` from the [latest release](https://github.com/ronrefael/sonde/releases), open it, and drag **Sonde** into **Applications**.
+
+On first launch, a guided setup walks you through everything — Claude Code detection, auth, statusline config, font install, and theme selection. No terminal commands needed.
+
+### Terminal Statusline (macOS / Linux)
+
+```bash
+# Homebrew (recommended)
+brew install ronrefael/tap/sonde
+
+# Or one-liner
+curl -sSf https://raw.githubusercontent.com/ronrefael/sonde/main/install.sh | bash
+
+# Or from source
+cargo install --git https://github.com/ronrefael/sonde --locked
+```
+
+Then run:
+
+```bash
+sonde setup    # Auto-configures everything in ~10 seconds
+sonde doctor   # Verify all 9 checks pass
+```
+
+```
+sonde doctor
+
+  ✔ Claude Code installed        ✔ OAuth token available
+  ✔ Usage API reachable          ✔ Promo API reachable
+  ✔ Config file found            ✔ Config file valid
+  ✔ Cache directory writable     ✔ Terminal colors
+  ✔ Nerd Font glyphs
+
+  9/9 checks passed
+```
+
+---
+
+## The menu bar app
+
 A native macOS app that lives in your menu bar. One glance tells you everything:
 
 <p>
@@ -49,121 +110,29 @@ A native macOS app that lives in your menu bar. One glance tells you everything:
   <img src="assets/screenshots/menubar-dark.png" alt="Menu bar dark" height="40">
 </p>
 
-Click to open a full dashboard with:
-- **Usage gauges** — 5-hour and 7-day utilization rings
-- **Pacing prediction** — "At this rate, you'll hit your limit in ~2h 15m"
-- **7-day usage chart** — bar chart showing your daily peak usage
-- **Active sessions** — see all your running Claude sessions across projects
-- **Promo status** — know exactly when 2X capacity is active and how long it lasts
-- **7 themes** — Liquid Glass, System, Sonde, Terminal, Cyberpunk, Synthwave, Solar Flare
-- **Configurable settings** — customize what shows in the menu bar, pick your timer mode, choose your theme
+Click to open the full dashboard:
 
 <p>
   <img src="assets/screenshots/dashboard-system-light.png" alt="System light" width="380">
   <img src="assets/screenshots/dashboard-system-dark.png" alt="System dark" width="380">
 </p>
 
-### The Terminal Statusline
-A Rust-powered statusline that renders directly in Claude Code:
+### What you see at a glance
 
-<p>
-  <img src="assets/screenshots/terminal-statusline-light.png" alt="Terminal statusline light" width="600">
-</p>
-<p>
-  <img src="assets/screenshots/terminal-statusline-dark.png" alt="Terminal statusline dark" width="600">
-</p>
+| | |
+|---|---|
+| **Usage rings** | 5-hour and 7-day utilization with color-coded gauges |
+| **Pacing tier** | Comfortable → On Track → Elevated → Hot → Critical → Runaway |
+| **Time-to-limit** | "At this rate, you'll hit your limit in ~2h 15m" |
+| **Promo badge** | ⚡ 2X Active · 2d 10h left |
+| **Active sessions** | All running Claude sessions with model, project, and duration |
+| **Code activity** | Lines added/removed, net change, wait percentage |
+| **7-day chart** | Daily peak usage bar chart with backfilled history |
+| **Context bar** | Visual progress of your context window usage |
 
-20+ configurable modules including project name, git branch, model, usage gauges, pacing tier, context bar, and promo status. Renders typically under 50ms (~30ms measured on Apple Silicon). Powerline arrows with 7 color themes.
+### Guided onboarding
 
-## Promo awareness
-
-This is sonde's killer feature. **No other tool does this.**
-
-Claude Code runs promotions where your rate limits are doubled (2X) during off-peak hours. These promotions aren't announced with push notifications — you'd never know unless you checked the support page manually.
-
-sonde knows. It tracks the current promotion schedule and tells you:
-
-- **Whether a promo is active right now** — `⚡ 2X Active · 12h30m`
-- **How long until it ends** — so you can plan your heavy coding sessions
-- **Your effective pacing** — pacing adjusts automatically during promos (50% usage during 2X = effectively 25% burn rate)
-- **Time-to-limit prediction** — "~2h 15m to limit" accounts for promo multipliers
-
-### Current Promo Schedule
-Claude Code's 2X capacity promotion is active during **off-peak hours**:
-- **Weekdays**: Before 8 AM and after 2 PM (your local time)
-- **Weekends**: All day Saturday and Sunday
-
-sonde detects this automatically. No configuration needed.
-
-## Install
-
-### Menu Bar App (macOS)
-
-Download `Sonde.dmg` from the [latest release](https://github.com/ronrefael/sonde/releases), open it, and drag **Sonde** into **Applications**.
-
-### Terminal Statusline
-
-#### Homebrew (macOS/Linux)
-
-```bash
-brew install ronrefael/tap/sonde
-```
-
-#### From source
-
-```bash
-cargo install --git https://github.com/ronrefael/sonde --locked
-```
-
-#### Quick install script
-
-```bash
-curl -sSf https://raw.githubusercontent.com/ronrefael/sonde/main/install.sh | bash
-```
-
-#### Build locally
-
-```bash
-git clone https://github.com/ronrefael/sonde && cd sonde
-cargo build --release
-# Binary at target/release/sonde
-```
-
-## Quick start
-
-### Option 1: Auto-setup (recommended)
-
-```bash
-sonde setup
-```
-
-Detects Claude Code, validates your OAuth token, writes the statusline config. Done in 10 seconds.
-
-### Option 2: Manual setup
-
-Add to `~/.claude/settings.json`:
-
-```json
-{
-  "statusLine": {
-    "command": "sonde"
-  }
-}
-```
-
-### Verify everything works
-
-```bash
-sonde doctor
-```
-
-Runs 9 diagnostic checks: Claude Code installed, OAuth token, API connectivity, config validity, cache permissions, terminal colors, and Nerd Font glyphs.
-
-## The menu bar app
-
-### First launch: guided onboarding
-
-On first launch, sonde walks you through a 7-step setup wizard. No terminal commands needed — everything configures itself.
+First launch walks you through everything. Zero terminal commands.
 
 <p>
   <img src="assets/screenshots/onboarding-1.png" alt="Welcome" width="190">
@@ -177,87 +146,54 @@ On first launch, sonde walks you through a 7-step setup wizard. No terminal comm
   <img src="assets/screenshots/onboarding-7.png" alt="Done" width="190">
 </p>
 
-### Dashboard features
+### Configurable menu bar
 
-| Feature | Description |
-|---------|-------------|
-| **Usage gauges** | 5-hour and 7-day utilization with color-coded rings |
-| **Pacing tier** | Comfortable → On Track → Elevated → Hot → Critical → Runaway |
-| **Time-to-limit** | Predicts when you'll hit your rate limit at current pace |
-| **7-day chart** | Daily peak usage bar chart with backfilled history |
-| **Active sessions** | All running Claude sessions with project, model, and duration |
-| **Promo badge** | 2X status with countdown timer |
-| **Context bar** | Visual progress bar of context window usage |
-| **Session info** | Model, project name, git branch, session duration |
+Every segment is toggleable in Settings. Pick your timer mode:
 
-### Menu bar display
+| Mode | Example |
+|------|---------|
+| 5h time left | `3h21m` |
+| 5h elapsed | `1h39m` |
+| 5h resets at | `2:30 PM` |
+| 7d time left | `3d 12h` |
+| 7d resets at | `Mon 8:00 AM` |
+| Promo time left | `12h30m` |
+| Session duration | `2h 14m` |
 
-Configurable via Settings. Each segment can be toggled:
-
-| Segment | Example | Toggle |
-|---------|---------|--------|
-| Pace icon | ✓ | Always on |
-| Promo multiplier | 2X | Show promo status |
-| Remaining % | 92% | Always on |
-| Timer | 3h21m | Show timer |
-
-### Timer modes
-
-| Mode | Shows | Example |
-|------|-------|---------|
-| 5h time left | Countdown to 5h window reset | `3h21m` |
-| 5h elapsed | Time spent in current window | `1h39m` |
-| 5h resets at | Clock time of next reset | `2:30 PM` |
-| 7d time left | Countdown to 7d window reset | `3d 12h` |
-| 7d resets at | Clock time of 7d reset | `Mon 8:00 AM` |
-| Promo time left | Promo countdown (only during promo) | `12h30m` |
-| Session duration | Current session time | `2h 14m` |
-
-### Build from source
-
-```bash
-cd SondeApp && make bundle && open build/Sonde.app
-```
-
-To create an installer DMG:
-
-```bash
-cd SondeApp && make dmg && open build/Sonde.dmg
-```
+---
 
 ## The terminal statusline
 
-### Modules
+A Rust-powered statusline that renders directly inside Claude Code:
 
-| Module | Token | Description |
-|--------|-------|-------------|
-| Model | `$sonde.model` | Current model (Opus, Sonnet, Haiku) |
-| Context bar | `$sonde.context_bar` | Visual progress bar [━━━━╌╌╌╌╌╌] |
-| Usage limits | `$sonde.usage_limits` | 5h and 7d utilization with reset countdowns |
-| Pacing | `$sonde.pacing` | 6-tier burn rate with time-to-limit prediction |
-| Promo badge | `$sonde.promo_badge` | 2X status with countdown |
-| Session clock | `$sonde.session_clock` | Elapsed session time |
-| Git branch | `$sonde.git_branch` | Current git branch |
-| Active sessions | `$sonde.active_sessions` | Count of parallel Claude sessions |
-| Agent | `$sonde.agent` | Agent name badge |
-| Worktree | `$sonde.worktree` | Worktree name |
-| Mascot | `$sonde.mascot_icon` | Animated status icon |
-| Custom | `$sonde.custom.{name}` | Your own shell command modules |
+<p>
+  <img src="assets/screenshots/terminal-statusline-light.png" alt="Terminal statusline light" width="600">
+</p>
+<p>
+  <img src="assets/screenshots/terminal-statusline-dark.png" alt="Terminal statusline dark" width="600">
+</p>
 
-### Pacing tiers
+Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable module:
 
-| Tier | Utilization | What it means |
-|------|-------------|---------------|
-| Comfortable | < 30% | Cruise control. Use freely. |
-| On Track | 30-60% | Normal pace. You're fine. |
-| Elevated | 60-80% | Picking up speed. Be aware. |
-| Hot | 80-100% | Slow down or you'll hit the wall. |
-| Critical | >= 100% | You're at the limit. |
-| Runaway | > 90% absolute | Even promo can't save you. |
+| Module | What it shows |
+|--------|---------------|
+| Project | Current project name |
+| Git branch | Active branch |
+| Model | Opus 4.6, Sonnet 4.6, Haiku 4.5 |
+| 5h usage | Utilization + reset countdown |
+| 7d usage | Weekly utilization + reset countdown |
+| Pacing | 6-tier burn rate with time-to-limit |
+| Promo badge | 2X status with countdown |
+| Context bar | Visual progress bar of context window |
+| Active sessions | Count of parallel Claude sessions |
+| Session clock | Elapsed session time |
+| Custom | Your own shell command modules |
+
+---
 
 ## Themes
 
-### Menu bar app (7 themes)
+### Menu bar app — 7 themes
 
 | | | |
 |:---:|:---:|:---:|
@@ -265,9 +201,7 @@ cd SondeApp && make dmg && open build/Sonde.dmg
 | <img src="assets/screenshots/dashboard-terminal.png" width="250"><br>**Terminal** | <img src="assets/screenshots/dashboard-cyberpunk.png" width="250"><br>**Cyberpunk** | <img src="assets/screenshots/dashboard-synthwave.png" width="250"><br>**Synthwave** |
 | <img src="assets/screenshots/dashboard-solarflare.png" width="250"><br>**Solar Flare** | <img src="assets/screenshots/settings-light.png" width="250"><br>**Settings (Light)** | <img src="assets/screenshots/settings-dark.png" width="250"><br>**Settings (Dark)** |
 
-### Terminal (7 powerline palettes)
-
-Each theme renders with powerline arrows and distinct color segments:
+### Terminal — 7 powerline palettes
 
 <img src="assets/screenshots/terminal-themes.png" alt="Terminal themes" width="600">
 
@@ -275,19 +209,9 @@ Each theme renders with powerline arrows and distinct color segments:
 sonde themes    # Preview all palettes in your terminal
 ```
 
-Set in config: `theme = "dracula"` — options: catppuccin-mocha (default), dracula, tokyo-night, nord, gruvbox, solarized-dark, sonde.
+Set in `sonde.toml`: `theme = "dracula"` — options: catppuccin-mocha (default), dracula, tokyo-night, nord, gruvbox, solarized-dark, sonde.
 
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `sonde` | Render statusline (reads JSON from stdin) |
-| `sonde tui` | Full-screen terminal dashboard |
-| `sonde setup` | Interactive setup wizard |
-| `sonde doctor` | System health check (9 diagnostics) |
-| `sonde themes` | Preview all 6 terminal palettes |
-| `sonde configure` | Interactive TUI configurator |
-| `sonde version` | Print version |
+---
 
 ## Configuration
 
@@ -317,51 +241,41 @@ thresholds         = [80.0, 95.0]
 rate_limit_minutes = 5
 ```
 
-Auto-detects Slack, Discord, or generic webhook format.
+Auto-detects Slack, Discord, or generic webhook format. Get pinged before you hit the wall.
+
+---
 
 ## How it works
 
-sonde reads Claude Code's OAuth token from your system keychain (never stored to disk), calls the usage API, caches results for 60 seconds, and renders everything in real-time. The Rust binary renders typically under 50ms. The Swift app polls every 30 seconds (configurable).
+sonde reads Claude Code's OAuth token from your system keychain (never stored to disk), calls the usage API, caches results for 60 seconds, and renders everything in real-time.
 
-**Security**: Your OAuth token is never written to disk, logs, cache, or stdout. It's held in memory only for the duration of the API call, then dropped.
+**Security**: Your OAuth token never touches disk, logs, cache, or stdout. It's held in memory only for the duration of the API call, then dropped. We're paranoid about this.
 
-## Debugging
+---
 
-```bash
-# Run diagnostics
-sonde doctor
-```
+## Commands
 
-```
-sonde doctor
+| Command | What it does |
+|---------|-------------|
+| `sonde` | Render statusline (reads JSON from stdin) |
+| `sonde setup` | Auto-configure everything in ~10 seconds |
+| `sonde doctor` | Run 9 diagnostic checks |
+| `sonde tui` | Full-screen terminal dashboard |
+| `sonde themes` | Preview all 7 terminal palettes |
+| `sonde configure` | Interactive TUI configurator |
+| `sonde version` | Print version |
 
-  ✔ Claude Code installed: binary: found, ~/.claude: exists
-  ✔ OAuth token available: Token found in credential store
-  ✔ Usage API reachable: api.anthropic.com responding
-  ✔ Promo API reachable: promoclock.co responding
-  ✔ Config file found: sonde.toml
-  ✔ Config file valid: TOML parses successfully
-  ✔ Cache directory writable: ~/Library/Caches/sonde
-  ✔ Terminal colors: TERM=xterm-256color
-  ✔ Nerd Font glyphs: Test glyph: ▶ (powerline arrow)
-
-  9/9 checks passed
-```
-
-```bash
-# Verbose logging
-echo '{"model":{"display_name":"Opus"}}' | RUST_LOG=debug sonde
-
-# Preview themes
-sonde themes
-```
+---
 
 ## What's next
 
-- VS Code extension (coming soon)
+- VS Code extension
 - Raycast extension (quick view from launcher)
 - Apple Watch complication (usage ring on your wrist)
-- Landing page (coming soon)
+- iOS companion app
+- Landing page
+
+---
 
 ## License
 
