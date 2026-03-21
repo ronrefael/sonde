@@ -48,7 +48,14 @@ As Anthropic releases new promotions, sonde picks them up automatically. Zero co
 
 You're deep in a coding session. Claude is on fire. Then suddenly — rate limited. No warning. No countdown. Just... stopped.
 
-**sonde** is the fuel gauge for your AI coding tools. It sits in your menu bar and terminal, continuously showing you exactly where you stand — usage, pacing, time-to-limit, active sessions, and more.
+**sonde** is the fuel gauge for your AI coding tools. It sits in your menu bar and terminal, continuously showing you exactly where you stand:
+
+- **Real-time usage** — how much of your 5-hour and 7-day rate limits you've consumed
+- **Pacing predictions** — your burn rate, time-to-limit, and whether you should slow down
+- **Promotion awareness** — automatic detection of any active capacity promotions
+- **Per-project analytics** — token counts, cache efficiency, message history, and conversation breakdowns
+- **Multi-session monitoring** — track all running Claude Code sessions across projects
+- **Context window tracking** — visual progress bar showing how full your context is
 
 > **sonde** (noun, /sɒnd/) — a device sent into the atmosphere to transmit measurements back to the observer. Just like a weather sonde reports conditions from the sky, sonde reports the conditions of your AI usage in real-time.
 
@@ -126,40 +133,47 @@ Click to open the full dashboard:
   <img src="assets/screenshots/dashboard-system-dark.png" alt="System dark" width="380">
 </p>
 
-### What you see at a glance
+### Dashboard — what you see at a glance
 
-| | |
-|---|---|
-| **Usage rings** | 5-hour and 7-day utilization with color-coded gauges |
-| **Pacing tier** | Comfortable → On Track → Elevated → Hot → Critical → Runaway |
-| **Time-to-limit** | "At this rate, you'll hit your limit in ~2h 15m" |
-| **Promo badge** | Active promotion status with countdown timer |
-| **Active sessions** | All running Claude sessions with model, project, and duration |
-| **Code activity** | Lines added/removed, net change, wait percentage |
-| **7-day chart** | Daily peak usage bar chart with backfilled history |
-| **Context bar** | Visual progress of your context window usage |
+| Feature | What it shows | What it means |
+|---------|---------------|---------------|
+| **Usage rings** | 5-hour and 7-day utilization with color-coded gauges | How much of your rate limit you've consumed in each window. Green = plenty left, red = near the limit |
+| **Pacing tier** | Comfortable → On Track → Elevated → Hot → Critical → Runaway | Your burn rate. Comfortable means you can keep going all day. Hot means you'll hit your limit soon if you don't slow down |
+| **Time-to-limit** | e.g. "At this rate, you'll hit your limit in ~2h 15m" | Prediction based on your current pace — accounts for active promotions |
+| **Promo badge** | Active promotion status with countdown timer | Shows when Anthropic is running a capacity promotion and how long it lasts |
+| **Active sessions** | All running Claude Code sessions with model, project, and duration | Every Claude Code instance currently running on your machine |
+| **Code activity** | Lines added/removed, net change, wait percentage | How much code Claude has written this session and how much time you spent waiting |
+| **7-day chart** | Daily peak usage bar chart with backfilled history | Sparkline showing your usage pattern over the past week |
+| **Context bar** | Visual progress of your context window (e.g. 4k/1M) | How full your conversation context is — when it fills up, Claude loses earlier context |
 
-### Projects view
+### Projects view — per-project analytics
 
-Drill into per-project usage data:
+Drill down from the dashboard to see usage broken out by project:
 
-| | |
-|---|---|
-| **Project list** | All projects with model pill, token count, cache %, message count, task count |
-| **Last activity** | Relative timestamp of most recent activity per project |
+| Feature | What it shows | What it means |
+|---------|---------------|---------------|
+| **Project list** | Each project with model pill, token count, cache %, message count, task count | All your active Claude Code projects at a glance |
+| **Token count** | e.g. "744.0k tokens" | Total tokens consumed by this project across all conversations |
+| **Cache %** | e.g. "93% cache" | How efficiently Claude is reusing cached context — higher is better (cheaper and faster) |
+| **Messages** | e.g. "27 msgs" | Total back-and-forth messages in this project |
+| **Tasks** | e.g. "1 tasks" | Number of active task lists in the project |
+| **Last activity** | e.g. "10s ago" | When this project last had activity |
 
-### Session detail view
+### Session detail view — deep token breakdown
 
-Tap a project to see its full breakdown:
+Tap any project to see its full token economics:
 
-| | |
-|---|---|
-| **Messages** | Total message count for the project |
-| **Activity** | Time since last activity |
-| **Token breakdown** | Input, Output, Cache Read, Cache Write tokens |
-| **Cache hit %** | Percentage of tokens served from cache |
-| **Total tokens** | Aggregate token count across all conversations |
-| **Conversations** | Individual conversation list with per-conversation token and message counts |
+| Feature | What it shows | What it means |
+|---------|---------------|---------------|
+| **Messages** | Total message count | How many messages have been exchanged in this project |
+| **Activity** | Time since last activity | When Claude last responded |
+| **Input tokens** | e.g. "824.0k" | Tokens sent to Claude (your prompts, code context, file contents) |
+| **Output tokens** | e.g. "2.3k" | Tokens Claude generated (responses, code, explanations) |
+| **Cache Read** | e.g. "771.7k" | Tokens served from cache instead of reprocessing — this is the savings |
+| **Cache Write** | e.g. "52.2k" | New tokens written to cache for future reuse |
+| **Cache Hit %** | e.g. "93%" | Percentage of input tokens that came from cache. Higher = more efficient |
+| **Total tokens** | e.g. "826.3k" | Grand total across all token types |
+| **Conversations** | Individual conversation list | Each conversation with its own token count, message count, and model used |
 
 ### Guided onboarding
 
