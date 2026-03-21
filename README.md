@@ -263,13 +263,25 @@ cd SondeApp && make dmg && open build/Sonde.dmg
 | <img src="assets/screenshots/dashboard-terminal.png" width="250"><br>**Terminal** | <img src="assets/screenshots/dashboard-cyberpunk.png" width="250"><br>**Cyberpunk** | <img src="assets/screenshots/dashboard-synthwave.png" width="250"><br>**Synthwave** |
 | <img src="assets/screenshots/dashboard-solarflare.png" width="250"><br>**Solar Flare** | <img src="assets/screenshots/settings-light.png" width="250"><br>**Settings (Light)** | <img src="assets/screenshots/settings-dark.png" width="250"><br>**Settings (Dark)** |
 
-### Terminal (6 powerline palettes)
+### Terminal (7 powerline palettes)
 
-```bash
-sonde themes    # Preview all palettes
+Each theme renders with powerline arrows and distinct color segments:
+
+```
+catppuccin-mocha:  Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
+dracula:           Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
+tokyo-night:       Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
+nord:              Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
+gruvbox:           Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
+solarized-dark:    Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
+sonde:             Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
 ```
 
-Set in config: `theme = "dracula"` — options: catppuccin-mocha (default), dracula, tokyo-night, nord, gruvbox, solarized-dark.
+```bash
+sonde themes    # Preview all palettes in your terminal
+```
+
+Set in config: `theme = "dracula"` — options: catppuccin-mocha (default), dracula, tokyo-night, nord, gruvbox, solarized-dark, sonde.
 
 ## Commands
 
@@ -322,11 +334,29 @@ sonde reads Claude Code's OAuth token from your system keychain (never stored to
 ## Debugging
 
 ```bash
-# Verbose logging
-echo '{"model":{"display_name":"Opus"}}' | RUST_LOG=debug sonde
-
 # Run diagnostics
 sonde doctor
+```
+
+```
+sonde doctor
+
+  ✔ Claude Code installed: binary: found, ~/.claude: exists
+  ✔ OAuth token available: Token found in credential store
+  ✔ Usage API reachable: api.anthropic.com responding
+  ✔ Promo API reachable: promoclock.co responding
+  ✔ Config file found: sonde.toml
+  ✔ Config file valid: TOML parses successfully
+  ✔ Cache directory writable: ~/Library/Caches/sonde
+  ✔ Terminal colors: TERM=xterm-256color
+  ✔ Nerd Font glyphs: Test glyph: ▶ (powerline arrow)
+
+  9/9 checks passed
+```
+
+```bash
+# Verbose logging
+echo '{"model":{"display_name":"Opus"}}' | RUST_LOG=debug sonde
 
 # Preview themes
 sonde themes
