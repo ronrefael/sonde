@@ -27,18 +27,18 @@
 <p align="center">
   <img src="assets/screenshots/hero.png" alt="Sonde dashboard" width="700">
   <br>
-  <sub>Hero wallpaper: "Everyone-can-fly" by Adrian Slazok — <a href="https://www.comedywildlifephoto.com/">Comedy Wildlife Photography Awards</a></sub>
+  <sub>Hero wallpaper: "Everyone-can-fly" by Adrian Slazok - <a href="https://www.comedywildlifephoto.com/">Comedy Wildlife Photography Awards</a></sub>
 </p>
 
 ---
 
 ## The one thing no other tool does
 
-Claude Code periodically runs **capacity promotions** — your rate limits increase, sometimes dramatically. But Anthropic doesn't send push notifications. You'd have to check their status page manually to know one is active.
+Claude Code periodically runs **capacity promotions** - your rate limits increase, sometimes dramatically. But Anthropic doesn't send push notifications. You'd have to check their status page manually to know one is active.
 
 **sonde tracks this for you.** It monitors Claude's promotion page, detects when any promotion starts and how long it lasts, and adjusts your pacing predictions automatically. No more guessing whether it's safe to go heavy on a coding session.
 
-> **How it works:** sonde monitors Claude's promotion page and cross-references it with your real-time usage from Claude Code's OAuth API. When a promotion is active and you're at 50% usage, sonde factors in the boosted capacity — so it tells you to keep going instead of slowing down.
+> **How it works:** sonde monitors Claude's promotion page and cross-references it with your real-time usage from Claude Code's OAuth API. When a promotion is active and you're at 50% usage, sonde factors in the boosted capacity - so it tells you to keep going instead of slowing down.
 
 As Anthropic releases new promotions, sonde picks them up automatically. Zero configuration.
 
@@ -46,32 +46,32 @@ As Anthropic releases new promotions, sonde picks them up automatically. Zero co
 
 ## But it does a lot more than promos
 
-You're deep in a coding session. Claude is on fire. Then suddenly — rate limited. No warning. No countdown. Just... stopped.
+You're deep in a coding session. Claude is on fire. Then suddenly - rate limited. No warning. No countdown. Just... stopped.
 
 **sonde** is the fuel gauge for your AI coding tools. It sits in your menu bar and terminal, continuously showing you exactly where you stand:
 
-- **Real-time usage** — how much of your 5-hour and 7-day rate limits you've consumed
-- **Pacing predictions** — your burn rate, time-to-limit, and whether you should slow down
-- **Promotion awareness** — automatic detection of any active capacity promotions
-- **Per-project analytics** — token counts, cache efficiency, message history, and conversation breakdowns
-- **Multi-session monitoring** — track all running Claude Code sessions across projects
-- **Context window tracking** — visual progress bar showing how full your context is
+- **Real-time usage** - how much of your 5-hour and 7-day rate limits you've consumed
+- **Pacing predictions** - your burn rate, time-to-limit, and whether you should slow down
+- **Promotion awareness** - automatic detection of any active capacity promotions
+- **Per-project analytics** - token counts, cache efficiency, message history, and conversation breakdowns
+- **Multi-session monitoring** - track all running Claude Code sessions across projects
+- **Context window tracking** - visual progress bar showing how full your context is
 
-> **sonde** (noun, /sɒnd/) — a device sent into the atmosphere to transmit measurements back to the observer. Just like a weather sonde reports conditions from the sky, sonde reports the conditions of your AI usage in real-time.
+> **sonde** (noun, /sɒnd/) - a device sent into the atmosphere to transmit measurements back to the observer. Just like a weather sonde reports conditions from the sky, sonde reports the conditions of your AI usage in real-time.
 
 ---
 
 ## Install
 
-### Menu Bar App (macOS) — most users start here
+### Menu Bar App (macOS) - most users start here
 
 Download **[Sonde.dmg](https://github.com/ronrefael/sonde/releases/latest/download/Sonde.dmg)** from the [latest release](https://github.com/ronrefael/sonde/releases), open it, drag **Sonde** into **Applications**, and launch. That's it.
 
-On first launch, a guided setup walks you through everything — Claude Code detection, auth, statusline config, font install, and theme selection. No terminal commands needed.
+On first launch, a guided setup walks you through everything - Claude Code detection, auth, statusline config, font install, and theme selection. No terminal commands needed.
 
 > **macOS Gatekeeper warning?** Since sonde isn't notarized with Apple yet, macOS will block the first launch. To fix it, run this once in Terminal:
 > ```bash
-> xattr -cr /Applications/Sonde.app
+> xattr - cr /Applications/Sonde.app
 > ```
 > Then open Sonde normally. You only need to do this once.
 
@@ -79,11 +79,11 @@ On first launch, a guided setup walks you through everything — Claude Code det
 >
 > | File | Who it's for |
 > |------|-------------|
-> | **Sonde.dmg** | Mac users — the full menu bar app + dashboard |
-> | sonde-aarch64-apple-darwin.tar.gz | Mac (Apple Silicon M1+) — terminal binary only |
-> | sonde-x86_64-apple-darwin.tar.gz | Mac (Intel) — terminal binary only |
-> | sonde-x86_64-unknown-linux-gnu.tar.gz | Linux x64 — terminal binary only |
-> | sonde-aarch64-unknown-linux-gnu.tar.gz | Linux ARM — terminal binary only |
+> | **Sonde.dmg** | Mac users - the full menu bar app + dashboard |
+> | sonde-aarch64-apple-darwin.tar.gz | Mac (Apple Silicon M1+) - terminal binary only |
+> | sonde-x86_64-apple-darwin.tar.gz | Mac (Intel) - terminal binary only |
+> | sonde-x86_64-unknown-linux-gnu.tar.gz | Linux x64 - terminal binary only |
+> | sonde-aarch64-unknown-linux-gnu.tar.gz | Linux ARM - terminal binary only |
 
 ### Terminal Statusline (macOS / Linux)
 
@@ -133,20 +133,20 @@ Click to open the full dashboard:
   <img src="assets/screenshots/dashboard-system-dark.png" alt="System dark" width="380">
 </p>
 
-### Dashboard — what you see at a glance
+### Dashboard - what you see at a glance
 
 | Feature | What it shows | What it means |
 |---------|---------------|---------------|
 | **Usage rings** | 5-hour and 7-day utilization with color-coded gauges | How much of your rate limit you've consumed in each window. Green = plenty left, red = near the limit |
 | **Pacing tier** | Comfortable → On Track → Elevated → Hot → Critical → Runaway | Your burn rate. Comfortable means you can keep going all day. Hot means you'll hit your limit soon if you don't slow down |
-| **Time-to-limit** | e.g. "At this rate, you'll hit your limit in ~2h 15m" | Prediction based on your current pace — accounts for active promotions |
+| **Time-to-limit** | e.g. "At this rate, you'll hit your limit in ~2h 15m" | Prediction based on your current pace - accounts for active promotions |
 | **Promo badge** | Active promotion status with countdown timer | Shows when Anthropic is running a capacity promotion and how long it lasts |
 | **Active sessions** | All running Claude Code sessions with model, project, and duration | Every Claude Code instance currently running on your machine |
 | **Code activity** | Lines added/removed, net change, wait percentage | How much code Claude has written this session and how much time you spent waiting |
 | **7-day chart** | Daily peak usage bar chart with backfilled history | Sparkline showing your usage pattern over the past week |
-| **Context bar** | Visual progress of your context window (e.g. 4k/1M) | How full your conversation context is — when it fills up, Claude loses earlier context |
+| **Context bar** | Visual progress of your context window (e.g. 4k/1M) | How full your conversation context is - when it fills up, Claude loses earlier context |
 
-### Projects view — per-project analytics
+### Projects view - per-project analytics
 
 Drill down from the dashboard to see usage broken out by project:
 
@@ -154,12 +154,12 @@ Drill down from the dashboard to see usage broken out by project:
 |---------|---------------|---------------|
 | **Project list** | Each project with model pill, token count, cache %, message count, task count | All your active Claude Code projects at a glance |
 | **Token count** | e.g. "744.0k tokens" | Total tokens consumed by this project across all conversations |
-| **Cache %** | e.g. "93% cache" | How efficiently Claude is reusing cached context — higher is better (cheaper and faster) |
+| **Cache %** | e.g. "93% cache" | How efficiently Claude is reusing cached context - higher is better (cheaper and faster) |
 | **Messages** | e.g. "27 msgs" | Total back-and-forth messages in this project |
 | **Tasks** | e.g. "1 tasks" | Number of active task lists in the project |
 | **Last activity** | e.g. "10s ago" | When this project last had activity |
 
-### Session detail view — deep token breakdown
+### Session detail view - deep token breakdown
 
 Tap any project to see its full token economics:
 
@@ -169,7 +169,7 @@ Tap any project to see its full token economics:
 | **Activity** | Time since last activity | When Claude last responded |
 | **Input tokens** | e.g. "824.0k" | Tokens sent to Claude (your prompts, code context, file contents) |
 | **Output tokens** | e.g. "2.3k" | Tokens Claude generated (responses, code, explanations) |
-| **Cache Read** | e.g. "771.7k" | Tokens served from cache instead of reprocessing — this is the savings |
+| **Cache Read** | e.g. "771.7k" | Tokens served from cache instead of reprocessing - this is the savings |
 | **Cache Write** | e.g. "52.2k" | New tokens written to cache for future reuse |
 | **Cache Hit %** | e.g. "93%" | Percentage of input tokens that came from cache. Higher = more efficient |
 | **Total tokens** | e.g. "826.3k" | Grand total across all token types |
@@ -237,7 +237,7 @@ Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable 
 
 ## Themes
 
-### Menu bar app — 7 themes (Liquid Glass, System, Sonde, Terminal, Cyberpunk, Synthwave, Solarflare)
+### Menu bar app -7 themes (Liquid Glass, System, Sonde, Terminal, Cyberpunk, Synthwave, Solarflare)
 
 | | | |
 |:---:|:---:|:---:|
@@ -245,24 +245,24 @@ Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable 
 | <img src="assets/screenshots/dashboard-terminal.png" width="250"><br>**Terminal** | <img src="assets/screenshots/dashboard-cyberpunk.png" width="250"><br>**Cyberpunk** | <img src="assets/screenshots/dashboard-synthwave.png" width="250"><br>**Synthwave** |
 | <img src="assets/screenshots/dashboard-solarflare.png" width="250"><br>**Solar Flare** | <img src="assets/screenshots/settings-light.png" width="250"><br>**Settings (Light)** | <img src="assets/screenshots/settings-dark.png" width="250"><br>**Settings (Dark)** |
 
-### Terminal — 6 powerline palettes
+### Terminal -6 powerline palettes
 
 | Theme | Vibe |
 |-------|------|
-| **catppuccin-mocha** | Pastel on dark — mauve, sapphire, teal, peach |
+| **catppuccin-mocha** | Pastel on dark - mauve, sapphire, teal, peach |
 | **terminal** | Phosphor green + amber CRT aesthetic |
 | **cyberpunk** | Neon cyan + electric purple on deep navy |
 | **synthwave** | Hot pink + lavender on midnight purple |
 | **solarflare** | Fiery orange + solar yellow on deep red-black |
-| **sonde** | Auto light/dark — the default theme |
+| **sonde** | Auto light/dark - the default theme |
 
 ```bash
 sonde themes    # Preview all palettes in your terminal
 ```
 
-Set in `sonde.toml`: `theme = "sonde"` — options: catppuccin-mocha, terminal, cyberpunk, synthwave, solarflare, sonde (default).
+Set in `sonde.toml`: `theme = "sonde"` - options: catppuccin-mocha, terminal, cyberpunk, synthwave, solarflare, sonde (default).
 
-Terminal themes match the menu bar app themes — same names, same color palettes.
+Terminal themes match the menu bar app themes - same names, same color palettes.
 
 ---
 
