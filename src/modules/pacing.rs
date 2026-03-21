@@ -196,6 +196,7 @@ pub fn predict_time_to_limit(utilization: f64, resets_at: Option<&str>) -> Optio
 }
 
 /// Inner implementation that accepts history, clock, and threshold for testability.
+#[allow(dead_code)]
 pub fn predict_time_to_limit_with_history(
     utilization: f64,
     resets_at: Option<&str>,
@@ -241,7 +242,7 @@ fn predict_time_to_limit_with_history_threshold(
 
     // --- Compute window boundaries ---
     let window_secs: f64 = 5.0 * 3600.0;
-    let window_start_epoch =
+    let _window_start_epoch =
         (reset_dt - chrono::Duration::seconds(window_secs as i64)).timestamp() as u64;
     let now_epoch = now.timestamp() as u64;
     let rate_cutoff = now_epoch.saturating_sub(RATE_WINDOW_SECS);
@@ -326,10 +327,9 @@ fn predict_time_to_limit_with_history_threshold(
     // Weight each differential rate by recency using exponential decay.
     // alpha_i = 1 - exp(-dt_i / tau) where dt_i is the time gap of that segment.
     let mut ewma_rate = diff_rates[0].1;
-    for i in 1..diff_rates.len() {
-        let dt = diff_rates[i].0;
+    for &(dt, rate) in diff_rates.iter().skip(1) {
         let alpha = 1.0 - (-dt / EWMA_TAU).exp();
-        ewma_rate = alpha * diff_rates[i].1 + (1.0 - alpha) * ewma_rate;
+        ewma_rate = alpha * rate + (1.0 - alpha) * ewma_rate;
     }
 
     // --- Gate 4: rate must be positive ---
