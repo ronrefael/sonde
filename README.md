@@ -85,10 +85,11 @@ On first launch, a guided setup walks you through everything — Claude Code det
 ### Terminal Statusline (macOS / Linux)
 
 ```bash
-# From source
-cargo install --git https://github.com/ronrefael/sonde --locked
+# Homebrew (recommended)
+brew install ronrefael/tap/sonde
 
-# Or download the binary for your platform from the latest release
+# Or from source
+cargo install --git https://github.com/ronrefael/sonde --locked
 ```
 
 Then run:
@@ -258,7 +259,6 @@ sonde reads Claude Code's OAuth token from your system keychain (never stored to
 ## What's next
 
 - Apple notarization (no more `xattr` workaround)
-- Homebrew tap (`brew install ronrefael/tap/sonde`)
 - Webhook notifications (Slack/Discord alerts when usage gets high)
 - VS Code extension
 - iOS companion app
