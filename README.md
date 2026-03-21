@@ -7,6 +7,12 @@
 </p>
 
 <p align="center">
+  <sub><strong>sonde</strong> (noun, /sɒnd/) · <em>a device sent into the atmosphere to transmit measurements back to the observer</em></sub>
+  <br>
+  <sub><em>Just like a weather sonde reports conditions from the sky, sonde reports the conditions of your AI usage in real-time.</em></sub>
+</p>
+
+<p align="center">
   <a href="#the-one-thing-no-other-tool-does">Why Sonde</a> &bull;
   <a href="#install">Install</a> &bull;
   <a href="#the-menu-bar-app">Menu Bar App</a> &bull;
@@ -56,8 +62,6 @@ You're deep in a coding session. Claude is on fire. Then suddenly, rate limited.
 - **Per-project analytics:** token counts, cache efficiency, message history, and conversation breakdowns
 - **Multi-session monitoring:** track all running Claude Code sessions across projects
 - **Context window tracking:** visual progress bar showing how full your context is
-
-> **sonde** (noun, /sɒnd/): a device sent into the atmosphere to transmit measurements back to the observer. Just like a weather sonde reports conditions from the sky, sonde reports the conditions of your AI usage in real-time.
 
 ---
 
