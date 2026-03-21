@@ -1,31 +1,53 @@
 # sonde Social Media Launch Plan
 
+## Timing
+
+**Post Saturday morning (9-11 AM ET).** Developers browse Reddit and Threads with coffee on weekends. Late Friday night posts get buried with zero momentum.
+
+**Saturday morning:**
+- 9:00 AM: Post Threads thread (4 posts with images)
+- 9:30 AM: Post to r/ClaudeAI (highest-value target)
+- 11:00 AM: Post to r/MacApps
+
+**Saturday afternoon:**
+- 2:00 PM: Post to r/commandline
+
+**Sunday:**
+- Post to r/rust (technical deep-dive, weekends get more thoughtful engagement)
+- Post to r/SideProject
+
+**Monday:**
+- Threads follow-up post with engagement numbers
+- r/swift post about the SwiftUI menu bar app architecture
+
+---
+
 ## Platform Strategy
 
-### Reddit — High-value subreddits
+### Reddit
 Target subreddits where Claude Code users congregate. Reddit rewards genuine utility posts with screenshots, not hype.
 
 **Primary targets:**
-- r/ClaudeAI (169k members) — main Claude community
-- r/LocalLLaMA (470k) — technical AI users
-- r/MacApps (95k) — macOS utility hunters
-- r/commandline (250k) — terminal tool enthusiasts
+- r/ClaudeAI (169k members)
+- r/LocalLLaMA (470k)
+- r/MacApps (95k)
+- r/commandline (250k)
 
 **Secondary targets:**
-- r/SideProject — indie dev appreciation
-- r/rust — Rust community loves well-built CLI tools
-- r/swift — SwiftUI menu bar app angle
+- r/SideProject
+- r/rust
+- r/swift
 
-### Threads — Visual, personal, storytelling
+### Threads
 Threads rewards personality and visual content. Short threads (3-5 posts) with images perform best.
 
 ---
 
 ## Post Templates
 
-### Reddit Post 1: r/ClaudeAI (Tonight — Main Launch)
+### Reddit Post 1: r/ClaudeAI
 
-**Title:** `I built a real-time usage monitor for Claude Code — never get surprised by rate limits again`
+**Title:** `I built a real-time usage monitor for Claude Code. Never get surprised by rate limits again.`
 
 **Body:**
 
@@ -33,55 +55,63 @@ Threads rewards personality and visual content. Short threads (3-5 posts) with i
 I kept getting blindsided by rate limits during deep coding sessions. No warning, no countdown, just... stopped. So I built sonde.
 
 **What it does:**
-- Sits in your macOS menu bar showing remaining capacity: ✓ | 2X | 92% | 3h21m
+- Sits in your macOS menu bar showing remaining capacity, pacing, and active promotions
 - Click to see a full dashboard with usage gauges, pacing prediction, and active sessions
-- Also renders as a powerline statusline directly in Claude Code
-- Tells you when 2X promo is active (did you know Claude has off-peak 2X capacity? Most people don't)
+- Drill into per-project analytics: token counts, cache efficiency, message history, conversation breakdowns
+- Also renders as a powerline statusline directly inside Claude Code
 
-**The promo thing is the killer feature.** Claude doubles your limits during off-peak hours (before 8 AM, after 2 PM weekdays, all weekend). sonde tracks this automatically and tells you:
-- Whether 2X is active right now
+**Promotion tracking is the killer feature.** Claude Code runs capacity promotions that boost your limits. sonde monitors Claude's promotion page and detects them automatically. It shows you:
+- Whether a promotion is active right now
 - How long until it ends
-- Your effective burn rate accounting for the multiplier
+- Your effective burn rate accounting for the boosted capacity
 
-**Tech stack:** Rust CLI (renders in <50ms) + native SwiftUI macOS app. 102 tests. 6 themes.
+**Per-project token breakdown:** Tap any project to see input tokens, output tokens, cache read, cache write, cache hit %, total tokens, and individual conversations with their own stats.
 
-`brew install ronrefael/tap/sonde` or `sonde setup` to auto-configure.
+**Tech stack:** Rust CLI (renders in <50ms) + native SwiftUI macOS app. 110 tests. 6 matching themes across both.
 
-[Screenshot of menu bar + dashboard]
+`brew install ronrefael/tap/sonde` or download Sonde.dmg from the release page.
+
+[Screenshot of menu bar + dashboard open]
 [Screenshot of terminal statusline]
+[Screenshot of projects view with token breakdown]
 
 GitHub: github.com/ronrefael/sonde
 
-Would love feedback — what else would you want to see in the dashboard?
+Would love feedback. What else would you want to see in the dashboard?
 ```
 
 ---
 
 ### Reddit Post 2: r/MacApps
 
-**Title:** `sonde — a menu bar app that monitors your Claude Code AI usage in real-time [open source]`
+**Title:** `sonde: a menu bar app that monitors your Claude Code AI usage in real-time [open source]`
 
 **Body:**
 
 ```
-I made a native SwiftUI menu bar app for monitoring Claude Code usage. Open source, no account needed — it reads from your existing Claude Code OAuth.
+I made a native SwiftUI menu bar app for monitoring Claude Code usage. Open source, no account needed. It reads from your existing Claude Code OAuth.
 
 Features:
-- Guided 6-step onboarding — detects Claude Code, validates OAuth, configures statusline, picks your theme with a live preview
-- Menu bar shows: pace icon | promo status | remaining % | timer countdown
+- Guided 6-step onboarding: detects Claude Code, validates OAuth, configures statusline, picks your theme with a live preview
+- Menu bar shows: pace icon, promo status, remaining %, timer countdown
 - Dashboard with 5h and 7d usage gauges
+- Per-project analytics: tokens, cache %, messages, tasks, last activity
+- Session detail view: full token breakdown (input, output, cache read, cache write, cache hit %, total)
+- Conversation list with per-conversation stats
 - 7-day usage history chart
 - Active session tracking across multiple projects
-- 6 themes including a gorgeous Liquid Glass mode (live preview in onboarding)
+- 7 themes including Liquid Glass, Terminal, Cyberpunk, Synthwave, Solarflare
 - Pacing prediction ("you'll hit your limit in ~2h 15m")
-- Promo awareness (2X off-peak detection)
-- Settings tab with custom chip pickers (pretty proud of these)
+- Automatic promotion detection
+- Settings tab with custom chip pickers
 
-Also includes a Rust-powered terminal statusline with powerline arrows.
+Also includes a Rust-powered terminal statusline with powerline arrows and 6 matching themes.
 
 [Screenshot of Liquid Glass theme]
 [Screenshot of System dark theme]
 [Screenshot of Terminal theme]
+[Screenshot of projects view]
+[Screenshot of session detail with token breakdown]
 [Screenshot of settings tab]
 
 GitHub: github.com/ronrefael/sonde
@@ -92,19 +122,18 @@ Install: brew install ronrefael/tap/sonde
 
 ### Reddit Post 3: r/commandline
 
-**Title:** `sonde: a <50ms Rust statusline for Claude Code with 6 powerline themes, pacing prediction, and promo detection`
+**Title:** `sonde: a <50ms Rust statusline for Claude Code with 6 powerline themes, pacing prediction, and promotion detection`
 
 **Body:**
 
 ```
 Built a Rust CLI that renders AI usage data as a powerline statusline for Claude Code.
 
-- 20+ configurable modules (model, context bar, usage limits, pacing, promo, git branch, etc.)
-- 6 theme palettes: catppuccin-mocha, dracula, tokyo-night, nord, gruvbox, solarized-dark
+- 10+ configurable modules (model, context bar, usage limits, pacing, promo, git branch, etc.)
+- 6 theme palettes: catppuccin-mocha, terminal, cyberpunk, synthwave, solarflare, sonde
 - Predictive pacing: tells you when you'll hit your rate limit
-- Promo detection: knows when Claude's 2X capacity is active
-- Renders in <50ms with 102 tests and zero clippy warnings
-- Plugin system: add custom modules via shell commands
+- Promotion detection: knows when Claude's capacity promotions are active
+- Renders in <50ms with 110 tests and zero clippy warnings
 - sonde setup auto-configures Claude Code in seconds
 - sonde doctor runs 9 diagnostic checks
 
@@ -118,9 +147,9 @@ Source: github.com/ronrefael/sonde
 
 ---
 
-### Reddit Post 4: r/rust (Tomorrow)
+### Reddit Post 4: r/rust
 
-**Title:** `Wrote a 6k LOC Rust CLI that renders a real-time AI usage statusline in <50ms — learnings and architecture`
+**Title:** `Wrote a 6k LOC Rust CLI that renders a real-time AI usage statusline in <50ms`
 
 **Body:**
 
@@ -140,7 +169,7 @@ sonde is a statusline binary for Claude Code that monitors usage, rate limits, a
 - All diagnostics via tracing to stderr, stdout owned only by main.rs
 
 **Testing:**
-- 102 unit tests, rstest for parameterized, assert_cmd for integration
+- 110 unit tests, rstest for parameterized, assert_cmd for integration
 - Mock HTTP calls, never hit real APIs in tests
 - Every theme × every module = valid RGB (no panics)
 
@@ -148,14 +177,14 @@ sonde is a statusline binary for Claude Code that monitors usage, rate limits, a
 - <50ms render time in release mode
 - Terminal width detection: stderr fd (correct for split panes) → COLUMNS → /dev/tty → 80 fallback
 
-6 themes, 20+ modules, custom plugin system, webhook notifications.
+6 themes, 10+ modules, matching SwiftUI menu bar app with the same palette names.
 
 Repo: github.com/ronrefael/sonde
 ```
 
 ---
 
-### Threads Post 1 (Tonight — Lead with visual)
+### Threads Post 1 (Saturday morning, lead with visual)
 
 **Post 1/4:**
 ```
@@ -163,7 +192,7 @@ Built something I've wanted for months.
 
 A real-time AI usage monitor that sits in your Mac menu bar.
 
-One glance: ✓ | 2X | 92% | 3h21m
+One glance tells you exactly where you stand: capacity, pacing, promotions, active sessions.
 
 Never get surprised by rate limits again.
 
@@ -172,27 +201,26 @@ Never get surprised by rate limits again.
 
 **Post 2/4:**
 ```
-The killer feature: promo awareness.
+The killer feature: promotion awareness.
 
-Did you know Claude Code DOUBLES your limits during off-peak hours?
+Did you know Claude Code runs capacity promotions that boost your limits?
 
-Before 8 AM, after 2 PM, all weekend = 2X capacity.
-
-sonde detects this automatically. Shows you when it's active and how long it lasts.
+sonde monitors Claude's promotion page and detects them automatically. Shows you when one is active, how long it lasts, and adjusts your pacing to account for the extra capacity.
 
 Most people have no idea this exists.
 
-[Screenshot of 2X Active badge in dashboard]
+[Screenshot of promo badge in dashboard]
 ```
 
 **Post 3/4:**
 ```
 Also runs as a terminal statusline directly in Claude Code:
 
- Opus  [████░░░░░░] 42%  5h 20%  7d 39%  ⚡ 92%
- 2X — Off-peak limits active  10h32m left
+ Opus  [████░░░░░░] 42%  5h 20%  7d 39%  Elevated 38%
 
-6 powerline themes. Renders in <50ms. 102 tests.
+6 powerline themes that match the menu bar app: Terminal, Cyberpunk, Synthwave, Solarflare.
+
+Renders in <50ms. 110 tests.
 
 [Screenshot of terminal with themes]
 ```
@@ -201,9 +229,7 @@ Also runs as a terminal statusline directly in Claude Code:
 ```
 It's called sonde.
 
-French for "probe" — like the atmospheric instruments that transmit weather data back to observers.
-
-sonde transmits your AI usage data back to you.
+A device sent into the atmosphere to transmit measurements back to the observer. Just like a weather sonde reports conditions from the sky, sonde reports the conditions of your AI usage in real-time.
 
 Open source. Rust + SwiftUI. Free forever.
 
@@ -214,7 +240,7 @@ brew install ronrefael/tap/sonde
 
 ---
 
-### Threads Post 2 (Tomorrow — Behind the scenes)
+### Threads Post 2 (Sunday, behind the scenes)
 
 **Post 1/3:**
 ```
@@ -222,11 +248,11 @@ The most satisfying part of building sonde:
 
 The onboarding.
 
-6-step guided setup. One-click statusline config. And a live theme preview that updates as you tap each option — you see the dashboard colors change in real-time before you commit.
+6-step guided setup. One-click statusline config. And a live theme preview that updates as you tap each option. You see the dashboard colors change in real-time before you commit.
 
 Then the settings screen. Custom chip pickers that match every theme. Hover animations. No stock macOS dropdowns.
 
-6 themes and every single UI element adapts.
+7 themes and every single UI element adapts.
 
 [Screenshot of onboarding theme picker with live preview]
 [Screenshot of settings in Synthwave theme]
@@ -251,9 +277,8 @@ This is how auth should work in developer tools.
 What's next for sonde:
 
 → VS Code extension (status bar widget)
-→ Raycast extension (quick view)
-→ Apple Watch complication (usage ring on your wrist)
-→ Landing page at sonde.dev
+→ iOS companion app
+→ Apple notarization (no more xattr workaround)
 
 Star it if you want to follow along: github.com/ronrefael/sonde
 ```
@@ -264,44 +289,25 @@ Star it if you want to follow along: github.com/ronrefael/sonde
 
 Take these screenshots before posting:
 
-1. **Menu bar hero** — Menu bar showing `✓ | 2X | 92% | 3h21m` with dashboard open below
-2. **Dashboard full** — System dark theme, all cards visible
-3. **Promo badge** — Close-up of `⚡ 2X Active · 12h30m` badge
-4. **Terminal themes** — Output of `sonde themes` showing all 6 palettes
-5. **Statusline in Claude Code** — Real session with powerline rendering
-6. **Settings** — Synthwave theme showing chip pickers
-7. **Settings light** — System light theme for contrast
-8. **Usage chart** — 7-day bar chart with varied data
-9. **Multi-session** — Activity card showing 3+ projects
-10. **sonde doctor** — All 9 checks passing
-11. **Onboarding welcome** — First-launch welcome screen with sonde logo
-12. **Onboarding theme picker** — Theme selection step with live preview card showing selected theme colors
-13. **Onboarding statusline** — One-click statusline enable with powerline preview
-
-## Timing Strategy
-
-**Tonight (Thursday):**
-- 9:30 PM: Post Threads thread (4 posts with images)
-- 10:00 PM: Post to r/ClaudeAI (highest-value target)
-
-**Friday morning:**
-- 8:00 AM: Post to r/MacApps
-- 10:00 AM: Post to r/commandline
-- Cross-post link in r/ClaudeAI comments if it gains traction
-
-**Saturday:**
-- Post to r/rust (technical deep-dive, weekends get more thoughtful engagement)
-- Post to r/SideProject
-
-**Monday:**
-- Threads follow-up post with engagement numbers
-- r/swift post about the SwiftUI menu bar app architecture
+1. **Menu bar hero:** Menu bar with dashboard open below
+2. **Dashboard full:** System dark theme, all cards visible
+3. **Promo badge:** Close-up of promotion badge in dashboard
+4. **Terminal themes:** Output of `sonde themes` showing all 6 palettes
+5. **Statusline in Claude Code:** Real session with powerline rendering
+6. **Projects view:** Project list with token counts, cache %, messages
+7. **Session detail:** Full token breakdown (input, output, cache read/write, cache hit %)
+8. **Settings:** Synthwave theme showing chip pickers
+9. **Settings light:** System light theme for contrast
+10. **Usage chart:** 7-day bar chart with varied data
+11. **Multi-session:** Activity card showing multiple projects
+12. **sonde doctor:** All 9 checks passing
+13. **Onboarding theme picker:** Theme selection step with live preview
 
 ## Engagement Rules
 
-1. **Reply to every comment** within the first 2 hours — Reddit algorithm rewards active OPs
-2. **Ask questions back** — "What else would you want to see?" drives comments
-3. **Be genuine about limitations** — "Yeah, the 5h timer shows 'now' when it just reset, working on that" builds trust
-4. **Don't cross-post simultaneously** — space them out so each community feels like they're getting original content
+1. **Reply to every comment** within the first 2 hours. Reddit algorithm rewards active OPs
+2. **Ask questions back.** "What else would you want to see?" drives comments
+3. **Be genuine about limitations.** Builds trust
+4. **Don't cross-post simultaneously.** Space them out so each community feels like original content
 5. **Pin a comment** with install instructions + key screenshots on each Reddit post
-6. **Use Reddit's image gallery** feature (up to 20 images) — posts with images get 3-5x more engagement than text-only
+6. **Use Reddit's image gallery** feature (up to 20 images). Posts with images get 3-5x more engagement than text-only
