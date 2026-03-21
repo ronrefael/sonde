@@ -66,7 +66,11 @@ Download **[Sonde.dmg](https://github.com/ronrefael/sonde/releases/latest/downlo
 
 On first launch, a guided setup walks you through everything — Claude Code detection, auth, statusline config, font install, and theme selection. No terminal commands needed.
 
-> **macOS Gatekeeper warning?** Since sonde isn't notarized with Apple yet, macOS may block the first launch. To open it: **right-click** (or Control+click) Sonde.app → **Open** → click **Open** in the dialog. You only need to do this once.
+> **macOS Gatekeeper warning?** Since sonde isn't notarized with Apple yet, macOS will block the first launch. To fix it, run this once in Terminal:
+> ```bash
+> xattr -cr /Applications/Sonde.app
+> ```
+> Then open Sonde normally. You only need to do this once.
 
 > **What about the .tar.gz files on the release page?** Those are the standalone terminal statusline binary (no GUI app). Most Mac users just need the DMG. The tar.gz files are for Linux users or people who only want the Claude Code statusline without the menu bar dashboard.
 >
