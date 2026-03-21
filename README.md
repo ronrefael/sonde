@@ -73,7 +73,7 @@ On first launch, a guided setup walks you through everything — Claude Code det
 > | File | Who it's for |
 > |------|-------------|
 > | **Sonde.dmg** | Mac users — the full menu bar app + dashboard |
-> | sonde-aarch64-apple-darwin.tar.gz | Mac (Apple Silicon) — terminal binary only |
+> | sonde-aarch64-apple-darwin.tar.gz | Mac (Apple Silicon M1+) — terminal binary only |
 > | sonde-x86_64-apple-darwin.tar.gz | Mac (Intel) — terminal binary only |
 > | sonde-x86_64-unknown-linux-gnu.tar.gz | Linux x64 — terminal binary only |
 > | sonde-aarch64-unknown-linux-gnu.tar.gz | Linux ARM — terminal binary only |
