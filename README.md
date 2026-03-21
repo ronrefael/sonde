@@ -60,13 +60,25 @@ You're deep in a coding session. Claude is on fire. Then suddenly — rate limit
 
 ## Install
 
-### Menu Bar App (macOS)
+### Menu Bar App (macOS) — most users start here
 
-Download `Sonde.dmg` from the [latest release](https://github.com/ronrefael/sonde/releases), open it, and drag **Sonde** into **Applications**.
+Download **[Sonde.dmg](https://github.com/ronrefael/sonde/releases/latest/download/Sonde.dmg)** from the [latest release](https://github.com/ronrefael/sonde/releases), open it, drag **Sonde** into **Applications**, and launch. That's it.
 
 On first launch, a guided setup walks you through everything — Claude Code detection, auth, statusline config, font install, and theme selection. No terminal commands needed.
 
+> **What about the .tar.gz files on the release page?** Those are the standalone terminal statusline binary (no GUI app). Most Mac users just need the DMG. The tar.gz files are for Linux users or people who only want the Claude Code statusline without the menu bar dashboard.
+>
+> | File | Who it's for |
+> |------|-------------|
+> | **Sonde.dmg** | Mac users — the full menu bar app + dashboard |
+> | sonde-aarch64-apple-darwin.tar.gz | Mac (Apple Silicon) — terminal binary only |
+> | sonde-x86_64-apple-darwin.tar.gz | Mac (Intel) — terminal binary only |
+> | sonde-x86_64-unknown-linux-gnu.tar.gz | Linux x64 — terminal binary only |
+> | sonde-aarch64-unknown-linux-gnu.tar.gz | Linux ARM — terminal binary only |
+
 ### Terminal Statusline (macOS / Linux)
+
+The terminal statusline is also included inside the DMG app. But if you want it standalone:
 
 ```bash
 # Homebrew (recommended)
