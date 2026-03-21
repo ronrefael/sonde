@@ -66,12 +66,9 @@ Click to open a full dashboard with:
 ### The Terminal Statusline
 A Rust-powered statusline that renders directly in Claude Code:
 
-```
- sonde ›  main ›  Opus 4.6 (1M context) ›  5h 13% (2h45m) ›  7d 9% (6d 1h45m) ›  Comfortable ›  [━━━╌╌╌╌╌╌╌╌╌╌] 21%
- ⚡ 2X 2d 9h46m left
-```
+<img src="assets/screenshots/terminal-statusline.png" alt="Terminal statusline" width="600">
 
-20+ configurable modules including project name, git branch, model, usage gauges, pacing tier, context bar, and promo status. Renders typically under 50ms (~30ms measured on Apple Silicon). Powerline arrows with 6 color themes.
+20+ configurable modules including project name, git branch, model, usage gauges, pacing tier, context bar, and promo status. Renders typically under 50ms (~30ms measured on Apple Silicon). Powerline arrows with 7 color themes.
 
 ## Promo awareness
 
@@ -267,15 +264,7 @@ cd SondeApp && make dmg && open build/Sonde.dmg
 
 Each theme renders with powerline arrows and distinct color segments:
 
-```
-catppuccin-mocha:  Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
-dracula:           Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
-tokyo-night:       Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
-nord:              Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
-gruvbox:           Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
-solarized-dark:    Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
-sonde:             Opus ›  [━━━━╌╌╌╌╌╌] 42% ›  5h 42% ›  Elevated 38%
-```
+<img src="assets/screenshots/terminal-themes.png" alt="Terminal themes" width="600">
 
 ```bash
 sonde themes    # Preview all palettes in your terminal
