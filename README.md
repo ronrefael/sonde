@@ -250,17 +250,6 @@ style   = "fg:#7dcfff"
 
 Use as `$sonde.custom.cpu` in your `lines` config.
 
-### Webhook notifications
-
-```toml
-[sonde.notifications]
-webhook_url        = "https://hooks.slack.com/services/T.../B.../..."
-thresholds         = [80.0, 95.0]
-rate_limit_minutes = 5
-```
-
-Auto-detects Slack, Discord, or generic webhook format. Get pinged before you hit the wall.
-
 ---
 
 ## How it works
