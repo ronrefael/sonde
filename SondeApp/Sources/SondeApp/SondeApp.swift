@@ -36,54 +36,6 @@ struct SondeMenuBarApp: App {
         task.waitUntilExit()
     }
 
-    /// Detects app updates/reinstalls and clears cached state that can break
-    /// the popover. Preserves user preferences across updates.
-    /// Uses a separate defaults suite for the stamp so it survives domain wipes.
-    private static func clearStaleDefaultsIfNeeded() {
-        let stampSuite = UserDefaults(suiteName: "dev.sonde.app.launcher")!
-        let stampKey = "binaryStamp"
-
-        guard let binaryPath = Bundle.main.executablePath,
-              let attrs = try? FileManager.default.attributesOfItem(atPath: binaryPath),
-              let modDate = attrs[.modificationDate] as? Date,
-              let fileSize = attrs[.size] as? Int else { return }
-
-        let currentStamp = "\(modDate.timeIntervalSince1970)_\(fileSize)"
-        let savedStamp = stampSuite.string(forKey: stampKey)
-
-        if let saved = savedStamp, saved != currentStamp {
-            let defaults = UserDefaults.standard
-
-            // Save user preferences before nuking
-            let preserveKeys = [
-                "popoverTheme", "appearanceMode", "showMenuBarPromo",
-                "showMenuBarCountdown", "menuBarTimerMode", "pollInterval",
-                "hasCompletedOnboarding"
-            ]
-            var preserved: [String: Any] = [:]
-            for key in preserveKeys {
-                if let val = defaults.object(forKey: key) {
-                    preserved[key] = val
-                }
-            }
-
-            // Nuke all domains
-            for domain in ["dev.sonde.app", "dev.sonde.app.widget", "dev.sonde.core"] {
-                defaults.removePersistentDomain(forName: domain)
-            }
-            defaults.synchronize()
-
-            // Restore saved preferences
-            for (key, val) in preserved {
-                defaults.set(val, forKey: key)
-            }
-            defaults.synchronize()
-        }
-
-        stampSuite.set(currentStamp, forKey: stampKey)
-        stampSuite.synchronize()
-    }
-
     var body: some Scene {
         MenuBarExtra {
             PopoverView(viewModel: viewModel)
