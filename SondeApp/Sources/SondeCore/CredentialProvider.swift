@@ -3,26 +3,27 @@ import os.log
 
 private let logger = Logger(subsystem: "dev.sonde.app", category: "CredentialProvider")
 
-/// Retrieves Claude Code OAuth token from macOS Keychain.
-/// Uses `security` CLI (same approach as Rust binary) to avoid entitlement issues.
-/// Token is held only in memory, never persisted.
+/// Retrieves the Claude Code OAuth token from the macOS Keychain.
+///
+/// SECURITY:
+/// - The token is fetched on every request via `/usr/bin/security` and
+///   returned by value to the caller. It is **not** cached in process memory.
+/// - The previous 5-minute heap cache (`cachedToken` + `cacheTime`) was
+///   removed because it created a long-lived attack window where a crash
+///   dump, swap file, or another process scraping the heap could recover
+///   the token. The keychain itself is the cache.
+/// - On macOS the keychain ACL pops a one-time consent dialog the first
+///   time `security` accesses the credential; subsequent calls in the same
+///   session do not. Perceived cost of removing the in-process cache is
+///   sub-millisecond per request.
+/// - The token never touches disk, log files, stdout, or stderr.
 public enum CredentialProvider {
     private static let lock = NSLock()
-    private static var cachedToken: String?
-    private static var cacheTime: Date?
-    private static let cacheTTL: TimeInterval = 300
 
     public static func getOAuthToken() -> String? {
         #if os(macOS)
         lock.lock()
         defer { lock.unlock() }
-
-        if let token = cachedToken,
-           let time = cacheTime,
-           Date().timeIntervalSince(time) < cacheTTL
-        {
-            return token
-        }
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
@@ -37,12 +38,12 @@ public enum CredentialProvider {
             process.waitUntilExit()
         } catch {
             logger.warning("Keychain process failed to launch: \(error.localizedDescription)")
-            return cachedToken
+            return nil
         }
 
         guard process.terminationStatus == 0 else {
             logger.warning("Keychain lookup failed (status \(process.terminationStatus)) — credential may not exist")
-            return cachedToken
+            return nil
         }
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
@@ -50,30 +51,19 @@ public enum CredentialProvider {
               !raw.isEmpty
         else {
             logger.warning("Keychain returned empty data")
-            return cachedToken
+            return nil
         }
 
-        let token = extractAccessToken(from: raw)
-        if let token {
-            cachedToken = token
-            cacheTime = Date()
-            logger.info("OAuth token refreshed from Keychain")
-        } else {
-            logger.warning("Failed to extract accessToken from Keychain JSON")
-        }
-        return token
+        return extractAccessToken(from: raw)
         #else
         return nil
         #endif
     }
 
-    /// Invalidate the cached token (e.g. after a 401 response).
+    /// No-op kept for API compatibility with the previous in-process cache.
+    /// The token is now fetched fresh on every call; there is nothing to invalidate.
     public static func invalidateCachedToken() {
-        lock.lock()
-        defer { lock.unlock() }
-        cachedToken = nil
-        cacheTime = nil
-        logger.info("Cached OAuth token invalidated")
+        // Intentionally empty. See SECURITY note at the top of this file.
     }
 
     private static func extractAccessToken(from json: String) -> String? {

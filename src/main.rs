@@ -137,13 +137,20 @@ fn run_statusline() {
         println!("{output}");
     }
 
-    // Record usage history — fetch_usage is memoized per process via OnceLock,
-    // so this reuses the render cycle's data without an extra API call
+    // Prefer Claude Code v2.1.80+ stdin `rate_limits` over the OAuth endpoint.
+    // When present this is free (no HTTP) and authoritative.
     let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);
-    let five_hour_util =
-        usage_api::fetch_usage(ttl).and_then(|d| d.five_hour.and_then(|w| w.utilization));
-    let seven_day_util =
-        usage_api::fetch_usage(ttl).and_then(|d| d.seven_day.and_then(|w| w.utilization));
+    let usage = ctx
+        .rate_limits
+        .as_ref()
+        .map(usage_api::from_stdin_rate_limits)
+        .or_else(|| usage_api::fetch_usage(ttl));
+    let five_hour_util = usage
+        .as_ref()
+        .and_then(|d| d.five_hour.as_ref().and_then(|w| w.utilization));
+    let seven_day_util = usage
+        .as_ref()
+        .and_then(|d| d.seven_day.as_ref().and_then(|w| w.utilization));
     let session_cost = ctx.cost.as_ref().and_then(|c| c.total_cost_usd);
     history::record(five_hour_util, seven_day_util, session_cost);
 

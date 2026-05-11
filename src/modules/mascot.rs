@@ -77,7 +77,7 @@ pub(crate) fn detect_state(ctx: &Context, cfg: &SondeConfig) -> State {
 
     // Priority 2: Runaway — 5h utilization > 90%
     let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);
-    if let Some(data) = usage_api::fetch_usage(ttl) {
+    if let Some(data) = usage_api::fetch_for(ctx, ttl) {
         if let Some(util) = data.five_hour.as_ref().and_then(|w| w.utilization) {
             if util > 90.0 {
                 return State::Runaway;

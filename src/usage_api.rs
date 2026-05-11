@@ -1,19 +1,20 @@
 use serde::{Deserialize, Serialize};
-use std::sync::{mpsc, OnceLock};
+use std::sync::mpsc;
 use std::time::Duration;
 
 use crate::cache;
 use crate::platform;
 
 const USAGE_API_URL: &str = "https://api.anthropic.com/api/oauth/usage";
-const MESSAGES_API_URL: &str = "https://api.anthropic.com/v1/messages";
 const CACHE_NAME: &str = "usage_limits";
 const DEFAULT_TTL: u64 = 300; // 5 min — usage API aggressively rate-limits
 
-/// Per-process memoization — avoids duplicate API calls when multiple
-/// modules (usage_limits, pacing, model_suggestion) all request usage data
-/// in the same render cycle.
-static USAGE_MEMO: OnceLock<Option<UsageData>> = OnceLock::new();
+// SAFETY: Sonde must never spend the user's tokens to read rate-limit data.
+// The previous Messages-API "ping" fallback (POST /v1/messages with a 1-token
+// Haiku prompt) was removed. When the dedicated OAuth usage endpoint is
+// unavailable (429, network, or absent), prefer Claude Code's stdin
+// `rate_limits` field (see `Context::rate_limits`) or return stale cache.
+// Never send a billed request to discover usage.
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct UsageData {
@@ -36,9 +37,50 @@ pub struct ExtraUsage {
     pub utilization: Option<f64>,
 }
 
-/// Memoized per process — safe to call from multiple modules in one render.
+/// Fetch usage data.
+///
+/// Statusline renders re-exec the binary every cycle, so process-local
+/// memoization (previously a dead `OnceLock`) is meaningless. The on-disk
+/// cache at `~/Library/Caches/sonde/usage_limits.json` is the deduplication
+/// mechanism, and it is keyed to the 5h window reset to prevent staleness
+/// across resets.
 pub fn fetch_usage(ttl: Option<u64>) -> Option<UsageData> {
-    USAGE_MEMO.get_or_init(|| fetch_usage_inner(ttl)).clone()
+    fetch_usage_inner(ttl)
+}
+
+/// Preferred entry point for modules: takes a `Context` and a TTL, returns
+/// usage data from stdin `rate_limits` when present, else falls back to the
+/// (cached) OAuth endpoint. Never bills the user.
+pub fn fetch_for(ctx: &crate::context::Context, ttl: Option<u64>) -> Option<UsageData> {
+    if let Some(rl) = ctx.rate_limits.as_ref() {
+        return Some(from_stdin_rate_limits(rl));
+    }
+    fetch_usage(ttl)
+}
+
+/// Build a `UsageData` from a Claude Code statusline stdin `rate_limits`
+/// field. Lets the statusline use the harness-provided values (free, no
+/// HTTP call) instead of polling Anthropic's OAuth endpoint.
+pub fn from_stdin_rate_limits(rl: &crate::context::RateLimits) -> UsageData {
+    let pct = |w: &Option<crate::context::RateLimitWindow>| -> Option<f64> {
+        w.as_ref().and_then(|w| w.used_percentage)
+    };
+    let reset = |w: &Option<crate::context::RateLimitWindow>| -> Option<String> {
+        w.as_ref()
+            .and_then(|w| w.resets_at)
+            .and_then(|epoch| chrono::DateTime::from_timestamp(epoch, 0).map(|dt| dt.to_rfc3339()))
+    };
+    UsageData {
+        five_hour: Some(UsageWindow {
+            utilization: pct(&rl.five_hour),
+            resets_at: reset(&rl.five_hour),
+        }),
+        seven_day: Some(UsageWindow {
+            utilization: pct(&rl.seven_day),
+            resets_at: reset(&rl.seven_day),
+        }),
+        extra_usage: None,
+    }
 }
 
 fn fetch_usage_inner(ttl: Option<u64>) -> Option<UsageData> {
@@ -102,7 +144,10 @@ fn fetch_from_api() -> Result<UsageData, String> {
         .timeout(Duration::from_secs(5))
         .build();
 
-    // Try the dedicated usage endpoint first
+    // Only the dedicated OAuth usage endpoint is allowed. It does not consume
+    // tokens. If it fails (429, network, missing scopes) we must not fall back
+    // to anything that bills the user — return an error so the caller serves
+    // stale cache or omits the segment.
     match agent
         .get(USAGE_API_URL)
         .set("Authorization", &format!("Bearer {token}"))
@@ -114,103 +159,19 @@ fn fetch_from_api() -> Result<UsageData, String> {
                 .into_json()
                 .map_err(|e| format!("Failed to parse usage response: {e}"))?;
             tracing::debug!("Usage data from dedicated endpoint");
-            return Ok(data);
+            Ok(data)
         }
         Err(ureq::Error::Status(429, _)) => {
-            tracing::debug!("Usage endpoint returned 429, falling back to Messages API headers");
+            Err("Usage endpoint rate-limited (429); using stdin or cached data".into())
         }
-        Err(e) => {
-            tracing::debug!("Usage endpoint failed: {e}, trying Messages API fallback");
-        }
+        Err(e) => Err(format!("Usage endpoint failed: {e}")),
     }
-
-    // Fallback: send a minimal Messages API request and read rate limit headers.
-    // The response headers contain the same utilization data.
-    fetch_from_messages_headers(&token, &agent)
-}
-
-/// Send a minimal Messages API request to extract rate limit headers.
-/// Headers like `anthropic-ratelimit-unified-5h-utilization` contain
-/// the same data as the usage endpoint.
-fn fetch_from_messages_headers(token: &str, agent: &ureq::Agent) -> Result<UsageData, String> {
-    let body = serde_json::json!({
-        "model": "claude-haiku-4-5-20251001",
-        "max_tokens": 1,
-        "messages": [{"role": "user", "content": "."}]
-    });
-
-    let result = agent
-        .post(MESSAGES_API_URL)
-        .set("x-api-key", token)
-        .set("anthropic-version", "2023-06-01")
-        .set("content-type", "application/json")
-        .send_string(&body.to_string());
-
-    match result {
-        Ok(resp) => {
-            // Success — parse headers from 200 response
-            if let Some(data) = parse_rate_limit_headers(&resp) {
-                tracing::debug!("Usage data from Messages API headers (200)");
-                return Ok(data);
-            }
-            Err("No rate limit headers in Messages API 200 response".to_string())
-        }
-        Err(ureq::Error::Status(_, resp)) => {
-            // Error response (400, 429, etc.) — headers are still present
-            if let Some(data) = parse_rate_limit_headers(&resp) {
-                tracing::debug!("Usage data from Messages API headers (error response)");
-                return Ok(data);
-            }
-            Err(format!(
-                "Messages API returned {} with no rate limit headers",
-                resp.status()
-            ))
-        }
-        Err(e) => Err(format!("Messages API request failed: {e}")),
-    }
-}
-
-fn parse_rate_limit_headers(resp: &ureq::Response) -> Option<UsageData> {
-    // Values are 0.0-1.0 decimals — multiply by 100 for percentage
-    let five_hour_util = resp
-        .header("anthropic-ratelimit-unified-5h-utilization")
-        .and_then(|v| v.parse::<f64>().ok())
-        .map(|v| v * 100.0);
-    let seven_day_util = resp
-        .header("anthropic-ratelimit-unified-7d-utilization")
-        .and_then(|v| v.parse::<f64>().ok())
-        .map(|v| v * 100.0);
-
-    // Reset times are epoch seconds — convert to ISO 8601
-    let five_hour_reset = resp
-        .header("anthropic-ratelimit-unified-5h-reset")
-        .and_then(|s| s.parse::<i64>().ok())
-        .and_then(|epoch| chrono::DateTime::from_timestamp(epoch, 0).map(|dt| dt.to_rfc3339()));
-    let seven_day_reset = resp
-        .header("anthropic-ratelimit-unified-7d-reset")
-        .and_then(|s| s.parse::<i64>().ok())
-        .and_then(|epoch| chrono::DateTime::from_timestamp(epoch, 0).map(|dt| dt.to_rfc3339()));
-
-    if five_hour_util.is_none() && seven_day_util.is_none() {
-        return None;
-    }
-
-    Some(UsageData {
-        five_hour: Some(UsageWindow {
-            utilization: five_hour_util,
-            resets_at: five_hour_reset,
-        }),
-        seven_day: Some(UsageWindow {
-            utilization: seven_day_util,
-            resets_at: seven_day_reset,
-        }),
-        extra_usage: None,
-    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::context;
 
     #[test]
     fn parse_usage_response() {
@@ -223,5 +184,87 @@ mod tests {
             (data.seven_day.as_ref().unwrap().utilization.unwrap() - 67.0).abs() < f64::EPSILON
         );
         assert!(data.extra_usage.as_ref().unwrap().is_enabled.unwrap());
+    }
+
+    #[test]
+    fn from_stdin_rate_limits_maps_fields() {
+        let rl = context::RateLimits {
+            five_hour: Some(context::RateLimitWindow {
+                used_percentage: Some(42.0),
+                resets_at: Some(1717000000),
+            }),
+            seven_day: Some(context::RateLimitWindow {
+                used_percentage: Some(7.5),
+                resets_at: None,
+            }),
+        };
+        let data = from_stdin_rate_limits(&rl);
+        assert_eq!(data.five_hour.as_ref().unwrap().utilization, Some(42.0));
+        assert!(data
+            .five_hour
+            .as_ref()
+            .unwrap()
+            .resets_at
+            .as_deref()
+            .map(|s| s.contains('T'))
+            .unwrap_or(false));
+        assert_eq!(data.seven_day.as_ref().unwrap().utilization, Some(7.5));
+        assert!(data.seven_day.as_ref().unwrap().resets_at.is_none());
+    }
+
+    #[test]
+    fn fetch_for_prefers_stdin_over_api() {
+        // If ctx has rate_limits, fetch_for must return that data without
+        // touching the network or filesystem.
+        let ctx = context::Context {
+            rate_limits: Some(context::RateLimits {
+                five_hour: Some(context::RateLimitWindow {
+                    used_percentage: Some(33.3),
+                    resets_at: Some(1717000000),
+                }),
+                seven_day: None,
+            }),
+            ..Default::default()
+        };
+        let data = fetch_for(&ctx, Some(60)).expect("stdin path returned data");
+        assert_eq!(data.five_hour.unwrap().utilization, Some(33.3));
+    }
+
+    /// SAFETY guard. The previous Messages-API "ping" fallback was a billed
+    /// POST to read rate-limit headers. This test fails if any future change
+    /// re-introduces such a path.
+    ///
+    /// We look for the exact production patterns (a `POST` to a `messages`
+    /// path, or a constant named like the old URL) without false-matching the
+    /// test's own assertion strings.
+    #[test]
+    fn no_billed_messages_api_calls_in_source() {
+        let src = include_str!("usage_api.rs");
+        // Strip line comments and the test module so we only scan production code.
+        let mut prod = String::new();
+        let mut in_tests = false;
+        for line in src.lines() {
+            if line.trim_start().starts_with("#[cfg(test)]") {
+                in_tests = true;
+            }
+            if in_tests {
+                continue;
+            }
+            // Drop // comments so the SAFETY note doesn't trip the guard.
+            let no_comment = line.split("//").next().unwrap_or("");
+            prod.push_str(no_comment);
+            prod.push('\n');
+        }
+        // Concatenated to avoid the assertion text being grepped by the test.
+        let messages_path = concat!("/v1/", "messages");
+        assert!(
+            !prod.contains(messages_path),
+            "production code must not reference the Anthropic Messages endpoint to read rate limits"
+        );
+        let url_const = concat!("MESSAGES", "_API_URL");
+        assert!(
+            !prod.contains(url_const),
+            "production code must not define a Messages API URL constant"
+        );
     }
 }

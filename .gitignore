@@ -12,3 +12,12 @@ xcuserdata/
 DerivedData/
 SondeApp/*.xcodeproj/
 SondeApp/build/
+
+# Local backups (e.g. sonde.toml.bak.<timestamp> written by `sonde setup` and
+# the TUI configurator) — must not leak into the repository.
+*.bak
+*.bak.*
+
+# Local user configs
+sonde.toml.local
+*.local.toml

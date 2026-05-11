@@ -200,7 +200,7 @@ fn build_powerline_segments(
                 if is_sonde {
                     // Use sonde-specific pace colors
                     let palette = crate::themes::get_palette(theme);
-                    match modules::pacing::current_pacing(cfg) {
+                    match modules::pacing::current_pacing(ctx, cfg) {
                         Some((tier, _)) => {
                             let bg = crate::themes::sonde_pace_color(tier.label(), is_light);
                             (palette.base, bg)
@@ -209,7 +209,7 @@ fn build_powerline_segments(
                     }
                 } else {
                     let palette = crate::themes::get_palette(theme);
-                    match modules::pacing::current_pacing(cfg) {
+                    match modules::pacing::current_pacing(ctx, cfg) {
                         Some((tier, _)) => (palette.base, tier.powerline_bg()),
                         None => ansi::powerline_colors_for_theme(theme, &c.name),
                     }

@@ -360,12 +360,14 @@ fn save_config(state: &ConfigState) -> Result<(), Box<dyn std::error::Error>> {
     let _: toml::Value = toml::from_str(&toml_content)?;
 
     // Find or create config path
-    let config_path = config::discover_config_path().unwrap_or_else(|| {
-        dirs::config_dir()
-            .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".config"))
-            .join("sonde")
-            .join("sonde.toml")
-    });
+    let config_path = config::discover_config_path()
+        .map(|(p, _)| p)
+        .unwrap_or_else(|| {
+            dirs::config_dir()
+                .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".config"))
+                .join("sonde")
+                .join("sonde.toml")
+        });
 
     // Backup existing config
     if config_path.exists() {

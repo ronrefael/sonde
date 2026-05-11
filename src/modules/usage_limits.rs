@@ -4,7 +4,7 @@ use crate::usage_api;
 
 use crate::context::Context;
 
-pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
+pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let ucfg = cfg.usage_limits.as_ref();
 
     if let Some(c) = ucfg {
@@ -14,7 +14,7 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     }
 
     let ttl = ucfg.and_then(|c| c.ttl);
-    let data = match usage_api::fetch_usage(ttl) {
+    let data = match usage_api::fetch_for(ctx, ttl) {
         Some(d) => d,
         None => {
             tracing::debug!("usage_limits: no usage data available");

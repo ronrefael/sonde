@@ -109,12 +109,13 @@ impl App {
             self.promo_label = status.label.unwrap_or_default();
         }
 
-        if let Some((tier, _)) = pacing::current_pacing(&self.cfg) {
+        // TUI has no stdin context — detect state from API data alone
+        let ctx = crate::context::Context::default();
+
+        if let Some((tier, _)) = pacing::current_pacing(&ctx, &self.cfg) {
             self.pace_tier = Some(tier);
         }
 
-        // TUI has no stdin context — detect state from API data alone
-        let ctx = crate::context::Context::default();
         self.mascot_state = mascot::detect_state(&ctx, &self.cfg);
     }
 

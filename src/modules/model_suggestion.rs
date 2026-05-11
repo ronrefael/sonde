@@ -15,7 +15,7 @@ pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     }
 
     let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);
-    let data = usage_api::fetch_usage(ttl)?;
+    let data = usage_api::fetch_for(ctx, ttl)?;
     let utilization = data.five_hour.as_ref()?.utilization?;
 
     if utilization < 60.0 {

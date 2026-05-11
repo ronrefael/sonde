@@ -452,6 +452,16 @@ private struct StatuslineStep: View {
         .onAppear { checkStatusline() }
     }
 
+    /// Resolve the bundled `sonde` CLI path so the settings entry points at
+    /// a real binary. Falls back to the bare name if the bundle is missing
+    /// (e.g. dev builds), which still works if `sonde` is on PATH.
+    private func sondeBinaryPath() -> String {
+        if let bundled = Bundle.main.url(forAuxiliaryExecutable: "sonde") {
+            return bundled.path
+        }
+        return "sonde"
+    }
+
     private func checkStatusline() {
         let homeDir = realHomeDir()
         let settingsPath = homeDir.appendingPathComponent(".claude/settings.json")
@@ -461,9 +471,15 @@ private struct StatuslineStep: View {
             hasChecked = true
             return
         }
-        // Check if env.CLAUDE_CODE_STATUSLINE is set
-        if let env = json["env"] as? [String: Any],
-           env["CLAUDE_CODE_STATUSLINE"] != nil {
+        // Claude Code's real statusline integration is configured under
+        // `statusLine.command` (string) or `statusLine` (object with
+        // `command`). We treat any non-empty command that mentions `sonde`
+        // as configured.
+        if let sl = json["statusLine"] as? [String: Any],
+           let cmd = sl["command"] as? String,
+           cmd.contains("sonde") {
+            statuslineConfigured = true
+        } else if let cmd = json["statusLine"] as? String, cmd.contains("sonde") {
             statuslineConfigured = true
         }
         hasChecked = true
@@ -475,8 +491,11 @@ private struct StatuslineStep: View {
 
         let homeDir = realHomeDir()
         let settingsPath = homeDir.appendingPathComponent(".claude/settings.json")
-        let backupPath = homeDir.appendingPathComponent(".claude/settings.json.bak")
+        let claudeDir = homeDir.appendingPathComponent(".claude")
         let fm = FileManager.default
+
+        // Ensure ~/.claude exists.
+        try? fm.createDirectory(at: claudeDir, withIntermediateDirectories: true)
 
         var json: [String: Any] = [:]
 
@@ -484,14 +503,23 @@ private struct StatuslineStep: View {
         if let data = try? Data(contentsOf: settingsPath),
            let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             json = existing
-            // Create backup
+
+            // Timestamped backup, matching Rust's src/setup.rs convention.
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyyMMddHHmmss"
+            let ts = fmt.string(from: Date())
+            let backupPath = homeDir.appendingPathComponent(".claude/settings.json.bak.\(ts)")
             try? fm.copyItem(at: settingsPath, to: backupPath)
         }
 
-        // Set the statusline config
-        var env = json["env"] as? [String: Any] ?? [:]
-        env["CLAUDE_CODE_STATUSLINE"] = "1"
-        json["env"] = env
+        // Real Claude Code statusline key: `statusLine.command`.
+        // (The previous build wrote `env.CLAUDE_CODE_STATUSLINE`, which
+        // Claude Code ignores — the wizard reported success while the
+        // statusline never ran.)
+        var statusLine = json["statusLine"] as? [String: Any] ?? [:]
+        statusLine["type"] = "command"
+        statusLine["command"] = sondeBinaryPath()
+        json["statusLine"] = statusLine
 
         // Write back
         do {

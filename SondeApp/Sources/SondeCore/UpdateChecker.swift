@@ -4,14 +4,42 @@ import Foundation
 public actor UpdateChecker {
     public static let shared = UpdateChecker()
 
-    private let currentVersion = "0.1.0"
+    /// Read the bundle's `CFBundleShortVersionString` (e.g. "1.0.0") at runtime
+    /// instead of hard-coding a value. The previous build hard-coded "0.1.0",
+    /// so every installed v1.x.x user saw a permanent false "Update available!"
+    /// banner that just pointed at the same release they already had.
+    static func resolveCurrentVersion() -> String {
+        if let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+           !v.isEmpty {
+            return v
+        }
+        // Final fallback for unit-test bundles and ad-hoc dev runs. We deliberately
+        // pick a sentinel that is *higher* than any plausible release so that we
+        // never advertise an upgrade we can't verify; a missing version is treated
+        // as "already on a development build", not "needs upgrade".
+        return "9999.0.0"
+    }
+
+    private let currentVersion: String
     private let releasesURL = URL(string: "https://api.github.com/repos/ronrefael/sonde/releases/latest")!
 
     private var cachedResult: (available: Bool, latestVersion: String)?
     private var cacheDate: Date?
     private let cacheDuration: TimeInterval = 6 * 60 * 60 // 6 hours
 
-    public init() {}
+    public init() {
+        self.currentVersion = Self.resolveCurrentVersion()
+    }
+
+    /// Test seam: build a checker with a known version string.
+    init(currentVersion: String) {
+        self.currentVersion = currentVersion
+    }
+
+    /// Public for tests / diagnostics.
+    public func reportedCurrentVersion() -> String {
+        currentVersion
+    }
 
     /// Returns `(available: true, latestVersion)` when a newer release exists, or nil on failure.
     public func check() async -> (available: Bool, latestVersion: String)? {

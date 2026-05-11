@@ -102,10 +102,10 @@ fn check_promo_api() -> Check {
 
 fn check_config_found() -> Check {
     match config::discover_config_path() {
-        Some(path) => Check {
+        Some((path, source)) => Check {
             name: "Config file found",
             passed: true,
-            detail: format!("{}", path.display()),
+            detail: format!("{} ({:?})", path.display(), source),
         },
         None => Check {
             name: "Config file found",
@@ -117,7 +117,7 @@ fn check_config_found() -> Check {
 
 fn check_config_valid() -> Check {
     match config::discover_config_path() {
-        Some(path) => match std::fs::read_to_string(&path) {
+        Some((path, _source)) => match std::fs::read_to_string(&path) {
             Ok(content) => match toml::from_str::<config::ConfigFile>(&content) {
                 Ok(_) => Check {
                     name: "Config file valid",

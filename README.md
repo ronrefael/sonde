@@ -3,7 +3,11 @@
 </p>
 
 <p align="center">
-  <strong>Know when you're about to get rate-limited. Before it happens.</strong>
+  <strong>Local-first Claude Code usage, pacing, and per-project session insight.</strong>
+</p>
+
+<p align="center">
+  <sub>Rust statusline + native macOS menu bar app. No telemetry. No accounts.</sub>
 </p>
 
 <p align="center">
@@ -13,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="#the-one-thing-no-other-tool-does">Why Sonde</a> &bull;
+  <a href="#what-sonde-does">What Sonde does</a> &bull;
   <a href="#install">Install</a> &bull;
   <a href="#the-menu-bar-app">Menu Bar App</a> &bull;
   <a href="#the-terminal-statusline">Terminal Statusline</a> &bull;
@@ -38,30 +42,23 @@
 
 ---
 
-## The one thing no other tool does
+## What Sonde does
 
-Claude Code periodically runs **capacity promotions** that increase your rate limits, sometimes dramatically. But Anthropic doesn't send push notifications. You'd have to check their status page manually to know one is active.
+Sonde reads the JSON Claude Code already pipes to its statusline (including the
+`rate_limits` field added in Claude Code v2.1.80 on 2026-03-19) and your local
+session transcripts under `~/.claude/projects/`, then renders:
 
-**sonde tracks this for you.** It monitors Claude's promotion page, detects when any promotion starts and how long it lasts, and adjusts your pacing predictions automatically. No more guessing whether it's safe to go heavy on a coding session.
+- **Real-time 5-hour and 7-day rate-limit usage**, sourced from the harness's
+  stdin field when available. No paid API calls.
+- **Pacing tier with time-to-limit estimate**, based on your local history.
+- **Per-project session analytics** — tokens, cache reads/writes, message
+  counts — computed from the JSONL transcripts on disk.
+- **Context-window progress bar** for the active session.
+- **Active-session count** across your running Claude Code projects.
 
-> **How it works:** sonde monitors Claude's promotion page and cross-references it with your real-time usage from Claude Code's OAuth API. When a promotion is active and you're at 50% usage, sonde factors in the boosted capacity, so it tells you to keep going instead of slowing down.
-
-As Anthropic releases new promotions, sonde picks them up automatically. Zero configuration.
-
----
-
-## But it does a lot more than promos
-
-You're deep in a coding session. Claude is on fire. Then suddenly, rate limited. No warning. No countdown. Just... stopped.
-
-**sonde** is the fuel gauge for your AI coding tools. It sits in your menu bar and terminal, continuously showing you exactly where you stand:
-
-- **Real-time usage:** how much of your 5-hour and 7-day rate limits you've consumed
-- **Pacing predictions:** your burn rate, time-to-limit, and whether you should slow down
-- **Promotion awareness:** automatic detection of any active capacity promotions
-- **Per-project analytics:** token counts, cache efficiency, message history, and conversation breakdowns
-- **Multi-session monitoring:** track all running Claude Code sessions across projects
-- **Context window tracking:** visual progress bar showing how full your context is
+Claude Code occasionally runs capacity promotions; Sonde will surface one if
+it's active, but this is no longer the headline feature — Anthropic permanently
+raised baseline 5-hour limits for Pro/Max in May 2026.
 
 ---
 
@@ -222,7 +219,7 @@ A Rust-powered statusline that renders directly inside Claude Code:
   <img src="assets/screenshots/terminal-statusline-dark.png" alt="Terminal statusline dark" width="600">
 </p>
 
-Renders in under 50ms (~30ms on Apple Silicon). Every segment is a configurable module:
+Every segment is a configurable module:
 
 | Module | What it shows |
 |--------|---------------|
@@ -283,11 +280,62 @@ sonde looks for config in this order:
 
 ---
 
-## How it works
+## Privacy and network
 
-sonde reads Claude Code's OAuth token from your system keychain (never stored to disk), calls the usage API, caches results for 60 seconds, and renders everything in real-time.
+Sonde is local-first. No accounts, no telemetry, no analytics, no error reports.
 
-**Security**: Your OAuth token never touches disk, logs, cache, or stdout. It's held in memory only for the duration of the API call, then dropped. We're paranoid about this.
+### What goes over the network
+
+| URL | When it's called | Why | How to disable |
+|---|---|---|---|
+| `api.anthropic.com/api/oauth/usage` | Only when Claude Code's stdin doesn't already provide `rate_limits` (older Claude Code, or before the first API response in a session). Cached 5 min. | Read 5h / 7d rate-limit utilization. **Does not consume tokens.** | Disable the usage modules in `sonde.toml`. |
+| `promoclock.co/api/status` | Only when the promo badge module is enabled. 5-min cache. | Detect Claude Code capacity promotions. Third-party domain. Mostly vestigial since Anthropic permanently raised Pro/Max limits in May 2026. | `[sonde.promo_badge] enabled = false`. |
+| `support.claude.com/...` | macOS menu bar app only, hourly | Scrapes Anthropic's promotion notice page. | Disable promo detection in the menu bar app settings. |
+| GitHub releases API | Only when checking for updates | Update version comparison | Disable update checks in the menu bar app settings. |
+| Discord / Slack webhook URLs | Only if you explicitly configure `[sonde.notifications] webhook_url = "..."` in a trusted config (see below) | Opt-in threshold alerts | Don't configure a webhook URL. |
+
+Sonde **never** sends a paid request (`POST /v1/messages`) just to read your
+own rate-limit data. An earlier version did fall back to such a "ping" when
+the OAuth usage endpoint was rate-limited; that path has been removed.
+
+### OAuth token handling
+
+- On Claude Code v2.1.80+, Sonde does **not access the OAuth token at all** for
+  rate-limit data on the statusline path — the harness provides `rate_limits`
+  on stdin. The menu bar app still reads the token from the macOS Keychain on
+  demand for richer views like `extra_usage`.
+- When the token is needed, it is read from the keychain via
+  `/usr/bin/security`, used for one HTTPS call, and dropped. Never logged,
+  never written to disk, never cached in process memory beyond the request.
+
+### Configuration sources and trust
+
+Sonde looks for `sonde.toml` in this order:
+
+1. `$SONDE_CONFIG` (trusted)
+2. `./sonde.toml` (project-local — **untrusted by default**)
+3. `~/Library/Application Support/sonde/sonde.toml` or `~/.config/sonde/sonde.toml` (trusted)
+4. `~/.sonde.toml` (trusted)
+
+**SECURITY**: a `sonde.toml` discovered in the current working directory could
+have been planted by a third party (for example, in a repository you just
+cloned). Since Sonde renders the statusline every prompt, two TOML sections
+are dangerous if loaded from an untrusted source:
+
+- `[sonde.custom.*] command = "..."` runs shell commands on every render.
+- `[sonde.notifications] webhook_url = "..."` sends usage data to an arbitrary URL.
+
+Sonde now **strips both sections** from project-local configs by default and
+emits a warning. To opt in for a repository you actually trust, export
+`SONDE_TRUST_LOCAL_CUSTOM=1` in your shell. Trusted config locations (env-var,
+XDG, home) are not affected.
+
+### Local writes
+
+- `~/Library/Caches/sonde/` (macOS) or platform cache dir (Linux) — usage and
+  promo caches, session data snapshots, optional webhook rate-limit state.
+- `~/.claude/settings.json` — only when you run `sonde setup` or finish the
+  menu bar app's onboarding wizard. Both make a timestamped `.bak` first.
 
 ---
 
@@ -303,12 +351,10 @@ sonde reads Claude Code's OAuth token from your system keychain (never stored to
 
 ---
 
-## What's next
+## Roadmap
 
-- Apple notarization (no more `xattr` workaround)
-- Webhook notifications (Slack/Discord alerts when usage gets high)
-- VS Code extension
-- iOS companion app
+The current prioritized roadmap (with severity, source-cited findings, and
+sequencing) lives in [`docs/audits/SONDE_ROADMAP.md`](docs/audits/SONDE_ROADMAP.md).
 
 ---
 
@@ -319,5 +365,5 @@ MIT
 ---
 
 <p align="center">
-  Built with obsessive attention to detail by developers who got rate-limited one too many times.
+  Maintained by Ron Refael (<a href="https://github.com/ronrefael">@ronrefael</a>). Issues and PRs welcome.
 </p>

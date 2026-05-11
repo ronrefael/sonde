@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # sonde installer
-# Usage: curl -sSf https://raw.githubusercontent.com/sonde-dev/sonde/main/install.sh | bash
+# Usage: curl -sSf https://raw.githubusercontent.com/ronrefael/sonde/main/install.sh | bash
 
-REPO="sonde-dev/sonde"
+REPO="ronrefael/sonde"
 BINARY="sonde"
 INSTALL_DIR="${SONDE_INSTALL_DIR:-$HOME/.local/bin}"
 

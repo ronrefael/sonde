@@ -100,9 +100,9 @@ pub fn calculate_tier(utilization: f64, promo_active: bool) -> PaceTier {
     }
 }
 
-pub fn current_pacing(cfg: &SondeConfig) -> Option<(PaceTier, f64)> {
+pub fn current_pacing(ctx: &Context, cfg: &SondeConfig) -> Option<(PaceTier, f64)> {
     let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);
-    let data = usage_api::fetch_usage(ttl)?;
+    let data = usage_api::fetch_for(ctx, ttl)?;
     let utilization = data.five_hour.as_ref().and_then(|w| w.utilization)?;
 
     let promo_aware = cfg
@@ -251,10 +251,16 @@ fn predict_time_to_limit_with_history_threshold(
     // We intentionally do NOT filter by window_start_epoch so that the user's
     // rate carries across 5h window resets. A user working through a reset
     // should see continuous prediction rather than a 3-5 minute blank gap.
+    //
+    // SAFETY: also drop NaN / non-finite utilization values. A corrupt cache
+    // line (e.g. truncated write, manual edit, NaN serialized via prior bug)
+    // must not poison the predictor — `f64::partial_cmp` returns `None` on
+    // NaN and previously panicked the entire statusline render. Statusline
+    // panics under `panic="abort"` produce a blank line with no diagnostic.
     let relevant: Vec<&history::HistoryEntry> = history
         .iter()
         .filter(|e| e.timestamp >= rate_cutoff)
-        .filter(|e| e.five_hour_util.is_some())
+        .filter(|e| e.five_hour_util.is_some_and(|u| u.is_finite()))
         .collect();
 
     // --- Gate 3: enough samples ---
@@ -271,10 +277,15 @@ fn predict_time_to_limit_with_history_threshold(
     // Build the sample series: history entries + current live reading.
     let mut samples: Vec<(f64, f64)> = relevant
         .iter()
-        .map(|e| (e.timestamp as f64, e.five_hour_util.unwrap()))
+        .filter_map(|e| e.five_hour_util.map(|u| (e.timestamp as f64, u)))
+        .filter(|(_, u)| u.is_finite())
         .collect();
-    samples.push((now_epoch as f64, utilization));
-    samples.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    if utilization.is_finite() {
+        samples.push((now_epoch as f64, utilization));
+    }
+    // partial_cmp returns None for NaN. We already filtered non-finite values,
+    // but treat any residual incomparable pair as Equal rather than panicking.
+    samples.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
     // Session idle timeout: if there's a 30+ minute gap with near-zero
     // utilization change, only use samples after the gap (new session).
@@ -418,7 +429,7 @@ fn format_time(secs: f64) -> String {
     }
 }
 
-pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
+pub fn render(ctx: &Context, cfg: &SondeConfig) -> Option<String> {
     let pcfg = cfg.pacing.as_ref();
 
     if let Some(c) = pcfg {
@@ -427,7 +438,7 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
         }
     }
 
-    let (tier, _remaining) = current_pacing(cfg)?;
+    let (tier, _remaining) = current_pacing(ctx, cfg)?;
 
     let show_prediction = pcfg.and_then(|c| c.show_prediction).unwrap_or(true);
 
@@ -435,7 +446,7 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
 
     if show_prediction {
         let ttl = cfg.usage_limits.as_ref().and_then(|c| c.ttl);
-        if let Some(data) = usage_api::fetch_usage(ttl) {
+        if let Some(data) = usage_api::fetch_for(ctx, ttl) {
             let util = data.five_hour.as_ref().and_then(|w| w.utilization);
             let resets = data.five_hour.as_ref().and_then(|w| w.resets_at.as_deref());
             if let (Some(u), Some(r)) = (util, resets) {
@@ -453,6 +464,99 @@ pub fn render(_ctx: &Context, cfg: &SondeConfig) -> Option<String> {
 mod tests {
     use super::*;
     use crate::history::HistoryEntry;
+
+    // --- Crash-class regression tests ---
+    //
+    // The previous code path called `.unwrap()` on `partial_cmp` and on the
+    // `Option<f64>` history field. Either would panic on NaN or on a missing
+    // value. With `panic="abort"` + `strip=true` the statusline silently
+    // produced an empty line and the user had no signal anything broke.
+    // These tests pin the safe-degradation behavior.
+
+    fn now() -> chrono::DateTime<chrono::Utc> {
+        chrono::DateTime::from_timestamp(1_717_000_000, 0).unwrap()
+    }
+
+    fn entry(secs_ago: i64, util: Option<f64>) -> HistoryEntry {
+        HistoryEntry {
+            timestamp: (now().timestamp() - secs_ago) as u64,
+            five_hour_util: util,
+            seven_day_util: None,
+            session_cost: None,
+        }
+    }
+
+    fn future_reset() -> Option<String> {
+        Some((now() + chrono::Duration::seconds(2 * 3600)).to_rfc3339())
+    }
+
+    #[test]
+    fn predictor_tolerates_nan_in_history() {
+        let history = vec![
+            entry(300, Some(f64::NAN)),
+            entry(240, Some(50.0)),
+            entry(180, Some(55.0)),
+            entry(120, Some(60.0)),
+            entry(60, Some(65.0)),
+        ];
+        // Must not panic; result may be Some(_) or None depending on heuristics.
+        let _ =
+            predict_time_to_limit_with_history(70.0, future_reset().as_deref(), &history, now());
+    }
+
+    #[test]
+    fn predictor_tolerates_infinity_in_history() {
+        let history = vec![
+            entry(240, Some(f64::INFINITY)),
+            entry(180, Some(55.0)),
+            entry(120, Some(60.0)),
+            entry(60, Some(65.0)),
+        ];
+        let _ =
+            predict_time_to_limit_with_history(70.0, future_reset().as_deref(), &history, now());
+    }
+
+    #[test]
+    fn predictor_tolerates_missing_util_in_history() {
+        let history = vec![
+            entry(300, None),
+            entry(240, None),
+            entry(180, Some(55.0)),
+            entry(120, Some(60.0)),
+            entry(60, Some(65.0)),
+        ];
+        let _ =
+            predict_time_to_limit_with_history(70.0, future_reset().as_deref(), &history, now());
+    }
+
+    #[test]
+    fn predictor_tolerates_nan_current_utilization() {
+        let history = vec![
+            entry(240, Some(50.0)),
+            entry(180, Some(55.0)),
+            entry(120, Some(60.0)),
+            entry(60, Some(65.0)),
+        ];
+        let _ = predict_time_to_limit_with_history(
+            f64::NAN,
+            future_reset().as_deref(),
+            &history,
+            now(),
+        );
+    }
+
+    #[test]
+    fn predictor_tolerates_all_corrupt_history() {
+        let history = vec![
+            entry(240, Some(f64::NAN)),
+            entry(180, Some(f64::INFINITY)),
+            entry(120, None),
+        ];
+        // No valid samples at all: predictor should fall back to the cold-start
+        // estimator or return None, without panicking.
+        let _ =
+            predict_time_to_limit_with_history(70.0, future_reset().as_deref(), &history, now());
+    }
 
     // --- Tier tests (unchanged) ---
 
